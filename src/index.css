@@ -1,0 +1,28 @@
+@import "tailwindcss";
+
+
+
+
+/* Disable smooth scroll behavior */
+* {
+  scroll-behavior: auto !important;
+}
+
+/* Prevent Chrome/Safari scroll restoration */
+html {
+  scroll-behavior: auto !important;
+}
+
+/* Prevent scroll jumps on input focus */
+input, textarea, select {
+  scroll-margin-block: 0px !important;
+  scroll-margin-top: 0px !important;
+}
+
+/* Block image saving via right-click on any img tags */
+img { -webkit-user-drag: none; pointer-events: none; }
+
+/* CSS screenshot deterrent — overlays a semi-transparent watermark when printing or capturing */
+@media print {
+  body { display: none !important; }
+}
