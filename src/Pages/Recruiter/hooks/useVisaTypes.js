@@ -8,7 +8,7 @@ export const useVisaTypes = () => {
   const fetchVisaTypes = useCallback(async () => {
     try {
       setVisaTypesLoading(true);
-      const response = await axios.get('http://localhost:5000/api/visa');
+      const response = await axios.get('https://uaw-backend.vercel.app/api/visa');
 
       if (response.data && Array.isArray(response.data)) {
         const visaTypeNames = response.data.map(item => item.VisaType);
