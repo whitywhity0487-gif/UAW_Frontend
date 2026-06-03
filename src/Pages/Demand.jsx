@@ -102,7 +102,7 @@
 
     const fetchDemands = async () => {
       try {
-        const response = await fetch("http://localhost:5000/api/demand");
+        const response = await fetch("https://uaw-backend.vercel.app/api/demand");
         if (!response.ok) throw new Error("Failed to fetch demands");
         const data = await response.json();
         setDemands(data);
@@ -122,7 +122,7 @@
         console.log(`🔄 Updating candidates status for demand ${demandId} to not in progress (keeping selections)`);
 
         // Call the new endpoint that ONLY updates isInProgress, doesn't delete
-        const response = await axios.put(`http://localhost:5000/api/selected-candidates/demand/${demandId}/update-status`);
+        const response = await axios.put(`https://uaw-backend.vercel.app/api/selected-candidates/demand/${demandId}/update-status`);
 
         if (response.data.success) {
           console.log(`✅ Updated ${response.data.data?.updatedCount || 0} candidates to not in progress`);
@@ -141,7 +141,7 @@
       try {
         console.log(`🗑️ Removing all selected candidates for demand ${demandId}`);
 
-        const response = await axios.delete(`http://localhost:5000/api/selected-candidates/demand/${demandId}/all`);
+        const response = await axios.delete(`https://uaw-backend.vercel.app/api/selected-candidates/demand/${demandId}/all`);
 
         if (response.data.success) {
           console.log(`✅ Removed all selected candidates for demand ${demandId}`);
@@ -164,7 +164,7 @@
     // Function to fetch selected candidates for a specific demand
     const fetchSelectedCandidates = async (demandId) => {
       try {
-        const response = await axios.get(`http://localhost:5000/api/selected-candidates/${demandId}`);
+        const response = await axios.get(`https://uaw-backend.vercel.app/api/selected-candidates/${demandId}`);
 
         if (response.data.success) {
           // console.log(`✅ Fetched ${response.data.data.length} selected candidates for demand ${demandId}`);
@@ -242,7 +242,7 @@
 
         console.log("Sending PUT request with body:", requestBody);
 
-        const response = await axios.put(`http://localhost:5000/api/selected-candidates/status`, requestBody);
+        const response = await axios.put(`https://uaw-backend.vercel.app/api/selected-candidates/status`, requestBody);
 
         console.log("Response from server:", response.data);
 
@@ -282,7 +282,7 @@
         const user = JSON.parse(localStorage.getItem("user")) || {};
         const changedBy = user.name || user.username || 'Unknown';
 
-        const response = await axios.put(`http://localhost:5000/api/selected-candidates/status`, {
+        const response = await axios.put(`https://uaw-backend.vercel.app/api/selected-candidates/status`, {
           candidateId: candidateId,
           demandId: selectedDemandId,
           status: newStatus,
@@ -448,7 +448,7 @@ const handleExport = () => {
 
         console.log("📝 Sending demand data to backend:", demandToCreate);
 
-        const response = await fetch("http://localhost:5000/api/demand", {
+        const response = await fetch("https://uaw-backend.vercel.app/api/demand", {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
@@ -498,7 +498,7 @@ const handleExport = () => {
       try {
         console.log(`🗑️ Deleting demand with ID: ${demandId}`);
 
-        const response = await fetch(`http://localhost:5000/api/demand/${demandId}`, {
+        const response = await fetch(`https://uaw-backend.vercel.app/api/demand/${demandId}`, {
           method: "DELETE",
           headers: {
             "Accept": "application/json"
@@ -730,7 +730,7 @@ const handleExport = () => {
         console.log("📝 Sending updated demand to backend:", JSON.stringify(updatedDemand, null, 2));
 
         const response = await fetch(
-          `http://localhost:5000/api/demand/${editedDemand.id}`,
+          `https://uaw-backend.vercel.app/api/demand/${editedDemand.id}`,
           {
             method: "PUT",
             headers: {
@@ -982,7 +982,7 @@ const handleExport = () => {
       console.log("📤 Sending status update:", statusRequest);
 
      const statusResponse = await axios.put(
-  `http://localhost:5000/api/selected-candidates/status-with-zone`,
+  `https://uaw-backend.vercel.app/api/selected-candidates/status-with-zone`,
   statusRequest
 );
 
@@ -999,13 +999,13 @@ const handleExport = () => {
           // Active status - set isInProgress = true
           console.log(`📌 Status "${newStatus}" is active - setting isInProgress = true`);
           await axios.put(
-            `http://localhost:5000/api/candidates/${selectedStatusCandidate.id}/progress`,
+            `https://uaw-backend.vercel.app/api/candidates/${selectedStatusCandidate.id}/progress`,
             { isInProgress: true }
           );
           // Remove candidate from Zone when moving back to active status
 try {
   await axios.delete(
-    `http://localhost:5000/api/zone/remove/${selectedStatusCandidate.id}/${selectedDemandDetails?.clientName}`
+    `https://uaw-backend.vercel.app/api/zone/remove/${selectedStatusCandidate.id}/${selectedDemandDetails?.clientName}`
   );
 
   console.log("✅ Removed candidate from Zone");
@@ -1016,7 +1016,7 @@ try {
           // Non-active status (Joined or Rejection) - set isInProgress = false
           console.log(`📌 Status "${newStatus}" is not active - setting isInProgress = false`);
           await axios.put(
-            `http://localhost:5000/api/candidates/${selectedStatusCandidate.id}/progress`,
+            `https://uaw-backend.vercel.app/api/candidates/${selectedStatusCandidate.id}/progress`,
             { isInProgress: false }
           );
         }
@@ -1036,7 +1036,7 @@ try {
 
           try {
             await axios.post(
-              `http://localhost:5000/api/zone/manage`,
+              `https://uaw-backend.vercel.app/api/zone/manage`,
               zoneRequest
             );
             console.log(`✅ Candidate added to Zone with status: ${newStatus}`);
@@ -1841,7 +1841,7 @@ try {
                               <FileText size={14} className="text-gray-500" />
                               {candidate.resumePath || candidate.googleDriveViewLink ? (
                                 <a
-                                  href={candidate.googleDriveViewLink || `http://localhost:5000${candidate.resumePath}`}
+                                  href={candidate.googleDriveViewLink || `https://uaw-backend.vercel.app${candidate.resumePath}`}
                                   target="_blank"
                                   rel="noopener noreferrer"
                                   className="text-blue-600 hover:underline"
