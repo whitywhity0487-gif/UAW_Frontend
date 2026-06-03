@@ -22,7 +22,7 @@ const Salaryadvance = () => {
           // Check nationality for employee
           try {
             const userId = user.username || user.id || user.userId;
-            const res = await fetch(`http://localhost:5000/api/personal-details?userId=${userId}`);
+            const res = await fetch(`https://uaw-backend.vercel.app/api/personal-details?userId=${userId}`);
             if (res.ok) {
               const data = await res.json();
               if (data?.data?.nationality) {
