@@ -19,7 +19,7 @@ import Salaryadvance from "./Pages/Details/policy/Salaryadvance.jsx";
 import Travelpolicy from "./Pages/Details/policy/Travelpolicy.jsx";
 import InsurancePolicy from "./Pages/Details/policy/Insurancepolicy";
 import Assets from "./Pages/Details/Employeeassets.jsx";
-import AdminHoliday from "./Pages/admin/adminHoliday.jsx";
+import AdminHoliday from "./pages/admin/AdminHoliday";
 import AdminAssetsManagement from "./Pages/admin/AdminAssetsManagement.jsx";
 
 
