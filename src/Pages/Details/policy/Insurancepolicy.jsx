@@ -4,7 +4,7 @@ import axios from "axios";
 import { useNavigate } from "react-router-dom";
 import PolicySecurity from "./PolicySecurity";
 
-const API_BASE_URL = "http://localhost:5000/api/insurance-policies";
+const API_BASE_URL = "https://uaw-backend.vercel.app/api/insurance-policies";
 
 // ==================== HELPER FUNCTIONS ====================
 const formatDateStr = (dateString) => {
@@ -874,7 +874,7 @@ const InsurancePolicy = () => {
             
             if (userIdToFetch) {
               try {
-                const response = await axios.get(`http://localhost:5000/api/personal-details?userId=${userIdToFetch}`);
+                const response = await axios.get(`https://uaw-backend.vercel.app/api/personal-details?userId=${userIdToFetch}`);
                 if (response.data?.data?.nationality) {
                   nat = response.data.data.nationality;
                 }
