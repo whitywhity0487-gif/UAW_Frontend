@@ -47,7 +47,7 @@ const AdminSalaryAdvance = () => {
       if (filters.dateFrom) params.append('dateFrom', filters.dateFrom);
       if (filters.dateTo) params.append('dateTo', filters.dateTo);
       
-      const url = `http://localhost:5000/api/salary-advance/requests${params.toString() ? `?${params.toString()}` : ''}`;
+      const url = `https://uaw-backend.vercel.app/api/salary-advance/requests${params.toString() ? `?${params.toString()}` : ''}`;
       console.log('Fetching URL:', url);
       
       const response = await axios.get(url);
@@ -87,7 +87,7 @@ const AdminSalaryAdvance = () => {
   };
   const fetchEmployeeDetails = async (employeeId, employeeName) => {
     try {
-      const response = await axios.get(`http://localhost:5000/api/salary-advance/employee-analytics/${employeeId}`);
+      const response = await axios.get(`https://uaw-backend.vercel.app/api/salary-advance/employee-analytics/${employeeId}`);
       if (response.data.success) {
         setSelectedEmployee(response.data.data);
         setShowEmployeeModal(true);
@@ -119,7 +119,7 @@ const AdminSalaryAdvance = () => {
     }
 
     try {
-      const response = await axios.put(`http://localhost:5000/api/salary-advance/request/${actionModal.requestId}/${actionModal.action}`, {
+      const response = await axios.put(`https://uaw-backend.vercel.app/api/salary-advance/request/${actionModal.requestId}/${actionModal.action}`, {
         adminRemarks: actionModal.remarks,
         reviewedBy: adminName
       });
