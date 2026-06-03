@@ -173,7 +173,7 @@ const Holiday = () => {
       // For employee, fetch assignedClient from database
       if (role === 'Employee' && userId) {
         try {
-          const profileRes = await fetch(`http://localhost:5000/api/personal-details?userId=${userId}`);
+          const profileRes = await fetch(`https://uaw-backend.vercel.app/api/personal-details?userId=${userId}`);
           const profileData = await profileRes.json();
           if (profileData.success && profileData.data) {
             client = profileData.data.assignedClient ||
@@ -188,9 +188,9 @@ const Holiday = () => {
         client = storedUser?.clientName || storedUser?.assignedClient;
       }
 
-      let url = "http://localhost:5000/api/holiday/all";
+      let url = "https://uaw-backend.vercel.app/api/holiday/all";
       if (role !== "Admin" && client) {
-        url = `http://localhost:5000/api/holiday/group/${encodeURIComponent(client)}`;
+        url = `https://uaw-backend.vercel.app/api/holiday/group/${encodeURIComponent(client)}`;
       }
 
       const res = await fetch(url);
@@ -293,7 +293,7 @@ const Holiday = () => {
     if (!window.confirm(`Delete "${item.holiday.name}"?`)) return;
     try {
       setLoading(true);
-      const res = await fetch(`http://localhost:5000/api/holiday/${item.holiday.id}`, {
+      const res = await fetch(`https://uaw-backend.vercel.app/api/holiday/${item.holiday.id}`, {
         method: "DELETE",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ groupName: item.group.name })
@@ -331,8 +331,8 @@ const handleSubmit = async (e) => {
   try {
     setLoading(true);
     const url = modalMode === "add"
-      ? "http://localhost:5000/api/holiday/add"
-      : `http://localhost:5000/api/holiday/${currentHoliday.holiday.id}`;
+      ? "https://uaw-backend.vercel.app/api/holiday/add"
+      : `https://uaw-backend.vercel.app/api/holiday/${currentHoliday.holiday.id}`;
     const res = await fetch(url, {
       method: modalMode === "add" ? "POST" : "PUT",
       headers: { "Content-Type": "application/json" },
