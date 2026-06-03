@@ -24,7 +24,7 @@ export const useSelectedCandidates = (setCandidateInProgress, setSuccessMessage,
           const selectedByName = user.username || user.name || 'Unknown';
 
           await axios.put(
-            `http://localhost:5000/api/candidates/${candidate.id}/progress`,
+            `https://uaw-backend.vercel.app/api/candidates/${candidate.id}/progress`,
             { isInProgress: true }
           );
 
@@ -39,7 +39,7 @@ export const useSelectedCandidates = (setCandidateInProgress, setSuccessMessage,
           }]);
 
           const response = await axios.post(
-            `http://localhost:5000/api/selected-candidates/${demandId}`,
+            `https://uaw-backend.vercel.app/api/selected-candidates/${demandId}`,
             {
               candidates: [{
                 canId: candidate.canId || candidate.actualId || candidate.id,
@@ -89,7 +89,7 @@ export const useSelectedCandidates = (setCandidateInProgress, setSuccessMessage,
       }
 
       await axios.put(
-        `http://localhost:5000/api/candidates/${candidateId}/progress`,
+        `https://uaw-backend.vercel.app/api/candidates/${candidateId}/progress`,
         { isInProgress: false }
       );
 
@@ -102,7 +102,7 @@ export const useSelectedCandidates = (setCandidateInProgress, setSuccessMessage,
 
       setSuccessMessage(`Removing ${candidate?.name || 'candidate'}...`);
 
-      await axios.delete(`http://localhost:5000/api/selected-candidates/${demandId}/${candidateId}`);
+      await axios.delete(`https://uaw-backend.vercel.app/api/selected-candidates/${demandId}/${candidateId}`);
 
       setSuccessMessage(`✅ ${candidate?.name || 'Candidate'} removed from demand`);
       setTimeout(() => setSuccessMessage(""), 2000);
@@ -164,7 +164,7 @@ export const useSelectedCandidates = (setCandidateInProgress, setSuccessMessage,
       console.log("Selected data being sent:", selectedData);
 
       const response = await axios.post(
-        `http://localhost:5000/api/selected-candidates/${demandId}`,
+        `https://uaw-backend.vercel.app/api/selected-candidates/${demandId}`,
         selectedData
       );
 
