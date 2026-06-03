@@ -156,8 +156,8 @@ const AdminProfileManagement = () => {
     return missing;
   };
 
-  const API_BASE = "http://localhost:5000/api/profile-approval";
-  const PERSONAL_API = "http://localhost:5000/api/personal-details";
+  const API_BASE = "https://uaw-backend.vercel.app/api/profile-approval";
+  const PERSONAL_API = "https://uaw-backend.vercel.app/api/personal-details";
 
   const fetchProfiles = async () => {
     setLoading(true);
