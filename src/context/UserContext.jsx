@@ -3,7 +3,7 @@ import React, { createContext, useState, useContext, useEffect } from 'react';
 
 const UserContext = createContext();
 
-const API_BASE_URL = "http://localhost:5000";
+const API_BASE_URL = "https://uaw-backend.vercel.app";
 
 // Fields to EXCLUDE from localStorage (keep as is - don't store sensitive/assignment data)
 const EXCLUDE_FROM_STORAGE = [
