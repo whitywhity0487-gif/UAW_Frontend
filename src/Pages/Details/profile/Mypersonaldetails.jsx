@@ -1122,15 +1122,15 @@ const Mypersonaldetails = () => {
   };
 
   // Document upload handlers
-  const handleAadharUpload = (file) => { setAadharDocument(file); setDocumentErrors(prev => ({ ...prev, aadhar: null })); };
-  const handlePanUpload = (file) => { setPanDocument(file); setDocumentErrors(prev => ({ ...prev, pan: null })); };
-  const handleTenthUpload = (file) => { setTenthDocument(file); setDocumentErrors(prev => ({ ...prev, tenth: null })); };
-  const handleTwelfthUpload = (file) => { setTwelfthDocument(file); setDocumentErrors(prev => ({ ...prev, twelfth: null })); };
-  const handleResumeUpload = (file) => { setResumeDocument(file); setDocumentErrors(prev => ({ ...prev, resume: null })); };
-  const handleVisaUpload = (file) => { setVisaDocument(file); setDocumentErrors(prev => ({ ...prev, visa: null })); };
-  const handleProfilePhotoUpload = (file) => { setProfilePhotoDocument(file); setDocumentErrors(prev => ({ ...prev, profilePhoto: null })); };
-  const handleGraduationUpload = (file) => { setGraduationDocument(file); setDocumentErrors(prev => ({ ...prev, graduation: null })); };
-  const handlePostGraduationUpload = (file) => { setPostGraduationDocument(file); setDocumentErrors(prev => ({ ...prev, postGraduation: null })); };
+  const handleAadharUpload = (file) => setAadharDocument(file);
+  const handlePanUpload = (file) => setPanDocument(file);
+  const handleTenthUpload = (file) => setTenthDocument(file);
+  const handleTwelfthUpload = (file) => setTwelfthDocument(file);
+  const handleResumeUpload = (file) => setResumeDocument(file);
+  const handleVisaUpload = (file) => setVisaDocument(file);
+  const handleProfilePhotoUpload = (file) => setProfilePhotoDocument(file);
+  const handleGraduationUpload = (file) => setGraduationDocument(file);
+  const handlePostGraduationUpload = (file) => setPostGraduationDocument(file);
 
   const handleAadharRemove = () => setAadharDocument(null);
   const handlePanRemove = () => setPanDocument(null);
@@ -1231,11 +1231,15 @@ const Mypersonaldetails = () => {
 
   const handleBackToHome = () => navigate("/home");
   const handleResubmit = () => setShowResubmitConfirm(true);
-    const confirmResubmit = () => {
-      setShowResubmitConfirm(false);
-      setProfileCompleted(false);
-      window.scrollTo({ top: 0, behavior: "smooth" });
-    };
+  const confirmResubmit = () => {
+    setFormData(prev => ({
+      ...prev,
+      rejectionReason: ""
+    }));
+    setShowResubmitConfirm(false);
+    setProfileCompleted(false);
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  };
   const handleContactSupport = () => window.location.href = "mailto:swathi@uandwe.com?subject=Profile%20Approval%20Query";
 
   const handleSubmit = async (e) => {
@@ -1380,30 +1384,30 @@ const Mypersonaldetails = () => {
   // PENDING or REJECTED - Show ProfileStatusCard
   if (profileCompleted && (profileStatus === "PENDING" || profileStatus === "REJECTED")) {
     return (
-      <div className="min-h-screen bg-gray-50/50 p-6 md:p-10 w-full overflow-y-auto">
-        <div className="max-w-5xl mx-auto space-y-6">
-          <ProfileStatusCard
-            status={profileStatus}
-            rejectionReason={formData.rejectionReason}
-            onResubmit={handleResubmit}
-            onContactSupport={handleContactSupport}
-          />
-        </div>
-        
-        {/* Render Resubmit Modal here too! */}
+      <>
         {showResubmitConfirm && (
           <div className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-[300] p-4">
-            <div className="bg-white rounded-2xl p-6 max-w-md w-full shadow-2xl">
+            <div className="bg-white rounded-2xl p-6 max-w-md w-full">
               <h3 className="text-lg font-bold mb-2">Resubmit profile?</h3>
               <p className="text-sm text-gray-500 mb-6">Your existing details will be pre-filled. Review, make corrections, and resubmit for admin approval.</p>
               <div className="flex gap-3">
-                <button onClick={() => setShowResubmitConfirm(false)} className="flex-1 px-4 py-2 border rounded-xl hover:bg-gray-50">Cancel</button>
-                <button onClick={confirmResubmit} className="flex-1 px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl">Yes, edit & resubmit</button>
+                <button onClick={() => setShowResubmitConfirm(false)} className="flex-1 px-4 py-2 border rounded-xl">Cancel</button>
+                <button onClick={confirmResubmit} className="flex-1 px-4 py-2 bg-indigo-600 text-white rounded-xl">Yes, edit & resubmit</button>
               </div>
             </div>
           </div>
         )}
-      </div>
+        <div className="min-h-screen bg-gray-50/50 p-6 md:p-10 w-full overflow-y-auto">
+          <div className="max-w-5xl mx-auto space-y-6">
+            <ProfileStatusCard
+              status={profileStatus}
+              rejectionReason={formData.rejectionReason}
+              onResubmit={handleResubmit}
+              onContactSupport={handleContactSupport}
+            />
+          </div>
+        </div>
+      </>
     );
   }
 
@@ -1429,7 +1433,7 @@ const Mypersonaldetails = () => {
           </div>
         </div>
       )}
-      {showResubmitConfirm && (
+      {showResubmitConfirm && !profileCompleted && (
         <div className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-[300] p-4">
           <div className="bg-white rounded-2xl p-6 max-w-md w-full">
             <h3 className="text-lg font-bold mb-2">Resubmit profile?</h3>
@@ -1441,22 +1445,6 @@ const Mypersonaldetails = () => {
           </div>
         </div>
       )}
-      
-      {/* Rejection Reason Banner when editing a rejected profile */}
-      {formData.rejectionReason && (
-        <div className="max-w-4xl mx-auto px-6 mt-6 mb-2 animate-slideIn">
-          <div className="bg-red-50 border-l-4 border-red-500 p-4 rounded-r-xl shadow-sm">
-            <div className="flex items-start gap-3">
-              <AlertCircle className="text-red-500 shrink-0 mt-0.5" size={18} />
-              <div>
-                <h3 className="text-red-800 font-semibold text-sm">Please fix the following issues:</h3>
-                <p className="text-red-700 text-sm mt-1">{formData.rejectionReason}</p>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
-
       <ProfileFormComponent
         formData={formData}
         onChange={handleChange}
