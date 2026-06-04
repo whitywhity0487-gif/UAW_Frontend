@@ -813,7 +813,7 @@ const ProfileFormComponent = memo(({
                   required={true}
                 />
                 <DocumentUpload 
-                  label="12th Certificate"
+                label="12th/PUC Certificate"
                   document={twelfthDocument}
                   existingLink={formData.twelfthCertificateLink}
                   onUpload={onTwelfthUpload}
