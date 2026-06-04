@@ -16,36 +16,43 @@ const AdminSalaryAdvance = () => {
     dateTo: ''
   });
   const [showFilters, setShowFilters] = useState(false);
-  const [debouncedSearchTerm, setDebouncedSearchTerm] = useState('');
   
   const [reasonModal, setReasonModal] = useState({ isOpen: false, reason: '', employeeName: '' });
   const [actionModal, setActionModal] = useState({ isOpen: false, action: '', requestId: '', remarks: '' });
   const [submittingAction, setSubmittingAction] = useState(false);
 
-  // Debounce search term
+  // Fetch requests when search term or filters change
   useEffect(() => {
-    const timer = setTimeout(() => {
-      setDebouncedSearchTerm(searchTerm);
-    }, 500);
-    return () => clearTimeout(timer);
-  }, [searchTerm]);
-
-  // Fetch requests when debounced search term or filters change
-  useEffect(() => {
-    if (debouncedSearchTerm !== undefined) {
+    // Add debounce for search
+    const timeoutId = setTimeout(() => {
       fetchRequests();
-    }
-  }, [debouncedSearchTerm, filters.status, filters.dateFrom, filters.dateTo]);
+    }, 500);
+    
+    return () => clearTimeout(timeoutId);
+  }, [searchTerm, filters.status, filters.dateFrom, filters.dateTo]);
 
   const fetchRequests = async () => {
     setSearchLoading(true);
     setLoading(true);
     try {
       const params = new URLSearchParams();
-      if (debouncedSearchTerm) params.append('search', debouncedSearchTerm);
-      if (filters.status && filters.status !== 'ALL') params.append('status', filters.status);
-      if (filters.dateFrom) params.append('dateFrom', filters.dateFrom);
-      if (filters.dateTo) params.append('dateTo', filters.dateTo);
+      
+      if (searchTerm && searchTerm.trim()) {
+        params.append('search', searchTerm.trim());
+      }
+      if (filters.status && filters.status !== 'ALL') {
+        params.append('status', filters.status);
+      }
+      if (filters.dateFrom) {
+        // Send date as ISO string start of day
+        params.append('dateFrom', new Date(filters.dateFrom).toISOString());
+      }
+      if (filters.dateTo) {
+        // Send date as ISO string end of day
+        const endDate = new Date(filters.dateTo);
+        endDate.setHours(23, 59, 59, 999);
+        params.append('dateTo', endDate.toISOString());
+      }
       
       const url = `https://uaw-backend.vercel.app/api/salary-advance/requests${params.toString() ? `?${params.toString()}` : ''}`;
       console.log('Fetching URL:', url);
@@ -69,22 +76,6 @@ const AdminSalaryAdvance = () => {
     }
   };
 
-  // Add this function to get search context message
-  const getSearchContextMessage = () => {
-    if (searchTerm && requests.length === 0 && !loading) {
-      return `No results found for "${searchTerm}"`;
-    }
-    if (filters.status !== 'ALL' && requests.length === 0 && !loading) {
-      return `No ${filters.status.toLowerCase()} requests found`;
-    }
-    if ((filters.dateFrom || filters.dateTo) && requests.length === 0 && !loading) {
-      return `No requests found in the selected date range`;
-    }
-    if (searchTerm || filters.status !== 'ALL' || filters.dateFrom || filters.dateTo) {
-      return `No results match your search criteria`;
-    }
-    return 'No salary advance requests found.';
-  };
   const fetchEmployeeDetails = async (employeeId, employeeName) => {
     try {
       const response = await axios.get(`https://uaw-backend.vercel.app/api/salary-advance/employee-analytics/${employeeId}`);
@@ -98,10 +89,6 @@ const AdminSalaryAdvance = () => {
     }
   };
 
-  useEffect(() => {
-    fetchRequests();
-  }, []);
-
   const submitAction = async (e) => {
     e.preventDefault();
     if (!actionModal.remarks.trim()) {
@@ -114,8 +101,12 @@ const AdminSalaryAdvance = () => {
     const storedUser = localStorage.getItem('user');
     let adminName = 'Admin';
     if (storedUser) {
-      const user = JSON.parse(storedUser);
-      adminName = user.name || user.username || 'Admin';
+      try {
+        const user = JSON.parse(storedUser);
+        adminName = user.name || user.username || 'Admin';
+      } catch (e) {
+        console.error('Error parsing user:', e);
+      }
     }
 
     try {
@@ -127,7 +118,7 @@ const AdminSalaryAdvance = () => {
       if (response.data.success) {
         setSuccessMsg(`Request successfully ${actionModal.action}d!`);
         setActionModal({ isOpen: false, action: '', requestId: '', remarks: '' });
-        fetchRequests();
+        fetchRequests(); // Refresh the list
         setTimeout(() => setSuccessMsg(''), 3000);
       }
     } catch (err) {
@@ -166,7 +157,7 @@ const AdminSalaryAdvance = () => {
   };
 
   const getTotalAmount = () => {
-    return requests.reduce((sum, req) => sum + req.amount, 0);
+    return requests.reduce((sum, req) => sum + (req.amount || 0), 0);
   };
 
   const getPendingCount = () => {
@@ -186,6 +177,9 @@ const AdminSalaryAdvance = () => {
       return { text: 'Full Eligibility', color: '#10B981', bg: '#D1FAE5', message: 'Eligible for advance' };
     }
   };
+
+  // Check if any filters are active
+  const hasActiveFilters = searchTerm.trim() !== '' || filters.status !== 'ALL' || filters.dateFrom || filters.dateTo;
 
   return (
     <div style={{ maxWidth: 1400, margin: '40px auto', padding: '0 20px' }}>
@@ -278,7 +272,7 @@ const AdminSalaryAdvance = () => {
                 🔍 Filters {showFilters ? '▼' : '▲'}
               </button>
               
-              {(searchTerm || filters.status !== 'ALL' || filters.dateFrom || filters.dateTo) && (
+              {hasActiveFilters && (
                 <button
                   onClick={clearFilters}
                   style={{
@@ -397,7 +391,7 @@ const AdminSalaryAdvance = () => {
           </div>
         ) : requests.length === 0 ? (
           <div style={{ textAlign: 'center', padding: 60, color: '#6B7280', background: '#F9FAFB', borderRadius: 12 }}>
-            {searchTerm || filters.status !== 'ALL' || filters.dateFrom || filters.dateTo ? (
+            {hasActiveFilters ? (
               <>
                 🔍 No results found for your search criteria
                 <br />
@@ -436,9 +430,9 @@ const AdminSalaryAdvance = () => {
               <tbody>
                 {requests.map(req => {
                   const statusColors = getStatusColor(req.status);
-                  const formattedDate = new Date(req.appliedAt).toLocaleDateString('en-US', {
+                  const formattedDate = req.appliedAt ? new Date(req.appliedAt).toLocaleDateString('en-US', {
                     year: 'numeric', month: 'short', day: 'numeric'
-                  });
+                  }) : 'N/A';
                   const sym = getCurrencySymbol(req.currency);
 
                   return (
@@ -451,15 +445,17 @@ const AdminSalaryAdvance = () => {
                              onClick={() => fetchEmployeeDetails(req.employeeId, req.employeeName)}>
                           {req.employeeName} 🔍
                         </div>
-                      
                         {req.employeeNumber && (
                           <div style={{ fontSize: 12, color: '#6B7280', marginTop: 2 }}>
                             <strong>Emp No:</strong> {req.employeeNumber}
                           </div>
                         )}
+                        <div style={{ fontSize: 11, color: '#9CA3AF', marginTop: 2 }}>
+                          ID: {req.employeeId}
+                        </div>
                       </td>
                       <td style={{ padding: '16px', fontWeight: 500, color: '#111827' }}>
-                        {sym}{req.amount.toLocaleString()} {req.currency}
+                        {sym}{req.amount?.toLocaleString() || 0} {req.currency}
                        </td>
                       <td style={{ padding: '16px' }}>
                         <button
