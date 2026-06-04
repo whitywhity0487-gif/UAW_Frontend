@@ -32,6 +32,29 @@ import {
   XCircle
 } from "lucide-react";
 
+// Convert Google Drive view/share links to embeddable preview links
+const getEmbeddableUrl = (url) => {
+  if (!url) return url;
+  
+  if (url.includes('drive.google.com')) {
+    let fileId = null;
+    
+    const fileMatch = url.match(/\/file\/d\/([a-zA-Z0-9_-]+)/);
+    if (fileMatch) fileId = fileMatch[1];
+    
+    if (!fileId) {
+      const idMatch = url.match(/[?&]id=([a-zA-Z0-9_-]+)/);
+      if (idMatch) fileId = idMatch[1];
+    }
+    
+    if (fileId) {
+      return `https://drive.google.com/file/d/${fileId}/preview`;
+    }
+  }
+  
+  return url;
+};
+
 const Joined = () => {
   const [joinedCandidates, setJoinedCandidates] = useState([]);
   const [filteredCandidates, setFilteredCandidates] = useState([]);
@@ -745,7 +768,7 @@ const fetchJoinedCandidates = async () => {
               </div>
               <div className="h-[calc(80vh-80px)]">
                 <iframe
-                  src={selectedResumeUrl}
+                  src={getEmbeddableUrl(selectedResumeUrl)}
                   className="w-full h-full"
                   title="Resume Viewer"
                 />
