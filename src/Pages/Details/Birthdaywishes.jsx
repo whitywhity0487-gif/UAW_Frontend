@@ -92,7 +92,7 @@ const SendWishesModal = ({ employee, onClose, onSuccess }) => {
         sentBy: user.name || user.username || 'Admin',
       };
 
-      const res = await axios.post('http://localhost:5000/api/birthday/send-wishes', payload);
+      const res = await axios.post('https://uaw-backend.vercel.app/api/birthday/send-wishes', payload);
 
       if (res.data.success) {
         setSendResult({ type: 'success', message: res.data.message });
@@ -343,7 +343,7 @@ const Birthdaywishes = () => {
   const fetchBirthdays = async () => {
     try {
       setLoading(true);
-      const response = await axios.get('http://localhost:5000/api/personal-details/birthdays');
+      const response = await axios.get('https://uaw-backend.vercel.app/api/personal-details/birthdays');
       if (response.data.success) {
         setTodayBirthdays(response.data.todayBirthdays || []);
         setUpcomingBirthdays(response.data.upcomingBirthdays || []);
