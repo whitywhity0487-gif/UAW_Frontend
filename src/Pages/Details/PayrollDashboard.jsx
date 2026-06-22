@@ -3,7 +3,7 @@ import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
 import { DollarSign, Calendar, FileText, Download, AlertCircle, Info, ChevronLeft } from 'lucide-react';
 
-const API_BASE_URL = 'http://localhost:5000/api/payroll';
+const API_BASE_URL = 'https://uaw-backend.vercel.app/api/payroll';
 
 export default function PayrollDashboard({ user }) {
   const navigate = useNavigate();
