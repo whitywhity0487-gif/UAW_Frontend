@@ -9,8 +9,8 @@ import {
 } from 'lucide-react';
 import Button from '../../components/Button';
 
-const API_BASE_URL = 'http://localhost:5000/api/leave';
-const PD_API_URL = 'http://localhost:5000/api/personal-details';
+const API_BASE_URL = 'https://uaw-backend.vercel.app/api/leave';
+const PD_API_URL = 'https://uaw-backend.vercel.app/api/personal-details';
 
 const LEAVE_TYPES = ['Leave', 'Work From Home'];
 const REASONS = [
@@ -104,7 +104,7 @@ export default function LeaveManagement() {
       // 3. Fetch Company Holidays
       if (company) {
         try {
-          const holidayRes = await fetch(`http://localhost:5000/api/holiday/group/${encodeURIComponent(company)}`);
+          const holidayRes = await fetch(`https://uaw-backend.vercel.app/api/holiday/group/${encodeURIComponent(company)}`);
           const data = await holidayRes.json();
           let arr = data.data || data.holidays || data;
           if (Array.isArray(arr)) {
@@ -141,7 +141,7 @@ export default function LeaveManagement() {
 
   const checkSupervisorAndFetchTeamLeaves = async (userId) => {
     try {
-      const teamRes = await axios.get(`http://localhost:5000/api/teams/user/${userId}`);
+      const teamRes = await axios.get(`https://uaw-backend.vercel.app/api/teams/user/${userId}`);
       if (teamRes.data.success && teamRes.data.data.supervises && teamRes.data.data.supervises.length > 0) {
         setIsSupervisor(true);
         const leavesRes = await axios.get(`${API_BASE_URL}/team/${userId}`);
