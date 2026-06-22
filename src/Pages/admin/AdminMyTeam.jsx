@@ -5,7 +5,7 @@ import {
   Users, UserPlus, Trash2, Edit, Save, X, ChevronLeft, Search, CheckCircle, XCircle, Shield
 } from 'lucide-react';
 
-const API_BASE_URL = 'http://localhost:5000/api/teams';
+const API_BASE_URL = 'https://uaw-backend.vercel.app/api/teams';
 
 export default function AdminMyTeam() {
   const navigate = useNavigate();
@@ -41,7 +41,7 @@ export default function AdminMyTeam() {
     try {
       const [teamsRes, empRes] = await Promise.all([
         axios.get(API_BASE_URL),
-        axios.get('http://localhost:5000/api/profile-approval/admin/profiles')
+        axios.get('https://uaw-backend.vercel.app/api/profile-approval/admin/profiles')
       ]);
 
       if (teamsRes.data.success) {
