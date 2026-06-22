@@ -4,8 +4,8 @@ import { useNavigate } from 'react-router-dom';
 import { ArrowLeft } from 'lucide-react';
 import Button from '../../components/Button';
 
-const API_BASE_URL   = 'http://localhost:5000/api/reimbursements';
-const PD_API_URL     = 'http://localhost:5000/api/personal-details';
+const API_BASE_URL   = 'https://uaw-backend.vercel.app/api/reimbursements';
+const PD_API_URL     = 'https://uaw-backend.vercel.app/api/personal-details';
 
 const REIMB_TYPES = ['Travel', 'Food', 'Medical', 'Internet/Phone', 'Relocation', 'Other'];
 
