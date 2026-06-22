@@ -167,7 +167,7 @@ const Recruiter = ({ user }) => {
   const fetchCandidateStatusForClient = async (candidateId, clientName) => {
     try {
       const response = await axios.get(
-        `http://localhost:5000/api/candidates/${candidateId}/status-for-client/${encodeURIComponent(clientName)}`
+        `https://uaw-backend.vercel.app/api/candidates/${candidateId}/status-for-client/${encodeURIComponent(clientName)}`
       );
       return response.data.data;
     } catch (err) {
@@ -179,7 +179,7 @@ const Recruiter = ({ user }) => {
   // Fetch joined candidate IDs to exclude them
   const fetchJoinedCandidateIds = async () => {
     try {
-      const response = await axios.get('http://localhost:5000/api/candidates/joined/all');
+      const response = await axios.get('https://uaw-backend.vercel.app/api/candidates/joined/all');
       if (response.data.success) {
         const joinedIds = new Set(response.data.data.map(c => c.id));
         setJoinedCandidateIds(joinedIds);
@@ -282,7 +282,7 @@ const Recruiter = ({ user }) => {
     try {
       setLoading(true);
 
-      const response = await axios.get('http://localhost:5000/api/candidates/all');
+      const response = await axios.get('https://uaw-backend.vercel.app/api/candidates/all');
 
       if (!response.data.success) {
         alert("Failed to fetch candidates");
@@ -459,7 +459,7 @@ const Recruiter = ({ user }) => {
 
           // console.log("Auto-applying filters from demand:", apiParams.toString());
 
-          const response = await axios.get(`http://localhost:5000/api/shortcandidates/filter?${apiParams.toString()}`);
+          const response = await axios.get(`https://uaw-backend.vercel.app/api/shortcandidates/filter?${apiParams.toString()}`);
 
           if (response.data.success) {
             const processedCandidates = response.data.data
@@ -538,7 +538,7 @@ const Recruiter = ({ user }) => {
 
           // console.log("Calling filter API with:", params.toString());
 
-          const response = await axios.get(`http://localhost:5000/api/shortcandidates/filter?${params.toString()}`);
+          const response = await axios.get(`https://uaw-backend.vercel.app/api/shortcandidates/filter?${params.toString()}`);
 
           if (response.data.success) {
             // console.log(`✅ API response: Excluded ${response.data.excludedZoneCount || 0} candidates from Zone`);
@@ -559,7 +559,7 @@ const Recruiter = ({ user }) => {
 
             const candidateIds = processedCandidates.map(c => c.id).filter(id => id);
             if (candidateIds.length > 0) {
-              const progressResponse = await axios.post('http://localhost:5000/api/candidates/progress/batch', {
+              const progressResponse = await axios.post('https://uaw-backend.vercel.app/api/candidates/progress/batch', {
                 candidateIds: candidateIds,
                 demandId: demandId
               });
@@ -600,7 +600,7 @@ const Recruiter = ({ user }) => {
 
       const joinedIds = await fetchJoinedCandidateIds();
 
-      const response = await axios.get('http://localhost:5000/api/candidates/all');
+      const response = await axios.get('https://uaw-backend.vercel.app/api/candidates/all');
 
       if (response.data.success) {
         let processedCandidates = response.data.data
@@ -648,7 +648,7 @@ const Recruiter = ({ user }) => {
 
   const checkEmailExists = async (email, excludeId = null) => {
     try {
-      const url = `http://localhost:5000/api/candidates/check-email/${encodeURIComponent(email)}${excludeId ? `?excludeId=${excludeId}` : ''}`;
+      const url = `https://uaw-backend.vercel.app/api/candidates/check-email/${encodeURIComponent(email)}${excludeId ? `?excludeId=${excludeId}` : ''}`;
       const response = await axios.get(url);
       return response.data.exists;
     } catch (err) {
@@ -660,7 +660,7 @@ const Recruiter = ({ user }) => {
   const checkMobileExists = async (mobile, excludeId = null) => {
     try {
       const cleanMobile = mobile.replace(/\D/g, '');
-      const url = `http://localhost:5000/api/candidates/check-mobile/${encodeURIComponent(cleanMobile)}${excludeId ? `?excludeId=${excludeId}` : ''}`;
+      const url = `https://uaw-backend.vercel.app/api/candidates/check-mobile/${encodeURIComponent(cleanMobile)}${excludeId ? `?excludeId=${excludeId}` : ''}`;
       const response = await axios.get(url);
       return response.data.exists;
     } catch (err) {
@@ -691,7 +691,7 @@ const Recruiter = ({ user }) => {
     else if (candidate.resumePath) {
       const resumeUrl = candidate.resumePath.startsWith('http')
         ? candidate.resumePath
-        : `http://localhost:5000${candidate.resumePath}`;
+        : `https://uaw-backend.vercel.app${candidate.resumePath}`;
 
       console.log("Opening local resume:", resumeUrl);
       setSelectedResumeUrl(resumeUrl);
@@ -727,7 +727,7 @@ const Recruiter = ({ user }) => {
     try {
       setDeleteLoading(true);
 
-      const response = await axios.delete(`http://localhost:5000/api/candidates/${deletingCandidateId}`);
+      const response = await axios.delete(`https://uaw-backend.vercel.app/api/candidates/${deletingCandidateId}`);
 
       if (response.data.success) {
         setSuccessMessage("Profile deleted successfully!");
@@ -839,7 +839,7 @@ const Recruiter = ({ user }) => {
 
       console.log("Query params:", params.toString());
 
-      const response = await axios.get(`http://localhost:5000/api/shortcandidates/filter?${params.toString()}`);
+      const response = await axios.get(`https://uaw-backend.vercel.app/api/shortcandidates/filter?${params.toString()}`);
 
       if (response.data.success) {
         let processedCandidates = response.data.data
@@ -948,7 +948,7 @@ const Recruiter = ({ user }) => {
     const demandId = searchParams.get('demandId');
     if (demandId && candidates.length > 0) {
       try {
-        const response = await axios.get(`http://localhost:5000/api/selected-candidates/${demandId}`);
+        const response = await axios.get(`https://uaw-backend.vercel.app/api/selected-candidates/${demandId}`);
         if (response.data.success) {
           const existingCandidates = response.data.data
             .map(selected => {
@@ -1056,7 +1056,7 @@ const Recruiter = ({ user }) => {
       if (candidateIds.length === 0) return;
 
       try {
-        const response = await axios.post('http://localhost:5000/api/candidates/progress/batch', {
+        const response = await axios.post('https://uaw-backend.vercel.app/api/candidates/progress/batch', {
           candidateIds: candidateIds
         });
 
@@ -1073,7 +1073,7 @@ const Recruiter = ({ user }) => {
         // Fallback: Check each candidate individually
         for (const candidateId of candidateIds) {
           try {
-            const singleResponse = await axios.get(`http://localhost:5000/api/candidates/debug/check-progress/${candidateId}`);
+            const singleResponse = await axios.get(`https://uaw-backend.vercel.app/api/candidates/debug/check-progress/${candidateId}`);
             if (singleResponse.data.success) {
               setCandidateInProgress(prev => ({
                 ...prev,
@@ -1109,7 +1109,7 @@ const Recruiter = ({ user }) => {
       setFilterLoading(true);
       setError(null);
 
-      const response = await axios.get(`http://localhost:5000/api/skillsmatch?skill=${encodeURIComponent(skill)}`);
+      const response = await axios.get(`https://uaw-backend.vercel.app/api/skillsmatch?skill=${encodeURIComponent(skill)}`);
 
       if (response.data.success) {
         const apiCandidates = response.data.data || [];
