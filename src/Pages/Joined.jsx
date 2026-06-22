@@ -198,7 +198,7 @@ const fetchJoinedCandidates = async () => {
     setError(null);
 
     // Single API call to get all joined candidates directly
-    const response = await axios.get("http://localhost:5000/api/candidates/joined/all");
+    const response = await axios.get("https://uaw-backend.vercel.app/api/candidates/joined/all");
     
     if (response.data.success) {
       const joined = response.data.data.map(candidate => ({
@@ -277,7 +277,7 @@ const fetchJoinedCandidates = async () => {
     } else if (candidate.resumePath) {
       const resumeUrl = candidate.resumePath.startsWith('http') 
         ? candidate.resumePath 
-        : `http://localhost:5000${candidate.resumePath}`;
+        : `https://uaw-backend.vercel.app${candidate.resumePath}`;
       setSelectedResumeUrl(resumeUrl);
       setShowResumeModal(true);
     } else {
@@ -306,7 +306,7 @@ const fetchJoinedCandidates = async () => {
     try {
       setLoading(true);
 
-      const response = await axios.get('http://localhost:5000/api/candidates/joined/all');
+      const response = await axios.get('https://uaw-backend.vercel.app/api/candidates/joined/all');
 
       if (!response.data.success) {
         alert("Failed to fetch candidates");
