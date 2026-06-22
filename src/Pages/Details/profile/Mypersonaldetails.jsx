@@ -1113,7 +1113,7 @@ const Mypersonaldetails = () => {
     visaDocumentLink: "", profilePhotoLink: "", graduationCertificateLink: "", postGraduationCertificateLink: "", rejectionReason: ""
   });
 
-  const API_BASE_URL = "http://localhost:5000";
+  const API_BASE_URL = "https://uaw-backend.vercel.app";
 
   // Helper to validate a single field
   const validateField = (name, value, allData = formData) => {
