@@ -3,7 +3,7 @@ import React, { useState, useEffect } from "react";
 import axios from "axios";
 import { useNavigate } from "react-router-dom";
 
-const API_BASE_URL = "http://localhost:5000/api/employeeassets";
+const API_BASE_URL = "https://uaw-backend.vercel.app/api/employeeassets";
 
 const AdminAssetsManagement = () => {
   const [assets, setAssets] = useState([]);
