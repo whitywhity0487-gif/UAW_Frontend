@@ -4,7 +4,7 @@ import axios from "axios";
 import { useNavigate } from "react-router-dom";
 import PolicySecurity from "./PolicySecurity";
 
-const API_BASE_URL = "http://localhost:5000/api/insurance-policies";
+const API_BASE_URL = "https://uaw-backend.vercel.app/api/insurance-policies";
 
 // ==================== HELPER FUNCTIONS ====================
 const formatDateStr = (dateString) => {
@@ -528,7 +528,7 @@ const InsurancePolicy = () => {
           const userIdToFetch = user.username || user.employeeId || user.userId;
           if (userIdToFetch) {
             try {
-              const res = await axios.get(`http://localhost:5000/api/personal-details?userId=${userIdToFetch}`);
+              const res = await axios.get(`https://uaw-backend.vercel.app/api/personal-details?userId=${userIdToFetch}`);
               if (res.data?.data) {
                 nat = res.data.data.nationality || nat;
                 setEmployeeHealthCard(res.data.data);
@@ -539,7 +539,7 @@ const InsurancePolicy = () => {
         } else {
           setNationality("ADMIN");
           try {
-            const res = await axios.get(`http://localhost:5000/api/personal-details`);
+            const res = await axios.get(`https://uaw-backend.vercel.app/api/personal-details`);
             if (res.data?.success) setAllEmployees(res.data.data);
           } catch { }
         }
@@ -599,7 +599,7 @@ const InsurancePolicy = () => {
     const fd = new FormData();
     fd.append("healthCard", file);
     try {
-      const res = await axios.post(`http://localhost:5000/api/personal-details/upload-health-card/${employeeNumber}`, fd, {
+      const res = await axios.post(`https://uaw-backend.vercel.app/api/personal-details/upload-health-card/${employeeNumber}`, fd, {
         headers: { "Content-Type": "multipart/form-data" },
       });
       if (res.data.success) {
