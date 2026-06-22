@@ -2,8 +2,8 @@ import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import { FileText, Search, Plus, Calendar, Save, AlertCircle, CheckCircle, RefreshCcw, DollarSign, Upload } from 'lucide-react';
 
-const API_BASE_URL = 'http://localhost:5000/api/payroll';
-const DETAILS_API_URL = 'http://localhost:5000/api/personal-details';
+const API_BASE_URL = 'https://uaw-backend.vercel.app/api/payroll';
+const DETAILS_API_URL = 'https://uaw-backend.vercel.app/api/personal-details';
 
 const MONTHS = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
 const CURRENT_YEAR = new Date().getFullYear();
