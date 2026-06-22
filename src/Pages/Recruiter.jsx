@@ -13,34 +13,13 @@ import {
   FileText,
   XCircle,
   Plus,
-  Filter,
   Loader,
   Users,
-  User,
-  Save,
-  X,
-  CheckCircle,
-  DollarSign,
-  ChevronLeft,
-  ChevronRight,
-  Eye,
-  Upload,
-  Trash2,
-  Edit2,
-  Code,
   Pencil,
   Building2,
-  Award,
-  Clock,
-  UserCircle,
-  FileCheck,
-  CalendarDays,
-  IdCard,
-  Globe,
   MessageCircle
 } from "lucide-react";
 import axios from "axios";
-import DatePicker from "react-datepicker";
 import "react-datepicker/dist/react-datepicker.css";
 import CandidateCard from "./Recruiter/components/CandidateCard";
 import CandidateDetailsModal from "./Recruiter/components/CandidateDetailsModal";
@@ -53,12 +32,8 @@ import SkillsSidebar from "./Recruiter/components/SkillsSidebar";
 import SelectedCandidatesPanel from "./Recruiter/components/SelectedCandidatesPanel";
 import Pagination from "./Recruiter/components/Pagination";
 import { parseKeySkills, formatDate, getVisaBorderColor } from "./Recruiter/utils/formatters";
-import { validateMobileNumber, validateProfileForm } from "./Recruiter/utils/validation";
 import { processCandidate, filterOutRejectedCandidates } from "./Recruiter/utils/candidateHelpers";
-import { candidateService } from "./Recruiter/services/candidateService";
-import { skillService } from "./Recruiter/services/skillService";
-import { visaService } from "./Recruiter/services/visaService";
-import { API_BASE_URL, REJECTED_STATUSES, ACTIVE_STATUSES, DEFAULT_VISA_TYPES } from "./Recruiter/constants";
+
 import { useVisaTypes } from "./Recruiter/hooks/useVisaTypes";
 import { useCandidateFilters } from "./Recruiter/hooks/useCandidateFilters";
 import { useSelectedCandidates } from "./Recruiter/hooks/useSelectedCandidates";
@@ -208,7 +183,6 @@ const Recruiter = ({ user }) => {
       if (response.data.success) {
         const joinedIds = new Set(response.data.data.map(c => c.id));
         setJoinedCandidateIds(joinedIds);
-        console.log(`🚫 Excluding ${joinedIds.size} joined candidates from recruiter view`);
         return joinedIds;
       }
     } catch (err) {
@@ -483,7 +457,7 @@ const Recruiter = ({ user }) => {
             apiParams.append('maxExperience', maxExperience);
           }
 
-          console.log("Auto-applying filters from demand:", apiParams.toString());
+          // console.log("Auto-applying filters from demand:", apiParams.toString());
 
           const response = await axios.get(`http://localhost:5000/api/shortcandidates/filter?${apiParams.toString()}`);
 
@@ -492,7 +466,6 @@ const Recruiter = ({ user }) => {
               .map(processCandidate)
               .filter(c => c !== null);
 
-            console.log(`Found ${processedCandidates.length} candidates matching demand requirements`);
             const filteredCandidates = filterOutRejectedCandidates(processedCandidates);
 
             setDisplayedCandidates(filteredCandidates);
@@ -524,7 +497,7 @@ const Recruiter = ({ user }) => {
         const demandId = searchParams.get('demandId');
         const clientName = searchParams.get('clientName');
 
-        console.log(`🔍 Auto-filtering for demand ID: ${demandId}`);
+        // console.log(`🔍 Auto-filtering for demand ID: ${demandId}`);
 
         setSearchFilters({
           primarySkills: primarySkills,
@@ -560,15 +533,15 @@ const Recruiter = ({ user }) => {
 
           if (clientName) {
             params.append('clientName', clientName);
-            console.log(`🚫 Filtering out candidates in Zone for client: ${clientName}`);
+            // console.log(`🚫 Filtering out candidates in Zone for client: ${clientName}`);
           }
 
-          console.log("Calling filter API with:", params.toString());
+          // console.log("Calling filter API with:", params.toString());
 
           const response = await axios.get(`http://localhost:5000/api/shortcandidates/filter?${params.toString()}`);
 
           if (response.data.success) {
-            console.log(`✅ API response: Excluded ${response.data.excludedZoneCount || 0} candidates from Zone`);
+            // console.log(`✅ API response: Excluded ${response.data.excludedZoneCount || 0} candidates from Zone`);
 
             let processedCandidates = response.data.data
               .map(processCandidate)
@@ -576,7 +549,7 @@ const Recruiter = ({ user }) => {
 
             processedCandidates = filterOutRejectedCandidates(processedCandidates);
 
-            console.log(`✅ Found ${processedCandidates.length} candidates matching demand requirements (after removing rejections)`);
+            // console.log(`✅ Found ${processedCandidates.length} candidates matching demand requirements (after removing rejections)`);
             const filteredCandidates = filterOutRejectedCandidates(processedCandidates);
 
             setDisplayedCandidates(filteredCandidates);
@@ -644,7 +617,6 @@ const Recruiter = ({ user }) => {
           return idB - idA;
         });
 
-        console.log(`Processed ${activeCandidates.length} active candidates (excluded ${processedCandidates.length - activeCandidates.length} joined candidates)`);
 
         setCandidates(activeCandidates);
 
@@ -989,7 +961,7 @@ const Recruiter = ({ user }) => {
             })
             .filter(c => c !== undefined);
           setSelectedCandidates(existingCandidates);
-          console.log("Loaded selected candidates with statuses:", existingCandidates.map(c => ({ name: c.name, status: c.status })));
+          // console.log("Loaded selected candidates with statuses:", existingCandidates.map(c => ({ name: c.name, status: c.status })));
         }
       } catch (err) {
         console.error('Error fetching existing selections:', err);
@@ -1088,15 +1060,12 @@ const Recruiter = ({ user }) => {
           candidateIds: candidateIds
         });
 
-        console.log("📡 Batch progress response:", response.data);
 
         if (response.data.success) {
           const progressMap = {};
           response.data.data.forEach(item => {
             progressMap[item.candidateId] = item.isInProgress === true;
-            console.log(`   Candidate ${item.candidateId}: isInProgress = ${item.isInProgress}`);
           });
-          console.log("✅ Final progressMap:", progressMap);
           setCandidateInProgress(progressMap);
         }
       } catch (err) {

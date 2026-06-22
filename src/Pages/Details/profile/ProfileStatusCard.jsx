@@ -1,6 +1,7 @@
 // src/components/ProfileStatusCard.jsx
 import React from 'react';
 import { CheckCircle, XCircle, Clock, AlertCircle, Mail, Phone, RefreshCw } from 'lucide-react';
+import Button from '../../../components/Button';
 
 const ProfileStatusCard = ({ status, rejectionReason, onResubmit, onContactSupport }) => {
   const statusConfig = {
@@ -58,22 +59,22 @@ const ProfileStatusCard = ({ status, rejectionReason, onResubmit, onContactSuppo
           
           <div className="flex gap-3 mt-4">
             {config.actions.includes('resubmit') && (
-              <button
+              <Button
                 onClick={onResubmit}
-                className="flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-sm font-medium transition-all"
+                variant="primary"
+                icon={RefreshCw}
               >
-                <RefreshCw size={14} />
                 Resubmit Profile
-              </button>
+              </Button>
             )}
             {config.actions.includes('contact') && (
-              <button
+              <Button
                 onClick={onContactSupport}
-                className="flex items-center gap-2 px-4 py-2 bg-gray-600 hover:bg-gray-700 text-white rounded-lg text-sm font-medium transition-all"
+                variant="secondary"
+                icon={Mail}
               >
-                <Mail size={14} />
                 Contact Support
-              </button>
+              </Button>
             )}
           </div>
         </div>

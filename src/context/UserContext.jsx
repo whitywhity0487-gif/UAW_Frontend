@@ -39,7 +39,6 @@ export const UserProvider = ({ children }) => {
 
   const fetchUserFromBackend = async (username) => {
     try {
-      console.log(`📡 Fetching user ${username} from backend...`);
       const response = await fetch(`${API_BASE_URL}/api/users`);
 
       if (!response.ok) {
@@ -59,7 +58,6 @@ export const UserProvider = ({ children }) => {
             const personalData = await personalDetailsResponse.json();
             if (personalData.profileCompleted && personalData.data) {
               personalDetails = personalData.data;
-              console.log(`📄 Personal details fetched:`, personalDetails);
 
               // Merge personal details into user object
               Object.assign(user, {
@@ -79,13 +77,11 @@ export const UserProvider = ({ children }) => {
             }
           }
 
-          console.log(`✅ User fetched from backend:`, user);
           setCurrentUser(user);
 
           // Store ONLY essential fields in localStorage
           const cleanUser = cleanForStorage(user);
           localStorage.setItem('user', JSON.stringify(cleanUser));
-          console.log(`💾 Stored in localStorage (cleaned):`, cleanUser);
 
           return user;
         } else {
@@ -123,7 +119,6 @@ const refreshUser = async () => {
       JSON.parse(localStorage.getItem("user"))?.username;
 
     if (!username) {
-      console.log("⚠️ No username found for profile access check");
       return false;
     }
 
@@ -165,7 +160,6 @@ const refreshUser = async () => {
         localStorage.setItem('user', JSON.stringify(cleanUser));
         localStorage.setItem('isAuthenticated', 'true');
 
-        console.log(`✅ Login successful. Stored in localStorage:`, cleanUser);
 
         // Check profile access after login
         await checkProfileAccess(data.user.username);
@@ -187,7 +181,6 @@ const refreshUser = async () => {
     setHasModuleAccess(false);
     localStorage.removeItem('user');
     localStorage.removeItem('isAuthenticated');
-    console.log(`👋 Logged out, localStorage cleared`);
   };
 
   useEffect(() => {
@@ -198,7 +191,6 @@ const refreshUser = async () => {
 
       if (storedUser && isAuthenticated === 'true') {
         const parsedUser = JSON.parse(storedUser);
-        console.log(`📦 Found stored user in localStorage:`, parsedUser);
 
         // Set a temporary user from localStorage
         setCurrentUser(parsedUser);

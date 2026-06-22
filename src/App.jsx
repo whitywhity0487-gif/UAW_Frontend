@@ -16,11 +16,21 @@ import ModuleAccessGuard from "./components/ModuleAccessGuard.jsx"
 import { UserProvider } from "./context/UserContext";
 import UawAwardpolicy from "./Pages/Details/policy/UawAwardpolicy.jsx";
 import Salaryadvance from "./Pages/Details/policy/Salaryadvance.jsx";
+import AdminSalaryAdvance from './Pages/admin/AdminSalaryAdvance';
+import Birthdaywishes from './Pages/Details/Birthdaywishes.jsx';
 import Travelpolicy from "./Pages/Details/policy/Travelpolicy.jsx";
 import InsurancePolicy from "./Pages/Details/policy/Insurancepolicy";
 import Assets from "./Pages/Details/Employeeassets.jsx";
 import AdminHoliday from "./Pages/admin/adminHoliday.jsx";
 import AdminAssetsManagement from "./Pages/admin/AdminAssetsManagement.jsx";
+import Reimbursements from "./Pages/Details/Reimbursements.jsx";
+import AdminReimbursement from "./Pages/admin/AdminReimbursement.jsx";
+import LeaveManagement from "./Pages/Details/LeaveManagement.jsx";
+import AdminLeaveManagement from "./Pages/admin/AdminLeaveManagement.jsx";
+import AdminMyTeam from "./Pages/admin/AdminMyTeam.jsx";
+import MyTeam from "./Pages/Details/MyTeam.jsx";
+import AdminPayroll from "./Pages/admin/AdminPayroll.jsx";
+import PayrollDashboard from "./Pages/Details/PayrollDashboard.jsx";
 
 
 
@@ -106,6 +116,15 @@ function App() {
         />
 
         <Route
+          path="/birthday-wishes"
+          element={
+            <ProtectedRoute allowedRoles={["Admin"]}>
+              <Birthdaywishes />
+            </ProtectedRoute>
+          }
+        />
+
+        <Route
           path="/holiday"
           element={
             <ProtectedRoute>
@@ -165,40 +184,40 @@ function App() {
         />
 
         {/* Insurance Policy Route */}
-<Route
-  path="/insurance-policy"
-  element={
-    <ProtectedRoute allowedRoles={["Admin", "Employee"]}>
-      <ModuleAccessGuard moduleName="Insurance Policy">
-        <InsurancePolicy />
-      </ModuleAccessGuard>
-    </ProtectedRoute>
-  }
-/>
+        <Route
+          path="/insurance-policy"
+          element={
+            <ProtectedRoute allowedRoles={["Admin", "Employee"]}>
+              <ModuleAccessGuard moduleName="Insurance Policy">
+                <InsurancePolicy />
+              </ModuleAccessGuard>
+            </ProtectedRoute>
+          }
+        />
 
-  <Route 
-    path="/admin/assets" 
-    element={
-      <ProtectedRoute allowedRoles={["Admin"]}>
-        <ModuleAccessGuard moduleName="Admin Assets">
-          <AdminAssetsManagement />
-        </ModuleAccessGuard>
-      </ProtectedRoute>
-    } 
-  />
+        <Route
+          path="/admin/assets"
+          element={
+            <ProtectedRoute allowedRoles={["Admin"]}>
+              <ModuleAccessGuard moduleName="Admin Assets">
+                <AdminAssetsManagement />
+              </ModuleAccessGuard>
+            </ProtectedRoute>
+          }
+        />
 
-  <Route 
-    path="/admin/holiday" 
-    element={
-      <ProtectedRoute allowedRoles={["Admin"]}>
-        <ModuleAccessGuard moduleName="Holiday Calendar">
-          <AdminHoliday />
-        </ModuleAccessGuard>
-      </ProtectedRoute>
-    } 
-  />
+        <Route
+          path="/admin/holiday"
+          element={
+            <ProtectedRoute allowedRoles={["Admin"]}>
+              <ModuleAccessGuard moduleName="Holiday Calendar">
+                <AdminHoliday />
+              </ModuleAccessGuard>
+            </ProtectedRoute>
+          }
+        />
 
-     {/* Assets Route - NEW */}
+        {/* Assets Route - NEW */}
         <Route
           path="/assets"
           element={
@@ -221,6 +240,103 @@ function App() {
         />
 
         <Route path="/joined" element={<Joined />} />
+
+
+    
+
+        {/* Employee Reimbursements Route */}
+        <Route
+          path="/reimbursements"
+          element={
+            <ProtectedRoute allowedRoles={["Admin", "Employee"]}>
+              <ModuleAccessGuard moduleName="Reimbursements">
+                <Reimbursements />
+              </ModuleAccessGuard>
+            </ProtectedRoute>
+          }
+        />
+
+        {/* Admin Reimbursements Route */}
+        <Route
+          path="/admin/reimbursements"
+          element={
+            <ProtectedRoute allowedRoles={["Admin"]}>
+              <ModuleAccessGuard moduleName="Reimbursements">
+                <AdminReimbursement />
+              </ModuleAccessGuard>
+            </ProtectedRoute>
+          }
+        />
+
+        {/* Leave Management Route */}
+        <Route
+          path="/leave-management"
+          element={
+            <ProtectedRoute allowedRoles={["Admin", "Employee"]}>
+              <ModuleAccessGuard moduleName="Leave Management">
+                <LeaveManagement />
+              </ModuleAccessGuard>
+            </ProtectedRoute>
+          }
+        />
+
+        {/* Admin Leave Management Route */}
+        <Route
+          path="/admin/leave"
+          element={
+            <ProtectedRoute allowedRoles={["Admin"]}>
+              <ModuleAccessGuard moduleName="Leave Management">
+                <AdminLeaveManagement />
+              </ModuleAccessGuard>
+            </ProtectedRoute>
+          }
+        />
+
+        {/* Admin My Team Route */}
+        <Route
+          path="/admin/my-team"
+          element={
+            <ProtectedRoute allowedRoles={["Admin"]}>
+              <AdminMyTeam />
+            </ProtectedRoute>
+          }
+        />
+
+        {/* My Team Route */}
+        <Route
+          path="/my-team"
+          element={
+            <ProtectedRoute allowedRoles={["Admin", "Employee"]}>
+              <ModuleAccessGuard moduleName="My Team">
+                <MyTeam />
+              </ModuleAccessGuard>
+            </ProtectedRoute>
+          }
+        />
+
+        {/* Employee Payroll Route */}
+        <Route
+          path="/payroll"
+          element={
+            <ProtectedRoute allowedRoles={["Admin", "Employee"]}>
+              <ModuleAccessGuard moduleName="Payroll">
+                <PayrollDashboard />
+              </ModuleAccessGuard>
+            </ProtectedRoute>
+          }
+        />
+
+        {/* Admin Payroll Route */}
+        <Route
+          path="/admin/payroll"
+          element={
+            <ProtectedRoute allowedRoles={["Admin"]}>
+              <ModuleAccessGuard moduleName="Payroll">
+                <AdminPayroll />
+              </ModuleAccessGuard>
+            </ProtectedRoute>
+          }
+        />
 
         {/* Default landing after login */}
         <Route path="/dashboard" element={<Navigate to="/" replace />} />

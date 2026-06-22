@@ -32,6 +32,29 @@ import {
   XCircle
 } from "lucide-react";
 
+// Convert Google Drive view/share links to embeddable preview links
+const getEmbeddableUrl = (url) => {
+  if (!url) return url;
+  
+  if (url.includes('drive.google.com')) {
+    let fileId = null;
+    
+    const fileMatch = url.match(/\/file\/d\/([a-zA-Z0-9_-]+)/);
+    if (fileMatch) fileId = fileMatch[1];
+    
+    if (!fileId) {
+      const idMatch = url.match(/[?&]id=([a-zA-Z0-9_-]+)/);
+      if (idMatch) fileId = idMatch[1];
+    }
+    
+    if (fileId) {
+      return `https://drive.google.com/file/d/${fileId}/preview`;
+    }
+  }
+  
+  return url;
+};
+
 const Joined = () => {
   const [joinedCandidates, setJoinedCandidates] = useState([]);
   const [filteredCandidates, setFilteredCandidates] = useState([]);
@@ -279,41 +302,103 @@ const fetchJoinedCandidates = async () => {
   };
 
   // Export to Excel
-//   const exportToExcel = () => {
-//     if (filteredCandidates.length === 0) {
-//       alert("No data to export");
-//       return;
-//     }
+  const exportToExcel = async () => {
+    try {
+      setLoading(true);
 
-//     const exportData = filteredCandidates.map((candidate, index) => ({
-//       "S.No": index + 1,
-//       "Candidate Name": candidate.name || "",
-//       "Email": candidate.email || "",
-//       "Mobile": candidate.mobile || "",
-//       "Current Organization": candidate.currentOrg || "",
-//       "Experience": candidate.experience || "",
-//       "Current CTC": candidate.currentCTC || "",
-//       "Expected CTC": candidate.expectedCTC || "",
-//       "Notice Period": candidate.noticePeriod || "",
-//       "Client Name": candidate.clientName || "",
-//       "Demand RR No": candidate.joinedDemand || "",
-//       "Status": "Joined",
-//       "Key Skills": Array.isArray(candidate.keySkills) ? candidate.keySkills.join(", ") : candidate.keySkills || ""
-//     }));
+      const response = await axios.get('http://localhost:5000/api/candidates/joined/all');
 
-//     const worksheet = XLSX.utils.json_to_sheet(exportData);
-    
-//     worksheet['!cols'] = [
-//       { wch: 5 }, { wch: 25 }, { wch: 30 }, { wch: 15 },
-//       { wch: 25 }, { wch: 10 }, { wch: 15 }, { wch: 15 },
-//       { wch: 12 }, { wch: 20 }, { wch: 12 }, { wch: 10 }, { wch: 40 }
-//     ];
+      if (!response.data.success) {
+        alert("Failed to fetch candidates");
+        return;
+      }
 
-//     const workbook = XLSX.utils.book_new();
-//     XLSX.utils.book_append_sheet(workbook, worksheet, "Joined Candidates");
-//     const filename = `Joined_Candidates_${new Date().toISOString().slice(0, 10)}.xlsx`;
-//     XLSX.writeFile(workbook, filename);
-//   };
+      const allJoinedCandidates = response.data.data;
+
+      if (allJoinedCandidates.length === 0) {
+        alert("No data to export");
+        return;
+      }
+
+      const excelData = allJoinedCandidates.map((candidate, index) => {
+        let skillsString = '';
+        if (Array.isArray(candidate.keySkills)) {
+          skillsString = candidate.keySkills.join('; ');
+        } else if (typeof candidate.keySkills === 'string') {
+          try {
+            const parsed = JSON.parse(candidate.keySkills);
+            skillsString = Array.isArray(parsed) ? parsed.join('; ') : parsed;
+          } catch {
+            skillsString = candidate.keySkills;
+          }
+        }
+
+        const formatDate = (dateValue) => {
+          if (!dateValue) return '';
+          try {
+            const date = new Date(dateValue);
+            return date.toLocaleDateString('en-US', {
+              year: 'numeric',
+              month: 'short',
+              day: 'numeric'
+            });
+          } catch {
+            return dateValue;
+          }
+        };
+
+        return {
+          'S.No': index + 1,
+          'Can_ID': candidate.canId || candidate.id || '',
+          'Candidate Name': candidate.name || '',
+          'ID': candidate.id || candidate.canId || '',
+          'Email': candidate.email || '',
+          'Mobile No': candidate.mobile || '',
+          'Experience': candidate.experience || '',
+          'Current Org': candidate.currentOrg || '',
+          'Current CTC': candidate.currentCTC || '',
+          'Expected CTC': candidate.expectedCTC || '',
+          'Notice Period in days': candidate.noticePeriod || '',
+          'Profiles sourced by': candidate.profileSourcedBy || '',
+          'Client Name': candidate.clientName || '',
+          'Demand RR No': candidate.joinedDemandRrNumber || candidate.joinedDemand || '',
+          'Profile submission date': candidate.profileSubmissionDate || '',
+          'Visa type': candidate.visaType || 'NA',
+          'Visa Validity Date': candidate.visaValidityDate || '',
+          'Key Skills': skillsString,
+          'Joined At': formatDate(candidate.joinedAt),
+          'createdAt': formatDate(candidate.createdAt),
+          'updatedAt': formatDate(candidate.updatedAt)
+        };
+      });
+
+      const worksheet = XLSX.utils.json_to_sheet(excelData);
+      
+      worksheet['!cols'] = [
+        { wch: 5 }, { wch: 10 }, { wch: 25 }, { wch: 10 },
+        { wch: 30 }, { wch: 15 }, { wch: 10 }, { wch: 25 },
+        { wch: 15 }, { wch: 15 }, { wch: 15 }, { wch: 20 },
+        { wch: 20 }, { wch: 15 }, { wch: 20 }, { wch: 15 },
+        { wch: 15 }, { wch: 40 }, { wch: 15 }, { wch: 15 },
+        { wch: 15 }
+      ];
+
+      const workbook = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(workbook, worksheet, "Joined Candidates");
+      const filename = `Joined_Candidates_${new Date().toISOString().slice(0, 10)}.xlsx`;
+      XLSX.writeFile(workbook, filename);
+      
+      setSuccessMessage(`✅ Exported ${allJoinedCandidates.length} joined candidates to Excel`);
+      setTimeout(() => setSuccessMessage(""), 3000);
+
+    } catch (err) {
+      console.error('Error exporting candidates:', err);
+      setError('Failed to export candidates: ' + err.message);
+      setTimeout(() => setError(null), 3000);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   // Pagination
   const totalPages = Math.ceil(filteredCandidates.length / itemsPerPage);
@@ -375,6 +460,13 @@ const fetchJoinedCandidates = async () => {
               </p>
             </div>
             <div className="flex gap-3 items-center">
+              <button
+                onClick={exportToExcel}
+                className="flex items-center gap-2 px-6 py-2 bg-green-600 text-white rounded-xl shadow hover:bg-green-700 transition"
+              >
+                <Download size={18} />
+                Export
+              </button>
               <div className="relative">
                 <input
                   type="text"
@@ -386,13 +478,6 @@ const fetchJoinedCandidates = async () => {
                 />
                 <Search className="absolute left-3 top-2.5 text-gray-400" size={18} />
               </div>
-              {/* <button
-                onClick={exportToExcel}
-                className="flex items-center gap-2 px-6 py-2 bg-green-600 text-white rounded-xl shadow hover:bg-green-700 transition"
-              >
-                <Download size={18} />
-                Export
-              </button> */}
             </div>
           </div>
 
@@ -745,7 +830,7 @@ const fetchJoinedCandidates = async () => {
               </div>
               <div className="h-[calc(80vh-80px)]">
                 <iframe
-                  src={selectedResumeUrl}
+                  src={getEmbeddableUrl(selectedResumeUrl)}
                   className="w-full h-full"
                   title="Resume Viewer"
                 />

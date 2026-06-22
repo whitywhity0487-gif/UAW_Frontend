@@ -26,7 +26,6 @@ export const CompanyProvider = ({ children }) => {
   const fetchAssignedClientFromDB = async (userId) => {
     if (!userId) return null;
     
-    console.log(`📡 Fetching assigned client for user: ${userId}`);
     
     try {
       // Only fetch from personal-details endpoint
@@ -51,7 +50,6 @@ export const CompanyProvider = ({ children }) => {
         }
       }
       
-      console.log('⚠️ No assigned client found in personal details');
       return null;
       
     } catch (error) {
@@ -66,7 +64,6 @@ export const CompanyProvider = ({ children }) => {
     setError(null);
     
     const client = clientName || assignedClient;
-    console.log(`📡 Fetching companies for client: ${client || 'all'}`);
     
     try {
       let url = 'http://localhost:5000/api/holiday/companies';
@@ -83,7 +80,6 @@ export const CompanyProvider = ({ children }) => {
       const data = await response.json();
       
       if (data.success && data.data) {
-        console.log(`✅ Found ${data.data.length} companies`);
         setAvailableCompanies(data.data);
         
         if (!currentCompany && data.data.length > 0) {

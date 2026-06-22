@@ -1,6 +1,29 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useRef, useCallback } from 'react';
 
 const PolicySecurity = ({ children, isAdmin }) => {
+  const shieldRef = useRef(null);
+  const contentRef = useRef(null);
+
+  // ─── Show / Hide shield instantly ───────────────────────────────────────────
+  const showShield = useCallback(() => {
+    if (shieldRef.current) {
+      shieldRef.current.style.display = "flex";
+    }
+    // Also blur the content behind the shield
+    if (contentRef.current) {
+      contentRef.current.style.filter = "blur(30px)";
+    }
+  }, []);
+
+  const hideShield = useCallback(() => {
+    if (shieldRef.current) {
+      shieldRef.current.style.display = "none";
+    }
+    if (contentRef.current) {
+      contentRef.current.style.filter = "none";
+    }
+  }, []);
+
   // ─── Block keyboard shortcuts (screenshot, copy, print, devtools) ────────────
   useEffect(() => {
     if (isAdmin) return;
@@ -16,18 +39,30 @@ const PolicySecurity = ({ children, isAdmin }) => {
         // PrintScreen key (Windows)
         e.key === "PrintScreen" ||
         // DevTools
-        e.key === "F12";
+        e.key === "F12" ||
+        // Ctrl+Shift+I (DevTools)
+        (e.ctrlKey && e.shiftKey && ["i", "I"].includes(e.key)) ||
+        // Ctrl+Shift+J (Console)
+        (e.ctrlKey && e.shiftKey && ["j", "J"].includes(e.key)) ||
+        // Ctrl+Shift+C (Inspector)
+        (e.ctrlKey && e.shiftKey && ["c", "C"].includes(e.key));
 
       if (blocked) {
         e.preventDefault();
         e.stopPropagation();
-        alert("Action restricted: Security protocols active for policy documents.");
+        // Show shield immediately on any screenshot attempt
+        showShield();
+        setTimeout(hideShield, 3000);
+
+        // Try to overwrite clipboard
+        try {
+          navigator.clipboard.writeText("Screenshots are disabled for this page.");
+        } catch (_) {}
       }
     };
 
     const handleCopyCut = (e) => {
       e.preventDefault();
-      alert("Copying is disabled for this document.");
     };
 
     const handleDrag = (e) => {
@@ -46,47 +81,88 @@ const PolicySecurity = ({ children, isAdmin }) => {
       document.removeEventListener("dragstart", handleDrag, true);
     };
 
-  }, [isAdmin]);
+  }, [isAdmin, showShield, hideShield]);
 
   // ─── Shield Logic for Snipping Tools & Screenshots ─────────────
   useEffect(() => {
     if (isAdmin) return;
 
-    const showShield = () => {
-      const overlay = document.getElementById("__policy-screenshot-shield");
-      if (overlay) overlay.style.display = "flex";
-    };
-
-    const hideShield = () => {
-      const overlay = document.getElementById("__policy-screenshot-shield");
-      if (overlay) overlay.style.display = "none";
-    };
-
     const handleVisibility = () => {
-      if (document.hidden) showShield();
-      else hideShield();
+      if (document.hidden) {
+        showShield();
+      } else {
+        // Small delay before hiding to catch quick screenshot tools
+        setTimeout(hideShield, 500);
+      }
     };
 
     const handleKeyUp = (e) => {
       if (e.key === "PrintScreen") {
-        navigator.clipboard.writeText("Screenshots are disabled for this page.");
+        try {
+          navigator.clipboard.writeText("Screenshots are disabled for this page.");
+        } catch (_) {}
         showShield();
-        setTimeout(hideShield, 3000); // hide after 3 seconds
+        setTimeout(hideShield, 3000);
       }
     };
 
+    const handleBlur = () => {
+      showShield();
+    };
+
+    const handleFocus = () => {
+      // Delay hiding on focus to ensure shield was visible during capture
+      setTimeout(hideShield, 300);
+    };
+
+    // Use a resize observer to detect snipping tool activation
+    // When snipping tool opens, the window may briefly lose focus
+    let lastFocusTime = Date.now();
+    const focusTracker = () => {
+      const now = Date.now();
+      if (now - lastFocusTime < 1000) {
+        // Rapid focus/blur cycle detected - possible screenshot tool
+        showShield();
+        setTimeout(hideShield, 3000);
+      }
+      lastFocusTime = now;
+    };
+
     document.addEventListener("visibilitychange", handleVisibility);
-    window.addEventListener("blur", showShield);
-    window.addEventListener("focus", hideShield);
+    window.addEventListener("blur", handleBlur);
+    window.addEventListener("focus", handleFocus);
+    window.addEventListener("focus", focusTracker);
     window.addEventListener("keyup", handleKeyUp);
 
     return () => {
       document.removeEventListener("visibilitychange", handleVisibility);
-      window.removeEventListener("blur", showShield);
-      window.removeEventListener("focus", hideShield);
+      window.removeEventListener("blur", handleBlur);
+      window.removeEventListener("focus", handleFocus);
+      window.removeEventListener("focus", focusTracker);
       window.removeEventListener("keyup", handleKeyUp);
     };
-  }, [isAdmin]);
+  }, [isAdmin, showShield, hideShield]);
+
+  // ─── Detect DevTools open (resize-based detection) ──────────────────────────
+  useEffect(() => {
+    if (isAdmin) return;
+
+    const checkDevTools = () => {
+      const widthThreshold = window.outerWidth - window.innerWidth > 160;
+      const heightThreshold = window.outerHeight - window.innerHeight > 160;
+      if (widthThreshold || heightThreshold) {
+        showShield();
+      }
+    };
+
+    const interval = setInterval(checkDevTools, 1000);
+    window.addEventListener("resize", checkDevTools);
+
+    return () => {
+      clearInterval(interval);
+      window.removeEventListener("resize", checkDevTools);
+    };
+  }, [isAdmin, showShield]);
 
   return (
     <div
@@ -100,15 +176,24 @@ const PolicySecurity = ({ children, isAdmin }) => {
         userSelect: isAdmin ? "auto" : "none",
         display: "flex",
         flexDirection: "column",
-        flex: 1
+        flex: 1,
+        position: "relative",
       }}
     >
-      {children}
+      {/* Content wrapper with ref for blur control */}
+      <div ref={contentRef} style={{ 
+        flex: 1, 
+        display: "flex", 
+        flexDirection: "column",
+        transition: "filter 0.05s ease-in-out",
+      }}>
+        {children}
+      </div>
 
       {/* ─── Screenshot / Capture Shield ───────────────────────────────────────── */}
       {!isAdmin && (
         <div
-          id="__policy-screenshot-shield"
+          ref={shieldRef}
           style={{
             display: "none",
             position: "fixed", top: 0, left: 0, right: 0, bottom: 0,
@@ -127,11 +212,10 @@ const PolicySecurity = ({ children, isAdmin }) => {
           <p style={{ color: "white", fontSize: 16, margin: 0, fontWeight: 600 }}>
             Content protected
           </p>
-          <p style={{ color: "#9CA3AF", fontSize: 13, margin: 0 }}>
-            Screenshot capture is not permitted.
-          </p>
+          
         </div>
       )}
+
 
       <style>
         {`

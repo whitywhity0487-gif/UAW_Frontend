@@ -1,16 +1,17 @@
 import React, { useState, useEffect, useRef, useCallback, useMemo, memo } from "react";
 import { useNavigate } from "react-router-dom";
 import {
-  ArrowLeft, Save, CheckCircle, User, Phone, Mail,
-  MapPin, Briefcase, Shield, Calendar, Globe,
-  Home, Building, Fingerprint, AlertCircle, Lock, Upload, FileText, X, Building2, Camera,
-  Edit3, ChevronRight, Eye, Award, Heart, Clock, Flag, Sparkles, Star, Zap, Plus, CreditCard, Landmark
+  ArrowLeft, Save, CheckCircle, User, Phone, 
+ Briefcase, Shield, 
+   AlertCircle,  Upload, FileText, X,  Camera,
+   ChevronRight, Sparkles, Star, Plus,  Landmark
 } from "lucide-react";
 import { useUser } from "../../../context/UserContext"
 import { useCompany } from "../../../context/CompanyContext"
 // Correct - looking in the same folder
 import ProfileStatusCard from "./ProfileStatusCard";
 import ProfileView from "./ProfileView";  // Make sure ProfileView.jsx also exists in the same folder
+import Button from "../../../components/Button";
 
 // ─── Validation helpers ───────────────────────────────────────────────────────
 const validators = {
@@ -47,14 +48,18 @@ const validators = {
     if (!v) return "Marital status is required.";
     return "";
   },
-  mobileNumber: (v) => {
+  mobileNumber: (v, nationality) => {
     if (!v) return "Mobile number is required.";
-    if (!/^\d{10}$/.test(v.replace(/\s/g, ""))) return "Enter a valid 10-digit mobile number.";
+    const requiredLength = (nationality === "CHINA" || nationality === "USA") ? 11 : 10;
+    const regex = new RegExp(`^\\d{${requiredLength}}$`);
+    if (!regex.test(v.replace(/\s/g, ""))) return `Enter a valid ${requiredLength}-digit mobile number.`;
     return "";
   },
-  emergencyNumber: (v, mobileNumber) => {
+  emergencyNumber: (v, mobileNumber, nationality) => {
     if (!v) return "Emergency number is required.";
-    if (!/^\d{10}$/.test(v.replace(/\s/g, ""))) return "Enter a valid 10-digit emergency number.";
+    const requiredLength = (nationality === "CHINA" || nationality === "USA") ? 11 : 10;
+    const regex = new RegExp(`^\\d{${requiredLength}}$`);
+    if (!regex.test(v.replace(/\s/g, ""))) return `Enter a valid ${requiredLength}-digit emergency number.`;
     if (v === mobileNumber) return "Emergency number cannot be the same as mobile number.";
     return "";
   },
@@ -479,6 +484,7 @@ const GovernmentIdFields = memo(({ nationality, formData, onChange, onBlur, fiel
 const CompanyDropdown = memo(({ value, companies, onSelect, onValueChange, error }) => {
   const [localValue, setLocalValue] = useState(value || "");
   const [open, setOpen] = useState(false);
+  const [isValidSelection, setIsValidSelection] = useState(true);
   const containerRef = useRef(null);
   const prevValueRef = useRef(value);
 
@@ -486,31 +492,66 @@ const CompanyDropdown = memo(({ value, companies, onSelect, onValueChange, error
     if (value !== prevValueRef.current) {
       prevValueRef.current = value;
       setLocalValue(value || "");
+      // Check if the new value is a valid company
+      if (value && companies) {
+        const isValid = companies.some(c => c.name?.toLowerCase() === value.toLowerCase());
+        setIsValidSelection(isValid || !value);
+      }
     }
-  }, [value]);
+  }, [value, companies]);
 
   useEffect(() => {
     const handler = (e) => {
-      if (containerRef.current && !containerRef.current.contains(e.target)) setOpen(false);
+      if (containerRef.current && !containerRef.current.contains(e.target)) {
+        setOpen(false);
+        // Validate on blur: check if typed text matches a company
+        if (localValue && companies) {
+          const isValid = companies.some(c => c.name?.toLowerCase() === localValue.toLowerCase());
+          setIsValidSelection(isValid);
+          if (!isValid) {
+            onValueChange(localValue, false); // signal invalid
+          }
+        }
+      }
     };
     document.addEventListener("mousedown", handler);
     return () => document.removeEventListener("mousedown", handler);
-  }, []);
+  }, [localValue, companies, onValueChange]);
 
   const filtered = useMemo(
     () => companies ? companies.filter((c) => c.name?.toLowerCase().includes(localValue.toLowerCase())) : [],
     [companies, localValue]
   );
 
+  const handleInputChange = (e) => {
+    const newValue = e.target.value;
+    setLocalValue(newValue);
+    setOpen(true);
+    // Reset valid selection flag when typing
+    setIsValidSelection(false);
+    onValueChange(newValue, false);
+  };
+
+  const handleSelect = (companyName) => {
+    setLocalValue(companyName);
+    setOpen(false);
+    setIsValidSelection(true);
+    onSelect(companyName);
+  };
+
+  const displayError = !isValidSelection && localValue
+    ? "Please select a valid company from the dropdown."
+    : error;
+
   return (
     <div ref={containerRef} className="relative">
       <input
         type="text"
         value={localValue}
-        onChange={(e) => { setLocalValue(e.target.value); setOpen(true); onValueChange(e.target.value); }}
+        onChange={handleInputChange}
         onFocus={() => setOpen(true)}
         placeholder="Search or select company…"
-        className={`${baseInput} ${error ? errorInput : normalInput}`}
+        className={`${baseInput} ${displayError ? errorInput : normalInput}`}
         autoComplete="off"
       />
       {open && filtered.length > 0 && (
@@ -519,7 +560,7 @@ const CompanyDropdown = memo(({ value, companies, onSelect, onValueChange, error
             <div
               key={idx}
               onMouseDown={(e) => e.preventDefault()}
-              onClick={() => { setLocalValue(company.name); setOpen(false); onSelect(company.name); }}
+              onClick={() => handleSelect(company.name)}
               className="px-4 py-3 cursor-pointer hover:bg-gradient-to-r hover:from-indigo-50 hover:to-white border-b border-gray-50 last:border-0 transition-all duration-200 group"
             >
               <div className="text-sm font-medium text-gray-800 group-hover:text-indigo-600">{company.name}</div>
@@ -528,7 +569,12 @@ const CompanyDropdown = memo(({ value, companies, onSelect, onValueChange, error
           ))}
         </div>
       )}
-      {error && <FieldError msg={error} />}
+      {open && localValue && filtered.length === 0 && (
+        <div className="absolute z-50 w-full mt-2 bg-white/95 backdrop-blur-md border border-gray-100 rounded-xl shadow-2xl p-4 animate-fadeInUp">
+          <p className="text-sm text-gray-400 italic text-center">No matching companies found</p>
+        </div>
+      )}
+      {displayError && <FieldError msg={displayError} />}
     </div>
   );
 });
@@ -634,7 +680,8 @@ const ProfileFormComponent = memo(({
   graduationDocument, postGraduationDocument, onGraduationUpload, onPostGraduationUpload,
   onGraduationRemove, onPostGraduationRemove, documentErrors,
   demands, showDemandDropdown, setShowDemandDropdown, onDemandSelect,
-  currentUserRole, completion, skills, onAddSkill, onRemoveSkill, onSkillInputChange, skillInput
+  currentUserRole, completion, skills, onAddSkill, onRemoveSkill, onSkillInputChange, skillInput,
+  declarationChecked, onDeclarationChange, declarationError
 }) => {
   const [activeSection, setActiveSection] = useState("sec-identity");
   const [hoveredSection, setHoveredSection] = useState(null);
@@ -728,19 +775,28 @@ const ProfileFormComponent = memo(({
       <div className="flex-1 flex flex-col min-w-0 h-full z-10">
         <div className="bg-white/50 backdrop-blur-xl border-b border-white/50 px-8 h-[72px] flex items-center justify-between shrink-0 z-10">
           <div className="flex items-center gap-4">
-            <button type="button" onClick={onCancel} className="flex items-center gap-2 text-gray-500 hover:text-gray-800 text-sm px-4 py-2 rounded-xl border border-gray-200 hover:border-indigo-300 hover:bg-white/50 transition-all duration-300 group">
-              <ArrowLeft size={14} className="group-hover:-translate-x-0.5 transition-transform" /> Back
-            </button>
+            <Button
+              variant="secondary"
+              icon={ArrowLeft}
+              onClick={onCancel}
+              className="rounded-xl border-gray-200 hover:border-indigo-300 hover:bg-white/50"
+            >
+              Back
+            </Button>
             <div>
               <p className="text-[15px] font-bold bg-gradient-to-r from-gray-800 to-gray-600 bg-clip-text text-transparent">Complete your profile</p>
               <p className="text-[11px] text-gray-400">Fields marked * are required</p>
             </div>
           </div>
-          <button type="button" onClick={onSubmit} disabled={loading}
-            className="relative overflow-hidden group flex items-center gap-2 bg-gradient-to-r from-indigo-600 to-indigo-500 hover:from-indigo-700 hover:to-indigo-600 disabled:opacity-50 disabled:cursor-not-allowed text-white text-sm font-semibold px-6 py-2.5 rounded-xl transition-all duration-300 shadow-lg hover:shadow-xl">
-            <div className="absolute inset-0 bg-white/20 translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-700" />
-            {loading ? <><div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" /> Saving...</> : <><Save size={14} className="group-hover:scale-110 transition-transform" /> Save details</>}
-          </button>
+          <Button
+            variant="primary"
+            icon={Save}
+            onClick={onSubmit}
+            isLoading={loading}
+            className="bg-gradient-to-r from-indigo-600 to-indigo-500 hover:from-indigo-700 hover:to-indigo-600 border-none shadow-lg hover:shadow-xl rounded-xl"
+          >
+            Save details
+          </Button>
         </div>
 
         <div id="form-scroll-area" className="flex-1 overflow-y-auto px-8 py-6 space-y-6">
@@ -763,8 +819,8 @@ const ProfileFormComponent = memo(({
           <div id="sec-contact" className="scroll-mt-20">
             <SectionCard icon={Phone} title="Contact Information" subtitle="Phone numbers, email and address">
               <div className="grid grid-cols-3 gap-x-6 gap-y-5">
-                <div className="group/field"><Label required>Mobile number</Label><StableInput type="tel" name="mobileNumber" value={formData.mobileNumber} onChange={onChange} onBlur={onBlur} maxLength={10} className={iCls("mobileNumber")} placeholder="10-digit number" /><FieldError msg={fieldErrors.mobileNumber || serverErrors.mobileNumber} /></div>
-                <div className="group/field"><Label required>Emergency number</Label><StableInput type="tel" name="emergencyNumber" value={formData.emergencyNumber} onChange={onChange} onBlur={onBlur} maxLength={10} className={iCls("emergencyNumber")} placeholder="10-digit number" /><FieldError msg={fieldErrors.emergencyNumber} /></div>
+                <div className="group/field"><Label required>Mobile number</Label><StableInput type="tel" name="mobileNumber" value={formData.mobileNumber} onChange={onChange} onBlur={onBlur} maxLength={(formData.nationality === "CHINA" || formData.nationality === "USA") ? 11 : 10} className={iCls("mobileNumber")} placeholder={`${(formData.nationality === "CHINA" || formData.nationality === "USA") ? 11 : 10}-digit number`} /><FieldError msg={fieldErrors.mobileNumber || serverErrors.mobileNumber} /></div>
+                <div className="group/field"><Label required>Emergency number</Label><StableInput type="tel" name="emergencyNumber" value={formData.emergencyNumber} onChange={onChange} onBlur={onBlur} maxLength={(formData.nationality === "CHINA" || formData.nationality === "USA") ? 11 : 10} className={iCls("emergencyNumber")} placeholder={`${(formData.nationality === "CHINA" || formData.nationality === "USA") ? 11 : 10}-digit number`} /><FieldError msg={fieldErrors.emergencyNumber} /></div>
                 <div className="group/field"><Label required>Emergency contact relationship</Label><StableInput type="text" name="emergencyRelationship" value={formData.emergencyRelationship} onChange={onChange} onBlur={onBlur} className={iCls("emergencyRelationship")} placeholder="e.g. Father, Mother, Guardian" /><FieldError msg={fieldErrors.emergencyRelationship} /></div>
                 <div className="group/field"><Label>Work email</Label><StableInput type="email" name="emailId" value={formData.emailId} onChange={onChange} onBlur={onBlur} className={iCls("emailId")} placeholder="work@company.com" /><FieldError msg={fieldErrors.emailId || serverErrors.emailId} /></div>
                 <div className="group/field"><Label required>Personal email</Label><StableInput type="email" name="personalEmailId" value={formData.personalEmailId} onChange={onChange} onBlur={onBlur} className={iCls("personalEmailId")} placeholder="personal@email.com" /><FieldError msg={fieldErrors.personalEmailId} /></div>
@@ -813,7 +869,7 @@ const ProfileFormComponent = memo(({
                   required={true}
                 />
                 <DocumentUpload 
-                  label="12th Certificate"
+                  label="12th/PUC Certificate"
                   document={twelfthDocument}
                   existingLink={formData.twelfthCertificateLink}
                   onUpload={onTwelfthUpload}
@@ -857,7 +913,7 @@ const ProfileFormComponent = memo(({
                   error={documentErrors?.visa}
                 />
              <div className="group/upload">
-  <Label>Profile Photo</Label>
+  <Label required>Profile Photo</Label>
 
   {profilePhotoDocument ? (
     <div className="relative w-40 h-40 rounded-2xl overflow-hidden border border-gray-200 shadow-md">
@@ -894,10 +950,11 @@ const ProfileFormComponent = memo(({
   ) : (
     <div
       onClick={() => document.getElementById("profilePhotoUpload")?.click()}
-      className="w-40 h-40 border-2 border-dashed border-gray-300 rounded-2xl flex flex-col items-center justify-center cursor-pointer hover:border-indigo-400 hover:bg-indigo-50/30 transition-all"
+      className={`w-40 h-40 border-2 border-dashed ${documentErrors?.profilePhoto ? 'border-red-400 bg-red-50/30' : 'border-gray-300'} rounded-2xl flex flex-col items-center justify-center cursor-pointer hover:border-indigo-400 hover:bg-indigo-50/30 transition-all`}
     >
       <Camera size={28} className="text-gray-400 mb-2" />
       <p className="text-xs text-gray-500">Upload Photo</p>
+      <p className="text-[10px] text-gray-300 mt-1">JPG, JPEG, PNG · max 1 MB</p>
     </div>
   )}
 
@@ -956,6 +1013,31 @@ const ProfileFormComponent = memo(({
             </SectionCard>
           </div>
 
+          {/* Declaration Checkbox */}
+          <div className="bg-white/80 backdrop-blur-sm rounded-2xl border border-white/50 shadow-xl p-6">
+            <div className="flex items-start gap-4">
+              <div className="pt-0.5">
+                <input
+                  type="checkbox"
+                  id="declaration-checkbox"
+                  checked={declarationChecked}
+                  onChange={(e) => onDeclarationChange(e.target.checked)}
+                  className="w-5 h-5 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500 cursor-pointer accent-indigo-600"
+                />
+              </div>
+              <label htmlFor="declaration-checkbox" className="text-sm text-gray-700 leading-relaxed cursor-pointer select-none">
+                <span className="font-semibold text-gray-800">Declaration:</span>{" "}
+                I hereby confirm that all the details provided in this form are true and accurate to the best of my knowledge. 
+                <span className="text-red-400 ml-0.5">*</span>
+              </label>
+            </div>
+            {declarationError && (
+              <div className="mt-3 ml-9">
+                <FieldError msg={declarationError} />
+              </div>
+            )}
+          </div>
+
           {/* Bottom action bar */}
           <div className="flex items-center justify-between py-5 border-t border-white/50 bg-white/50 backdrop-blur-xl -mx-8 px-8 sticky bottom-0 shadow-2xl rounded-t-2xl">
             <div className="flex items-center gap-2 text-[12px] text-gray-500">
@@ -963,11 +1045,22 @@ const ProfileFormComponent = memo(({
               Complete all required fields before submitting
             </div>
             <div className="flex items-center gap-3">
-              <button type="button" onClick={onCancel} className="px-5 py-2.5 text-sm border border-gray-200 rounded-xl text-gray-600 hover:bg-white hover:border-indigo-300 hover:text-indigo-600 transition-all duration-300">Cancel</button>
-              <button type="button" onClick={onSubmit} disabled={loading} className="relative overflow-hidden group flex items-center gap-2 px-6 py-2.5 bg-gradient-to-r from-indigo-600 to-indigo-500 hover:from-indigo-700 hover:to-indigo-600 text-white text-sm font-semibold rounded-xl transition-all duration-300 shadow-lg hover:shadow-xl disabled:opacity-50 disabled:cursor-not-allowed">
-                <div className="absolute inset-0 bg-white/20 translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-700" />
-                {loading ? <><div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" /> Saving...</> : <><Save size={14} className="group-hover:scale-110 transition-transform" /> Submit profile</>}
-              </button>
+              <Button
+                variant="secondary"
+                onClick={onCancel}
+                className="rounded-xl border-gray-200 hover:border-indigo-300 hover:text-indigo-600"
+              >
+                Cancel
+              </Button>
+              <Button
+                variant="primary"
+                icon={Save}
+                onClick={onSubmit}
+                isLoading={loading}
+                className="bg-gradient-to-r from-indigo-600 to-indigo-500 hover:from-indigo-700 hover:to-indigo-600 border-none shadow-lg hover:shadow-xl rounded-xl"
+              >
+                Submit profile
+              </Button>
             </div>
           </div>
         </div>
@@ -1006,6 +1099,8 @@ const Mypersonaldetails = () => {
   const [skills, setSkills] = useState([]);
   const [skillInput, setSkillInput] = useState("");
   const [documentErrors, setDocumentErrors] = useState({});
+  const [declarationChecked, setDeclarationChecked] = useState(false);
+  const [declarationError, setDeclarationError] = useState("");
 
   const [formData, setFormData] = useState({
     firstName: "", middleName: "", lastName: "", fullName: "", emailId: "", personalEmailId: "", pid: "", gender: "",
@@ -1034,9 +1129,9 @@ const Mypersonaldetails = () => {
       case "maritalStatus":
         return validators.maritalStatus(value);
       case "mobileNumber":
-        return validators.mobileNumber(value);
+        return validators.mobileNumber(value, allData.nationality);
       case "emergencyNumber":
-        return validators.emergencyNumber(value, allData.mobileNumber);
+        return validators.emergencyNumber(value, allData.mobileNumber, allData.nationality);
       case "emergencyRelationship":
         return validators.emergencyRelationship(value);
       case "emailId":
@@ -1078,7 +1173,11 @@ const Mypersonaldetails = () => {
 
   // Handle input change with validation
   const handleChange = (e) => {
-    const { name, value } = e.target;
+    let { name, value } = e.target;
+    
+    if (name === "mobileNumber" || name === "emergencyNumber") {
+      value = value.replace(/\D/g, "");
+    }
     
     // Update form data
     setFormData(prev => {
@@ -1099,9 +1198,24 @@ const Mypersonaldetails = () => {
   };
 
   // Handle blur for validation
-  const handleBlur = (e) => {
+  const handleBlur = async (e) => {
     const { name, value } = e.target;
-    const error = validateField(name, value);
+    let error = validateField(name, value);
+
+    // If local validation passes, check uniqueness for specific fields
+    if (!error && (name === "mobileNumber" || name === "personalEmailId" || name === "employeeNumber") && value) {
+      try {
+        const username = currentUser?.username || JSON.parse(localStorage.getItem("user"))?.username;
+        const res = await fetch(`${API_BASE_URL}/api/personaldetails/validate-unique?${name}=${encodeURIComponent(value)}&excludeUserId=${encodeURIComponent(username || "")}`);
+        const data = await res.json();
+        if (data.success && !data.isUnique && data.errors[name]) {
+          error = data.errors[name];
+        }
+      } catch (err) {
+        console.error("Uniqueness validation error:", err);
+      }
+    }
+
     setFieldErrors(prev => ({ ...prev, [name]: error }));
   };
 
@@ -1111,8 +1225,21 @@ const Mypersonaldetails = () => {
     setFieldErrors(prev => ({ ...prev, assignedCompany: "" }));
   };
 
-  const handleCompanyValueChange = (value) => {
+  const handleCompanyValueChange = (value, isValid) => {
     setFormData(prev => ({ ...prev, assignedCompany: value }));
+    if (!isValid && value) {
+      setFieldErrors(prev => ({ ...prev, assignedCompany: "Please select a valid company from the dropdown." }));
+    } else {
+      setFieldErrors(prev => ({ ...prev, assignedCompany: "" }));
+    }
+  };
+
+  // Declaration checkbox handler
+  const handleDeclarationChange = (checked) => {
+    setDeclarationChecked(checked);
+    if (checked) {
+      setDeclarationError("");
+    }
   };
 
   // Demand dropdown handlers
@@ -1122,15 +1249,29 @@ const Mypersonaldetails = () => {
   };
 
   // Document upload handlers
-  const handleAadharUpload = (file) => { setAadharDocument(file); setDocumentErrors(prev => ({ ...prev, aadhar: null })); };
-  const handlePanUpload = (file) => { setPanDocument(file); setDocumentErrors(prev => ({ ...prev, pan: null })); };
-  const handleTenthUpload = (file) => { setTenthDocument(file); setDocumentErrors(prev => ({ ...prev, tenth: null })); };
-  const handleTwelfthUpload = (file) => { setTwelfthDocument(file); setDocumentErrors(prev => ({ ...prev, twelfth: null })); };
-  const handleResumeUpload = (file) => { setResumeDocument(file); setDocumentErrors(prev => ({ ...prev, resume: null })); };
-  const handleVisaUpload = (file) => { setVisaDocument(file); setDocumentErrors(prev => ({ ...prev, visa: null })); };
-  const handleProfilePhotoUpload = (file) => { setProfilePhotoDocument(file); setDocumentErrors(prev => ({ ...prev, profilePhoto: null })); };
-  const handleGraduationUpload = (file) => { setGraduationDocument(file); setDocumentErrors(prev => ({ ...prev, graduation: null })); };
-  const handlePostGraduationUpload = (file) => { setPostGraduationDocument(file); setDocumentErrors(prev => ({ ...prev, postGraduation: null })); };
+  const handleAadharUpload = (file) => { setAadharDocument(file); setDocumentErrors(prev => ({...prev, aadhar: ""})); };
+  const handlePanUpload = (file) => { setPanDocument(file); setDocumentErrors(prev => ({...prev, pan: ""})); };
+  const handleTenthUpload = (file) => { setTenthDocument(file); setDocumentErrors(prev => ({...prev, tenth: ""})); };
+  const handleTwelfthUpload = (file) => { setTwelfthDocument(file); setDocumentErrors(prev => ({...prev, twelfth: ""})); };
+  const handleResumeUpload = (file) => { setResumeDocument(file); setDocumentErrors(prev => ({...prev, resume: ""})); };
+  const handleVisaUpload = (file) => { setVisaDocument(file); setDocumentErrors(prev => ({...prev, visa: ""})); };
+  const handleProfilePhotoUpload = (file) => {
+    // Validate file format
+    const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png'];
+    if (!allowedTypes.includes(file.type)) {
+      setDocumentErrors(prev => ({ ...prev, profilePhoto: "Only JPG, JPEG, and PNG files are allowed." }));
+      return;
+    }
+    // Validate file size (1 MB = 1048576 bytes)
+    if (file.size > 1048576) {
+      setDocumentErrors(prev => ({ ...prev, profilePhoto: "Profile photo size must be less than 1 MB." }));
+      return;
+    }
+    setProfilePhotoDocument(file);
+    setDocumentErrors(prev => ({ ...prev, profilePhoto: "" }));
+  };
+  const handleGraduationUpload = (file) => { setGraduationDocument(file); setDocumentErrors(prev => ({...prev, graduation: ""})); };
+  const handlePostGraduationUpload = (file) => { setPostGraduationDocument(file); setDocumentErrors(prev => ({...prev, postGraduation: ""})); };
 
   const handleAadharRemove = () => setAadharDocument(null);
   const handlePanRemove = () => setPanDocument(null);
@@ -1231,11 +1372,15 @@ const Mypersonaldetails = () => {
 
   const handleBackToHome = () => navigate("/home");
   const handleResubmit = () => setShowResubmitConfirm(true);
-    const confirmResubmit = () => {
-      setShowResubmitConfirm(false);
-      setProfileCompleted(false);
-      window.scrollTo({ top: 0, behavior: "smooth" });
-    };
+  const confirmResubmit = () => {
+    setFormData(prev => ({
+      ...prev,
+      rejectionReason: ""
+    }));
+    setShowResubmitConfirm(false);
+    setProfileCompleted(false);
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  };
   const handleContactSupport = () => window.location.href = "mailto:swathi@uandwe.com?subject=Profile%20Approval%20Query";
 
   const handleSubmit = async (e) => {
@@ -1254,10 +1399,37 @@ const Mypersonaldetails = () => {
       const error = validateField(field, formData[field]);
       if (error) errors[field] = error;
     });
+
+    // Cross-check duplicate errors from existing fieldErrors
+    if (fieldErrors.mobileNumber === "Mobile Number already exists.") errors.mobileNumber = fieldErrors.mobileNumber;
+    if (fieldErrors.personalEmailId === "Personal Email already exists.") errors.personalEmailId = fieldErrors.personalEmailId;
+    if (fieldErrors.employeeNumber === "Employee Number already exists.") errors.employeeNumber = fieldErrors.employeeNumber;
     
     // Validate skills
     if (skills.length === 0) {
       errors.skills = "At least one skill is required.";
+    }
+    
+    // Validate profile photo (mandatory)
+    if (!profilePhotoDocument && !formData.profilePhotoLink) {
+      errors.profilePhoto = "Profile photo is required.";
+    }
+    
+    // Validate company selection (must be a valid company from the dropdown)
+    if (!formData.assignedCompany || !formData.assignedCompany.trim()) {
+      errors.assignedCompany = "Please select a company from the dropdown.";
+    } else {
+      const isValidCompany = companies && companies.some(
+        c => c.name?.toLowerCase() === formData.assignedCompany.toLowerCase()
+      );
+      if (!isValidCompany) {
+        errors.assignedCompany = "Please select a valid company from the dropdown.";
+      }
+    }
+    
+    // Validate declaration checkbox
+    if (!declarationChecked) {
+      setDeclarationError("Please confirm the declaration before submitting.");
     }
     
     // Validate conditional fields based on nationality
@@ -1286,7 +1458,8 @@ const Mypersonaldetails = () => {
       errors.resume = "Resume/CV is required.";
     }
     
-    if (Object.keys(errors).length > 0) {
+    // Block submission if declaration not checked or validation errors exist
+    if (Object.keys(errors).length > 0 || !declarationChecked) {
       setFieldErrors(errors);
       setDocumentErrors({
         tenth: errors.tenth,
@@ -1294,8 +1467,17 @@ const Mypersonaldetails = () => {
         graduation: errors.graduation,
         resume: errors.resume,
         aadhar: errors.aadharDocument,
-        pan: errors.panDocument
+        pan: errors.panDocument,
+        profilePhoto: errors.profilePhoto
       });
+      if (!declarationChecked) {
+        setDeclarationError("Please confirm the declaration before submitting.");
+      }
+      // Scroll to the first error
+      const firstErrorField = document.querySelector('.text-red-500');
+      if (firstErrorField) {
+        firstErrorField.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      }
       return;
     }
     
@@ -1380,30 +1562,30 @@ const Mypersonaldetails = () => {
   // PENDING or REJECTED - Show ProfileStatusCard
   if (profileCompleted && (profileStatus === "PENDING" || profileStatus === "REJECTED")) {
     return (
-      <div className="min-h-screen bg-gray-50/50 p-6 md:p-10 w-full overflow-y-auto">
-        <div className="max-w-5xl mx-auto space-y-6">
-          <ProfileStatusCard
-            status={profileStatus}
-            rejectionReason={formData.rejectionReason}
-            onResubmit={handleResubmit}
-            onContactSupport={handleContactSupport}
-          />
-        </div>
-        
-        {/* Render Resubmit Modal here too! */}
+      <>
         {showResubmitConfirm && (
           <div className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-[300] p-4">
-            <div className="bg-white rounded-2xl p-6 max-w-md w-full shadow-2xl">
+            <div className="bg-white rounded-2xl p-6 max-w-md w-full">
               <h3 className="text-lg font-bold mb-2">Resubmit profile?</h3>
               <p className="text-sm text-gray-500 mb-6">Your existing details will be pre-filled. Review, make corrections, and resubmit for admin approval.</p>
               <div className="flex gap-3">
-                <button onClick={() => setShowResubmitConfirm(false)} className="flex-1 px-4 py-2 border rounded-xl hover:bg-gray-50">Cancel</button>
-                <button onClick={confirmResubmit} className="flex-1 px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl">Yes, edit & resubmit</button>
+                <button onClick={() => setShowResubmitConfirm(false)} className="flex-1 px-4 py-2 border rounded-xl">Cancel</button>
+                <button onClick={confirmResubmit} className="flex-1 px-4 py-2 bg-indigo-600 text-white rounded-xl">Yes, edit & resubmit</button>
               </div>
             </div>
           </div>
         )}
-      </div>
+        <div className="min-h-screen bg-gray-50/50 p-6 md:p-10 w-full overflow-y-auto">
+          <div className="max-w-5xl mx-auto space-y-6">
+            <ProfileStatusCard
+              status={profileStatus}
+              rejectionReason={formData.rejectionReason}
+              onResubmit={handleResubmit}
+              onContactSupport={handleContactSupport}
+            />
+          </div>
+        </div>
+      </>
     );
   }
 
@@ -1429,7 +1611,7 @@ const Mypersonaldetails = () => {
           </div>
         </div>
       )}
-      {showResubmitConfirm && (
+      {showResubmitConfirm && !profileCompleted && (
         <div className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-[300] p-4">
           <div className="bg-white rounded-2xl p-6 max-w-md w-full">
             <h3 className="text-lg font-bold mb-2">Resubmit profile?</h3>
@@ -1441,22 +1623,6 @@ const Mypersonaldetails = () => {
           </div>
         </div>
       )}
-      
-      {/* Rejection Reason Banner when editing a rejected profile */}
-      {formData.rejectionReason && (
-        <div className="max-w-4xl mx-auto px-6 mt-6 mb-2 animate-slideIn">
-          <div className="bg-red-50 border-l-4 border-red-500 p-4 rounded-r-xl shadow-sm">
-            <div className="flex items-start gap-3">
-              <AlertCircle className="text-red-500 shrink-0 mt-0.5" size={18} />
-              <div>
-                <h3 className="text-red-800 font-semibold text-sm">Please fix the following issues:</h3>
-                <p className="text-red-700 text-sm mt-1">{formData.rejectionReason}</p>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
-
       <ProfileFormComponent
         formData={formData}
         onChange={handleChange}
@@ -1510,6 +1676,9 @@ const Mypersonaldetails = () => {
         onRemoveSkill={handleRemoveSkill}
         onSkillInputChange={handleSkillInputChange}
         skillInput={skillInput}
+        declarationChecked={declarationChecked}
+        onDeclarationChange={handleDeclarationChange}
+        declarationError={declarationError}
       />
     </>
   );

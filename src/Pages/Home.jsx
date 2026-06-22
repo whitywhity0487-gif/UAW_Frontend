@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
+import axios from "axios";
 import logo from "../assets/Images/logo.png";
 import sideImage from "../assets/Images/head.png";
 import ReactCountryFlag from "react-country-flag";
@@ -21,17 +22,13 @@ import {
   Search,
   Mail,
   UserCircle,
-  Globe,
-  Bell,
-  Clock,
-  MapPin,
-  MessageCircle,
+  Cake,
   NewspaperIcon,
   AlertCircle,
   Clock as ClockIcon,
-  CheckCircle,
   XCircle,
-  Lock
+  Lock,
+  Bell
 } from "lucide-react";
 import { useUser } from "../context/UserContext";
 
@@ -45,6 +42,10 @@ const Home = () => {
   const [developmentMessage, setDevelopmentMessage] = useState("");
   const [profileCheckDone, setProfileCheckDone] = useState(false);
   const [pendingCount, setPendingCount] = useState(0);
+
+  // Notification Toast State
+  const [toasts, setToasts] = useState([]);
+  const [seenNotificationIds, setSeenNotificationIds] = useState(new Set());
 
   // Check if user is Admin or Recruiter
   const isAdmin = currentUser?.role === 'Admin' || JSON.parse(localStorage.getItem("user") || "{}").role === 'Admin';
@@ -66,6 +67,66 @@ const Home = () => {
 
     return () => clearInterval(timer);
   }, []);
+
+  // Fetch notifications for Toast
+  useEffect(() => {
+    let username = currentUser?.username;
+    if (!username) {
+      const storedUser = localStorage.getItem("user");
+      if (storedUser) {
+        try { username = JSON.parse(storedUser)?.username; } catch (e) { }
+      }
+    }
+
+    if (!username) return;
+
+    const fetchNotificationsForToast = async () => {
+      try {
+        const res = await axios.get(`http://localhost:5000/api/notifications/user/${username}`);
+        if (res.data.success) {
+          const newNotifs = res.data.data;
+          
+          // Load previously shown toast IDs from sessionStorage
+          const storedShownIds = JSON.parse(sessionStorage.getItem(`shownToasts_${username}`) || "[]");
+          const shownIdsSet = new Set(storedShownIds);
+          
+          const added = newNotifs.filter(n => !shownIdsSet.has(n.id) && !n.isRead);
+          
+          if (added.length > 0) { 
+            // Mark these as shown
+            added.forEach(n => shownIdsSet.add(n.id));
+            sessionStorage.setItem(`shownToasts_${username}`, JSON.stringify(Array.from(shownIdsSet)));
+
+            added.forEach((notif, index) => {
+              setTimeout(() => {
+                setToasts(t => [...t, { id: notif.id, message: notif.message }]);
+                // Auto-dismiss after 8 seconds
+                setTimeout(() => {
+                  setToasts(t => t.filter(toast => toast.id !== notif.id));
+                }, 8000);
+              }, index * 800); // Stagger popups
+            });
+          }
+        }
+      } catch (err) {
+        console.error("Error fetching notifications for toast:", err);
+      }
+    };
+
+    fetchNotificationsForToast();
+    const notifTimer = setInterval(fetchNotificationsForToast, 15000); // Check every 15 seconds
+    return () => clearInterval(notifTimer);
+  }, [currentUser]);
+
+  // Mark notification as read from Toast
+  const markAsReadFromToast = async (id) => {
+    setToasts(t => t.filter(x => x.id !== id));
+    try {
+      await axios.put(`http://localhost:5000/api/notifications/read/${id}`);
+    } catch (error) {
+      console.error("Failed to mark as read", error);
+    }
+  };
 
   // Initialize locations based on user role and nationality
   useEffect(() => {
@@ -191,9 +252,6 @@ const Home = () => {
       active: index === clickedIndex
     }));
     setLocations(updated);
-
-    // Optional: Store selected location in localStorage or context
-    localStorage.setItem('selectedCountry', locations[clickedIndex].name);
   };
 
   // Get profile status message
@@ -238,7 +296,6 @@ const Home = () => {
   const allCards = [
     { icon: <User />, title: "My Personal Details", requiresProfile: false, alwaysAllow: true, badge: isAdmin ? pendingCount : 0 },
     { icon: <ClipboardList />, title: "Code of Conduct", requiresProfile: true },
-    { icon: <Users />, title: "Employee Transfer", requiresProfile: true },
     { icon: <Calendar />, title: "Holiday Calendar", requiresProfile: true },
     { icon: <Shield />, title: "Insurance", requiresProfile: true },
     { icon: <CalendarClock />, title: "Leave Application", requiresProfile: true },
@@ -253,7 +310,12 @@ const Home = () => {
     { icon: <DollarSign />, title: "Salary Advance", requiresProfile: true },
     { icon: <BookOpen />, title: "Training", requiresProfile: true },
     { icon: <Plane />, title: "Travel", requiresProfile: true },
-    { icon: <Award />, title: "UANDWE Awards", requiresProfile: true }
+    { icon: <Award />, title: "UANDWE Awards", requiresProfile: true },
+    ...(isAdmin ? [{
+      icon: <Cake />,
+      title: "Birthday Wishes",
+      requiresProfile: true
+    }] : [])
   ];
 
   const filteredCards = allCards.filter(card =>
@@ -331,7 +393,7 @@ const Home = () => {
       }
     }
     else if (title === "Holiday Calendar") {
-      if (userRole === "Admin") {
+      if (userRole === "Admin" || userRole === "Recruiter") {
         navigate("/admin/holiday");
       } else {
         navigate("/holiday");
@@ -352,12 +414,49 @@ const Home = () => {
     else if (title === "Insurance") {
       navigate("/insurance-policy");
     }
-    // ✅ ADD THIS BELOW - for My Assets
+    else if (title === "Employee Transfer") {
+      if (userRole === "Admin") {
+        navigate("/admin/employee-transfer");
+      } else {
+        navigate("/employee-transfer");
+      }
+    }
     else if (title === "My Assets") {
       if (userRole === "Admin") {
         navigate("/admin/assets");
       } else {
         navigate("/assets");
+      }
+    }
+    else if (title === "Birthday Wishes") {
+      navigate("/birthday-wishes");
+    }
+    else if (title === "Reimbursements") {
+      if (userRole === "Admin") {
+        navigate("/admin/reimbursements");
+      } else {
+        navigate("/reimbursements");
+      }
+    }
+    else if (title === "Leave Application") {
+      if (userRole === "Admin") {
+        navigate("/admin/leave");
+      } else {
+        navigate("/leave-management");
+      }
+    }
+    else if (title === "My Team") {
+      if (userRole === "Admin") {
+        navigate("/admin/my-team");
+      } else {
+        navigate("/my-team");
+      }
+    }
+    else if (title === "Payroll") {
+      if (userRole === "Admin") {
+        navigate("/admin/payroll");
+      } else {
+        navigate("/payroll");
       }
     }
     else {
@@ -378,8 +477,8 @@ const Home = () => {
       {showDevelopmentMessage && (
         <div className="fixed top-20 left-1/2 transform -translate-x-1/2 z-50 animate-slideInDown">
           <div className={`rounded-lg shadow-2xl flex items-center gap-3 min-w-[400px] p-4 ${developmentMessage.includes('Access Restricted')
-              ? 'bg-yellow-50 border border-yellow-200 text-yellow-800'
-              : 'bg-gray-900 text-white'
+            ? 'bg-yellow-50 border border-yellow-200 text-yellow-800'
+            : 'bg-gray-900 text-white'
             }`}>
             <span className="text-xl">{developmentMessage.includes('Access Restricted') ? '🔒' : '🚧'}</span>
             <div className="flex-1">
@@ -394,6 +493,36 @@ const Home = () => {
           </div>
         </div>
       )}
+
+      {/* Toast Notifications Overlay (Top Right of Home Page) */}
+      <div className="fixed top-24 right-6 z-[9999] flex flex-col gap-3 pointer-events-none">
+        {toasts.map(toast => (
+          <div key={toast.id} className="pointer-events-auto bg-white border-l-4 border-blue-500 shadow-2xl rounded-xl p-4 flex items-start gap-3 w-80 animate-slideInRight transform transition-all">
+            <div className="w-8 h-8 bg-blue-100 text-blue-600 rounded-full flex items-center justify-center flex-shrink-0">
+              <Bell size={16} />
+            </div>
+            <div className="flex-1 min-w-0">
+              <h4 className="text-sm font-bold text-gray-900">New Notification</h4>
+              <p className="text-sm text-gray-600 mt-0.5 leading-snug">{toast.message}</p>
+            </div>
+            <div className="flex flex-col gap-1 justify-center">
+              <button onClick={() => markAsReadFromToast(toast.id)} className="text-gray-400 hover:text-gray-700 hover:bg-gray-100 px-2 py-1.5 rounded-md transition-colors text-xs font-medium flex items-center gap-1 border border-gray-200">
+                <XCircle size={14} /> Dismiss
+              </button>
+            </div>
+          </div>
+        ))}
+      </div>
+
+      <style>{`
+        .animate-slideInRight {
+          animation: slideInRight 0.3s ease-out forwards;
+        }
+        @keyframes slideInRight {
+          from { transform: translateX(100%); opacity: 0; }
+          to { transform: translateX(0); opacity: 1; }
+        }
+      `}</style>
 
       {/* Animated Background Elements */}
       <div className="fixed inset-0 overflow-hidden pointer-events-none">
@@ -435,7 +564,7 @@ const Home = () => {
               onClick={handleLogout}
               className="px-4 py-2 rounded-xl text-sm font-semibold 
               bg-white/10 backdrop-blur-md border border-white/20 
-              text-white shadow-lg 
+              text-white shadow-lg cursor-pointer
               hover:bg-gradient-to-r hover:from-blue-500 hover:to-purple-500 
               transition-all duration-300"
             >
@@ -566,6 +695,7 @@ const Home = () => {
                 profileStatus={profileStatus}
                 badge={card.badge}
                 isAdmin={isAdmin}
+                isRecruiter={isRecruiter}
                 isPolicies={card.isPoliciesCard}
               />
             ))}
@@ -656,9 +786,9 @@ const Home = () => {
   );
 };
 
-const ProfessionalCard = ({ icon, title, index, onClick, isLocked, profileStatus, badge, isAdmin, isPolicies }) => {
+const ProfessionalCard = ({ icon, title, index, onClick, isLocked, profileStatus, badge, isAdmin, isRecruiter, isPolicies }) => {
   const isRecruitment = title === "Recruitment";
-  const isRecruitmentDisabled = isRecruitment && !isAdmin && (profileStatus === "PENDING" || profileStatus === "APPROVED");
+  const isRecruitmentDisabled = isRecruitment && !isAdmin && !isRecruiter && (profileStatus === "PENDING" || profileStatus === "APPROVED");
 
   return (
     <div

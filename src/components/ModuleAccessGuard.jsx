@@ -46,7 +46,6 @@ useEffect(() => {
 
   // Admin always has full access
   if (currentUser?.role === 'Admin' || currentUser?.role === 'Recruiter') {
-    console.log("✅ Admin/Recruiter - Full access granted");
     return children;
   }
 

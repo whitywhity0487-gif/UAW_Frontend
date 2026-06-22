@@ -1,381 +1,47 @@
 // src/components/ProfileView.jsx
 import React, { memo, useState } from "react";
 import {
-  User, Phone, Mail, MapPin, Briefcase, Shield, Calendar, Globe,
-  Building, FileText, Lock, Clock, Eye, Award, Heart, Flag, Star,
-  CheckCircle, AlertCircle, ArrowLeft, ChevronRight
+  User, Phone, FileText, Briefcase, Shield, Star,
+  Building, Lock, Eye, CheckCircle, ArrowLeft, ChevronRight
 } from "lucide-react";
-
-/* ─── Google Fonts injected once ─────────────────────────────────────── */
-const FontLink = () => (
-  <style>{`
-    @import url('https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Sans:wght@300;400;500;600&display=swap');
-
-    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-
-    .pv-root {
-      min-height: 100vh;
-      font-family: 'DM Sans', sans-serif;
-      background: #f5f0e8;
-      display: flex;
-      flex-direction: column;
-    }
-
-    /* ── Topbar ─────────────────────────── */
-    .pv-topbar {
-      background: #1a1a2e;
-      color: #e8e0d0;
-      height: 56px;
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      padding: 0 32px;
-      position: sticky;
-      top: 0;
-      z-index: 30;
-    }
-    .pv-back-btn {
-      display: flex;
-      align-items: center;
-      gap: 8px;
-      background: none;
-      border: none;
-      color: #c8bfaf;
-      font-family: 'DM Sans', sans-serif;
-      font-size: 13px;
-      font-weight: 500;
-      cursor: pointer;
-      padding: 6px 12px;
-      border-radius: 6px;
-      transition: background 0.2s, color 0.2s;
-      letter-spacing: 0.03em;
-    }
-    .pv-back-btn:hover { background: rgba(255,255,255,0.08); color: #f5f0e8; }
-    .pv-status-badge {
-      display: flex;
-      align-items: center;
-      gap: 6px;
-      font-size: 11px;
-      font-weight: 600;
-      color: #7dd4a0;
-      background: rgba(125,212,160,0.12);
-      border: 1px solid rgba(125,212,160,0.3);
-      padding: 5px 14px;
-      border-radius: 20px;
-      letter-spacing: 0.08em;
-      text-transform: uppercase;
-    }
-
-    /* ── Body Layout ────────────────────── */
-    .pv-body {
-      display: flex;
-      flex: 1;
-      min-height: 0;
-    }
-
-    /* ── Sidebar ────────────────────────── */
-    .pv-sidebar {
-      width: 260px;
-      min-width: 260px;
-      background: #1a1a2e;
-      display: flex;
-      flex-direction: column;
-      padding: 32px 0 24px;
-      position: sticky;
-      top: 56px;
-      height: calc(100vh - 56px);
-      overflow-y: auto;
-    }
-    .pv-avatar-wrap {
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      padding: 0 24px 28px;
-      border-bottom: 1px solid rgba(255,255,255,0.07);
-    }
-    .pv-avatar {
-      width: 88px;
-      height: 88px;
-      border-radius: 50%;
-      overflow: hidden;
-      background: linear-gradient(135deg, #e4956a 0%, #c4713a 100%);
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-family: 'DM Serif Display', serif;
-      font-size: 30px;
-      color: #fff;
-      margin-bottom: 14px;
-      box-shadow: 0 0 0 3px rgba(228,149,106,0.3), 0 8px 24px rgba(0,0,0,0.4);
-      flex-shrink: 0;
-    }
-    .pv-avatar img {
-      width: 100%;
-      height: 100%;
-      object-fit: cover;
-      display: block;
-    }
-    .pv-avatar-name {
-      font-family: 'DM Serif Display', serif;
-      font-size: 17px;
-      color: #f5f0e8;
-      text-align: center;
-      line-height: 1.3;
-      margin-bottom: 6px;
-    }
-    .pv-avatar-role {
-      font-size: 11px;
-      color: #8b8099;
-      text-align: center;
-      letter-spacing: 0.06em;
-      text-transform: uppercase;
-    }
-    .pv-emp-id {
-      margin-top: 10px;
-      font-size: 11px;
-      color: #e4956a;
-      background: rgba(228,149,106,0.1);
-      border: 1px solid rgba(228,149,106,0.25);
-      padding: 3px 10px;
-      border-radius: 12px;
-      letter-spacing: 0.04em;
-    }
-
-    /* Tab nav */
-    .pv-nav {
-      padding: 20px 16px 0;
-      flex: 1;
-    }
-    .pv-nav-label {
-      font-size: 9px;
-      font-weight: 600;
-      letter-spacing: 0.14em;
-      text-transform: uppercase;
-      color: #5a5472;
-      padding: 0 8px;
-      margin-bottom: 8px;
-    }
-    .pv-nav-btn {
-      width: 100%;
-      display: flex;
-      align-items: center;
-      gap: 10px;
-      padding: 11px 14px;
-      border-radius: 10px;
-      border: none;
-      background: none;
-      color: #8b8099;
-      font-family: 'DM Sans', sans-serif;
-      font-size: 13px;
-      font-weight: 500;
-      cursor: pointer;
-      transition: all 0.2s;
-      text-align: left;
-      margin-bottom: 2px;
-      position: relative;
-    }
-    .pv-nav-btn:hover { background: rgba(255,255,255,0.05); color: #d8cfc0; }
-    .pv-nav-btn.active {
-      background: rgba(228,149,106,0.15);
-      color: #e4956a;
-    }
-    .pv-nav-btn.active::before {
-      content: '';
-      position: absolute;
-      left: 0;
-      top: 20%;
-      height: 60%;
-      width: 3px;
-      background: #e4956a;
-      border-radius: 0 2px 2px 0;
-    }
-    .pv-nav-chevron { margin-left: auto; opacity: 0.4; }
-
-    /* ── Main Content ───────────────────── */
-    .pv-main {
-      flex: 1;
-      padding: 36px 40px;
-      overflow-y: auto;
-    }
-
-    /* Page title */
-    .pv-page-title {
-      font-family: 'DM Serif Display', serif;
-      font-size: 32px;
-      color: #1a1a2e;
-      margin-bottom: 6px;
-      font-style: italic;
-    }
-    .pv-page-sub {
-      font-size: 13px;
-      color: #9a8f7e;
-      margin-bottom: 32px;
-      letter-spacing: 0.02em;
-    }
-
-    /* Section cards */
-    .pv-section {
-      background: #fff;
-      border-radius: 16px;
-      padding: 28px 32px;
-      margin-bottom: 20px;
-      box-shadow: 0 1px 3px rgba(0,0,0,0.04), 0 4px 16px rgba(0,0,0,0.04);
-      border: 1px solid rgba(0,0,0,0.04);
-    }
-    .pv-section-header {
-      display: flex;
-      align-items: center;
-      gap: 10px;
-      margin-bottom: 22px;
-    }
-    .pv-section-icon {
-      width: 34px;
-      height: 34px;
-      border-radius: 9px;
-      background: #fdf4ec;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      color: #e4956a;
-      flex-shrink: 0;
-    }
-    .pv-section-title {
-      font-family: 'DM Serif Display', serif;
-      font-size: 17px;
-      color: #1a1a2e;
-    }
-    .pv-section-line {
-      flex: 1;
-      height: 1px;
-      background: linear-gradient(to right, #e8e0d0, transparent);
-    }
-
-    /* Info grid */
-    .pv-info-grid {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 0;
-    }
-    @media (max-width: 700px) { .pv-info-grid { grid-template-columns: 1fr; } }
-
-    .pv-info-row {
-      display: flex;
-      flex-direction: column;
-      gap: 4px;
-      padding: 14px 16px;
-      border-bottom: 1px solid #f3ede3;
-      transition: background 0.15s;
-      border-radius: 8px;
-    }
-    .pv-info-row:hover { background: #fdf9f4; }
-    .pv-info-label {
-      font-size: 10px;
-      font-weight: 600;
-      letter-spacing: 0.1em;
-      text-transform: uppercase;
-      color: #b8a898;
-    }
-    .pv-info-value {
-      font-size: 14px;
-      font-weight: 500;
-      color: #2a2030;
-      line-height: 1.4;
-    }
-    .pv-info-empty {
-      font-size: 13px;
-      font-style: italic;
-      color: #c8bfaf;
-    }
-
-    /* Skills */
-    .pv-skills-wrap { display: flex; flex-wrap: wrap; gap: 8px; }
-    .pv-skill-tag {
-      background: #fdf4ec;
-      color: #c4713a;
-      font-size: 12px;
-      font-weight: 600;
-      padding: 5px 14px;
-      border-radius: 20px;
-      border: 1px solid rgba(196,113,58,0.2);
-      letter-spacing: 0.02em;
-    }
-
-    /* Document links */
-    .pv-doc-grid {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 12px;
-    }
-    @media (max-width: 700px) { .pv-doc-grid { grid-template-columns: 1fr; } }
-    .pv-doc-item {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      padding: 14px 18px;
-      background: #fdf9f4;
-      border: 1px solid #ede5d8;
-      border-radius: 12px;
-      transition: all 0.2s;
-    }
-    .pv-doc-item:hover { border-color: #e4956a; background: #fdf4ec; }
-    .pv-doc-label { font-size: 12px; font-weight: 600; color: #5a4a3a; letter-spacing: 0.02em; }
-    .pv-doc-link {
-      display: flex;
-      align-items: center;
-      gap: 5px;
-      font-size: 12px;
-      font-weight: 600;
-      color: #e4956a;
-      text-decoration: none;
-      padding: 4px 10px;
-      background: rgba(228,149,106,0.1);
-      border-radius: 8px;
-      transition: background 0.2s;
-    }
-    .pv-doc-link:hover { background: rgba(228,149,106,0.2); }
-    .pv-doc-none { font-size: 12px; color: #c8bfaf; font-style: italic; }
-
-    /* Decorative accent on sidebar bottom */
-    .pv-sidebar-accent {
-      padding: 20px 24px 0;
-      margin-top: auto;
-    }
-    .pv-sidebar-accent-inner {
-      border-top: 1px solid rgba(255,255,255,0.06);
-      padding-top: 16px;
-      font-size: 10px;
-      color: #5a5472;
-      letter-spacing: 0.08em;
-      text-transform: uppercase;
-    }
-  `}</style>
-);
+import Button from "../../../components/Button";
 
 /* ─── Sub-components ──────────────────────────────────────────────────── */
 const InfoRow = ({ label, value }) => (
-  <div className="pv-info-row">
-    <span className="pv-info-label">{label}</span>
+  <div className="flex flex-col gap-1 px-4 py-3.5 border-b border-[#f3ede3] rounded-lg hover:bg-[#fdf9f4] transition-colors duration-150">
+    <span className="text-[10px] font-semibold tracking-[0.1em] uppercase text-[#b8a898]">
+      {label}
+    </span>
     {value
-      ? <span className="pv-info-value">{value}</span>
-      : <span className="pv-info-empty">Not provided</span>}
+      ? <span className="text-sm font-medium text-[#2a2030] leading-snug">{value}</span>
+      : <span className="text-sm italic text-[#c8bfaf]">Not provided</span>}
   </div>
 );
 
 const DocumentLinkRow = ({ label, link }) => (
-  <div className="pv-doc-item">
-    <span className="pv-doc-label">{label}</span>
+  <div className="flex items-center justify-between px-[18px] py-3.5 bg-[#fdf9f4] border border-[#ede5d8] rounded-xl hover:border-[#e4956a] hover:bg-[#fdf4ec] transition-all duration-200">
+    <span className="text-xs font-semibold text-[#5a4a3a] tracking-wide">{label}</span>
     {link
-      ? <a href={link} target="_blank" rel="noopener noreferrer" className="pv-doc-link"><Eye size={13} /> View</a>
-      : <span className="pv-doc-none">Not uploaded</span>}
+      ? <a
+          href={link}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="flex items-center gap-1.5 text-xs font-semibold text-[#e4956a] px-2.5 py-1 bg-[rgba(228,149,106,0.10)] rounded-lg hover:bg-[rgba(228,149,106,0.20)] transition-colors no-underline"
+        >
+          <Eye size={13} /> View
+        </a>
+      : <span className="text-xs italic text-[#c8bfaf]">Not uploaded</span>}
   </div>
 );
 
 const SectionCard = ({ icon: Icon, title, children }) => (
-  <div className="pv-section">
-    <div className="pv-section-header">
-      <div className="pv-section-icon"><Icon size={16} /></div>
-      <span className="pv-section-title">{title}</span>
-      <div className="pv-section-line" />
+  <div className="bg-white rounded-2xl px-8 py-7 mb-5 shadow-[0_1px_3px_rgba(0,0,0,0.04),0_4px_16px_rgba(0,0,0,0.04)] border border-black/[0.04]">
+    <div className="flex items-center gap-2.5 mb-5">
+      <div className="w-[34px] h-[34px] rounded-[9px] bg-[#fdf4ec] flex items-center justify-center text-[#e4956a] shrink-0">
+        <Icon size={16} />
+      </div>
+      <span className="text-[17px] text-[#1a1a2e] font-semibold">{title}</span>
+      <div className="flex-1 h-px bg-gradient-to-r from-[#e8e0d0] to-transparent" />
     </div>
     {children}
   </div>
@@ -389,22 +55,30 @@ const TABS = [
   { id: "bank",       label: "Bank",       icon: Building  },
 ];
 
+const TAB_SUBS = {
+  personal:   "Identity, contact, and government information",
+  documents:  "Uploaded certificates and credentials",
+  employment: "Role, location, and reporting details",
+  bank:       "Payroll and banking information",
+};
+
 /* ─── Main Component ──────────────────────────────────────────────────── */
 const ProfileView = memo(({ data, onBackToHome }) => {
-  const [activeTab, setActiveTab] = useState("personal");
+  const [activeTab, setActiveTab]           = useState("personal");
   const [imgFallbackIndex, setImgFallbackIndex] = useState(0);
 
-  const fullName = data.fullName || `${data.firstName || ""} ${data.lastName || ""}`.trim() || "Employee";
+  const fullName = data.fullName
+    || `${data.firstName || ""} ${data.lastName || ""}`.trim()
+    || "Employee";
   const initials = fullName.split(" ").map(n => n[0]).join("").toUpperCase().slice(0, 2);
 
-  // Extract Google Drive file ID from any Drive URL format
   const extractDriveId = (url) => {
     if (!url) return null;
     const patterns = [
-      /\/file\/d\/([a-zA-Z0-9_-]{10,})/,   // /file/d/ID/view
-      /\/d\/([a-zA-Z0-9_-]{10,})\//,        // /d/ID/
-      /[?&]id=([a-zA-Z0-9_-]{10,})/,        // ?id=ID
-      /open\?id=([a-zA-Z0-9_-]{10,})/,      // open?id=ID
+      /\/file\/d\/([a-zA-Z0-9_-]{10,})/,
+      /\/d\/([a-zA-Z0-9_-]{10,})\//,
+      /[?&]id=([a-zA-Z0-9_-]{10,})/,
+      /open\?id=([a-zA-Z0-9_-]{10,})/,
     ];
     for (const p of patterns) {
       const m = url.match(p);
@@ -414,22 +88,17 @@ const ProfileView = memo(({ data, onBackToHome }) => {
   };
 
   const driveId = extractDriveId(data.profilePhotoLink);
-
-  // Multiple URL strategies in priority order
   const imgSources = driveId ? [
-    `https://drive.google.com/thumbnail?id=${driveId}&sz=w400`,           // thumbnail API (most reliable)
-    `https://drive.google.com/uc?export=view&id=${driveId}`,              // direct export
-    `https://lh3.googleusercontent.com/d/${driveId}=s400`,                // lh3 CDN
+    `https://drive.google.com/thumbnail?id=${driveId}&sz=w400`,
+    `https://drive.google.com/uc?export=view&id=${driveId}`,
+    `https://lh3.googleusercontent.com/d/${driveId}=s400`,
   ] : (data.profilePhotoLink ? [data.profilePhotoLink] : []);
 
   const currentImgSrc = imgSources[imgFallbackIndex] || null;
-
   const handleImgError = () => {
-    if (imgFallbackIndex < imgSources.length - 1) {
-      setImgFallbackIndex(prev => prev + 1); // try next source
-    } else {
-      setImgFallbackIndex(imgSources.length); // all failed → show initials
-    }
+    setImgFallbackIndex(prev =>
+      prev < imgSources.length - 1 ? prev + 1 : imgSources.length
+    );
   };
 
   const fmtDate = (d) => d
@@ -440,129 +109,162 @@ const ProfileView = memo(({ data, onBackToHome }) => {
 
   return (
     <>
-      <FontLink />
-      <div className="pv-root">
+      <div className="min-h-screen bg-[#f5f0e8] flex flex-col">
 
         {/* ── Top Bar ── */}
-        <div className="pv-topbar">
-          <button className="pv-back-btn" onClick={onBackToHome}>
+        <div className="bg-[#111827] text-[#e8e0d0] h-14 flex items-center justify-between px-8 sticky top-0 z-30">
+          <Button
+            variant="unstyled"
+            onClick={onBackToHome}
+            className="relative z-10 flex items-center gap-2 bg-transparent border-none text-[#c8bfaf] text-[13px] font-medium cursor-pointer px-3 py-1.5 rounded-md hover:bg-white/[0.08] hover:text-[#f5f0e8] transition-all duration-200 tracking-wide"
+          >
             <ArrowLeft size={15} /> Back to Home
-          </button>
-          <div className="pv-status-badge">
+          </Button>
+          <div className="relative z-10 flex items-center gap-1.5 text-[11px] font-semibold text-[#7dd4a0] bg-[rgba(125,212,160,0.12)] border border-[rgba(125,212,160,0.3)] px-3.5 py-1.5 rounded-full tracking-[0.08em] uppercase">
             <CheckCircle size={12} /> Profile Approved
           </div>
         </div>
 
-        <div className="pv-body">
+        <div className="flex flex-1 min-h-0">
 
           {/* ── Sidebar ── */}
-          <aside className="pv-sidebar">
-            <div className="pv-avatar-wrap">
-              <div className="pv-avatar">
-                {currentImgSrc && imgFallbackIndex < imgSources.length
-                  ? <img
-                      key={imgFallbackIndex}
-                      src={currentImgSrc}
-                      alt={fullName}
-                      onError={handleImgError}
-                      referrerPolicy="no-referrer"
-                    />
-                  : initials}
+          <aside className="w-[260px] min-w-[260px] bg-[#111827] flex flex-col py-8 pb-6 sticky top-14 h-[calc(100vh-56px)] z-20">
+            
+            <div className="flex flex-col h-full">
+              {/* Avatar block */}
+              <div className="flex flex-col items-center px-6 pb-7 border-b border-white/[0.07]">
+                <div className="w-[88px] h-[88px] rounded-full overflow-hidden bg-gradient-to-br from-[#e4956a] to-[#c4713a] flex items-center justify-center text-[30px] font-bold text-white mb-3.5 shadow-[0_0_0_3px_rgba(228,149,106,0.3),0_8px_24px_rgba(0,0,0,0.4)] shrink-0">
+                  {currentImgSrc && imgFallbackIndex < imgSources.length
+                    ? <img
+                        key={imgFallbackIndex}
+                        src={currentImgSrc}
+                        alt={fullName}
+                        onError={handleImgError}
+                        referrerPolicy="no-referrer"
+                        className="w-full h-full object-cover block"
+                      />
+                    : initials}
+                </div>
+                <div className="font-semibold text-[17px] text-[#f5f0e8] text-center leading-snug mb-1.5">
+                  {fullName}
+                </div>
+                <div className="text-[11px] text-[#8b8099] text-center tracking-[0.06em] uppercase">
+                  {data.jobTitle || "Employee"}
+                </div>
+                {data.employeeNumber && (
+                  <div className="mt-2.5 text-[11px] text-[#e4956a] bg-[rgba(228,149,106,0.1)] border border-[rgba(228,149,106,0.25)] px-2.5 py-[3px] rounded-xl tracking-[0.04em]">
+                    ID · {data.employeeNumber}
+                  </div>
+                )}
               </div>
-              <div className="pv-avatar-name">{fullName}</div>
-              <div className="pv-avatar-role">{data.jobTitle || "Employee"}</div>
-              {data.employeeNumber && (
-                <div className="pv-emp-id">ID · {data.employeeNumber}</div>
-              )}
-            </div>
 
-            <nav className="pv-nav">
-              <div className="pv-nav-label">Navigation</div>
+              {/* Tab nav */}
+              <nav className="px-4 pt-5 flex-1 overflow-y-auto">
+                <div className="text-[9px] font-semibold tracking-[0.14em] uppercase text-[#5a5472] px-2 mb-2">
+                  Navigation
+                </div>
               {TABS.map(tab => (
-                <button
+                <Button
                   key={tab.id}
-                  className={`pv-nav-btn${activeTab === tab.id ? " active" : ""}`}
+                  variant="unstyled"
                   onClick={() => setActiveTab(tab.id)}
+                  className={[
+                    "w-full flex items-center gap-2.5 px-3.5 py-[11px] rounded-[10px] border-none text-[13px] font-medium cursor-pointer transition-all duration-200 text-left mb-0.5 relative",
+                    activeTab === tab.id
+                      ? "bg-[rgba(228,149,106,0.15)] text-[#e4956a]"
+                      : "bg-transparent text-[#8b8099] hover:bg-white/[0.05] hover:text-[#d8cfc0]",
+                  ].join(" ")}
                 >
+                  {activeTab === tab.id && (
+                    <span className="absolute left-0 top-[20%] h-[60%] w-[3px] bg-[#e4956a] rounded-r-sm" />
+                  )}
                   <tab.icon size={14} />
                   {tab.label}
-                  <ChevronRight size={12} className="pv-nav-chevron" />
-                </button>
+                  <ChevronRight size={12} className="ml-auto opacity-40" />
+                </Button>
               ))}
-            </nav>
+              </nav>
 
-            <div className="pv-sidebar-accent">
-              <div className="pv-sidebar-accent-inner">
-                {data.assignedCompany || "Organization"}
+              {/* Bottom accent */}
+              <div className="px-6 mt-auto pt-5">
+                <div className="border-t border-white/[0.06] pt-4 text-[10px] text-[#5a5472] tracking-[0.08em] uppercase">
+                  {data.assignedCompany || "Organization"}
+                </div>
               </div>
             </div>
           </aside>
 
           {/* ── Main ── */}
-          <main className="pv-main">
-            <h1 className="pv-page-title">{currentTab?.label}</h1>
-            <p className="pv-page-sub">
-              {activeTab === "personal" && "Identity, contact, and government information"}
-              {activeTab === "documents" && "Uploaded certificates and credentials"}
-              {activeTab === "employment" && "Role, location, and reporting details"}
-              {activeTab === "bank" && "Payroll and banking information"}
+          <main className="flex-1 px-10 py-9 overflow-y-auto">
+            <h1 className="text-[32px] font-bold text-[#1a1a2e] mb-1.5">
+              {currentTab?.label}
+            </h1>
+            <p className="text-[13px] text-[#9a8f7e] mb-8 tracking-wide">
+              {TAB_SUBS[activeTab]}
             </p>
 
             {/* ── PERSONAL TAB ── */}
             {activeTab === "personal" && <>
               <SectionCard icon={User} title="Personal Information">
-                <div className="pv-info-grid">
-                  <InfoRow label="Full Name"          value={fullName} />
-                  <InfoRow label="Gender"             value={data.gender} />
-                  <InfoRow label="Marital Status"     value={data.maritalStatus} />
-                  <InfoRow label="Nationality"        value={data.nationality} />
-                  <InfoRow label="Date of Birth"      value={fmtDate(data.dateOfBirth)} />
-                  <InfoRow label="City"               value={data.city} />
-                  <InfoRow label="State"              value={data.state} />
-                  <InfoRow label="Current Address"    value={data.currentResidentialAddress} />
-                  <InfoRow label="Permanent Address"  value={data.permanentResidentialAddress} />
+                <div className="grid grid-cols-2 gap-0 max-[700px]:grid-cols-1">
+                  <InfoRow label="Full Name"         value={fullName} />
+                  <InfoRow label="Gender"            value={data.gender} />
+                  <InfoRow label="Marital Status"    value={data.maritalStatus} />
+                  <InfoRow label="Nationality"       value={data.nationality} />
+                  <InfoRow label="Date of Birth"     value={fmtDate(data.dateOfBirth)} />
+                  <InfoRow label="City"              value={data.city} />
+                  <InfoRow label="State"             value={data.state} />
+                  <InfoRow label="Current Address"   value={data.currentResidentialAddress} />
+                  <InfoRow label="Permanent Address" value={data.permanentResidentialAddress} />
                 </div>
               </SectionCard>
 
               <SectionCard icon={Phone} title="Contact Information">
-                <div className="pv-info-grid">
-                  <InfoRow label="Mobile"                  value={data.mobileNumber} />
-                  <InfoRow label="Emergency Number"        value={data.emergencyNumber} />
-                  <InfoRow label="Emergency Relationship"  value={data.emergencyRelationship} />
-                  <InfoRow label="Work Email"              value={data.emailId} />
-                  <InfoRow label="Personal Email"          value={data.personalEmailId} />
+                <div className="grid grid-cols-2 gap-0 max-[700px]:grid-cols-1">
+                  <InfoRow label="Mobile"                 value={data.mobileNumber} />
+                  <InfoRow label="Emergency Number"       value={data.emergencyNumber} />
+                  <InfoRow label="Emergency Relationship" value={data.emergencyRelationship} />
+                  <InfoRow label="Work Email"             value={data.emailId} />
+                  <InfoRow label="Personal Email"         value={data.personalEmailId} />
                 </div>
               </SectionCard>
 
               <SectionCard icon={Shield} title="Government IDs">
                 {data.nationality === "INDIA" && <>
-                  <div className="pv-info-grid">
+                  <div className="grid grid-cols-2 gap-0 max-[700px]:grid-cols-1">
                     <InfoRow label="Aadhaar Number" value={data.aadharNumber ? `**** **** ${data.aadharNumber.slice(-4)}` : null} />
                     <InfoRow label="PAN Number"     value={data.panNumber ? `${data.panNumber.slice(0, 5)}${"*".repeat(5)}` : null} />
                   </div>
-                  <div style={{ height: 16 }} />
-                  <div className="pv-doc-grid">
+                  <div className="h-4" />
+                  <div className="grid grid-cols-2 gap-3 max-[700px]:grid-cols-1">
                     <DocumentLinkRow label="Aadhaar Document" link={data.aadharDocumentLink} />
                     <DocumentLinkRow label="PAN Document"     link={data.panDocumentLink} />
                   </div>
                 </>}
                 {data.nationality === "USA" && (
-                  <div className="pv-info-grid">
+                  <div className="grid grid-cols-2 gap-0 max-[700px]:grid-cols-1">
                     <InfoRow label="SSN" value={data.ssnNumber ? `***-**-${data.ssnNumber.slice(-4)}` : null} />
                   </div>
                 )}
                 {data.nationality === "CHINA" && (
-                  <div className="pv-info-grid">
+                  <div className="grid grid-cols-2 gap-0 max-[700px]:grid-cols-1">
                     <InfoRow label="National ID" value={data.nationalId} />
                   </div>
                 )}
               </SectionCard>
 
               <SectionCard icon={Star} title="Skills">
-                <div className="pv-skills-wrap">
+                <div className="flex flex-wrap gap-2">
                   {(data.skills || []).length > 0
-                    ? (data.skills).map((s, i) => <span key={i} className="pv-skill-tag">{s}</span>)
-                    : <span className="pv-info-empty">No skills added</span>}
+                    ? data.skills.map((s, i) => (
+                        <span
+                          key={i}
+                          className="bg-[#fdf4ec] text-[#c4713a] text-xs font-semibold px-3.5 py-1.5 rounded-full border border-[rgba(196,113,58,0.2)] tracking-wide"
+                        >
+                          {s}
+                        </span>
+                      ))
+                    : <span className="text-sm italic text-[#c8bfaf]">No skills added</span>}
                 </div>
               </SectionCard>
             </>}
@@ -570,7 +272,7 @@ const ProfileView = memo(({ data, onBackToHome }) => {
             {/* ── DOCUMENTS TAB ── */}
             {activeTab === "documents" && (
               <SectionCard icon={FileText} title="Educational & Professional Documents">
-                <div className="pv-doc-grid">
+                <div className="grid grid-cols-2 gap-3 max-[700px]:grid-cols-1">
                   <DocumentLinkRow label="10th Certificate"            link={data.tenthCertificateLink} />
                   <DocumentLinkRow label="12th / PUC Certificate"      link={data.twelfthCertificateLink} />
                   <DocumentLinkRow label="Graduation Certificate"      link={data.graduationCertificateLink} />
@@ -584,16 +286,16 @@ const ProfileView = memo(({ data, onBackToHome }) => {
             {/* ── EMPLOYMENT TAB ── */}
             {activeTab === "employment" && (
               <SectionCard icon={Briefcase} title="Employment Details">
-                <div className="pv-info-grid">
-                  <InfoRow label="Job Title"        value={data.jobTitle} />
-                  <InfoRow label="Employee Number"  value={data.employeeNumber} />
-                  <InfoRow label="Company"          value={data.assignedCompany} />
-                  <InfoRow label="Work Location"    value={data.employmentLocation} />
-                  <InfoRow label="Start Date"       value={fmtDate(data.employmentStartDate)} />
-                  <InfoRow label="Supervisor"       value={data.supervisor} />
-                  <InfoRow label="HR Manager"       value={data.hr} />
-                  <InfoRow label="Visa Type"        value={data.visaType} />
-                  <InfoRow label="Visa End Date"    value={fmtDate(data.visaEndDate)} />
+                <div className="grid grid-cols-2 gap-0 max-[700px]:grid-cols-1">
+                  <InfoRow label="Job Title"       value={data.jobTitle} />
+                  <InfoRow label="Employee Number" value={data.employeeNumber} />
+                  <InfoRow label="Company"         value={data.assignedCompany} />
+                  <InfoRow label="Work Location"   value={data.employmentLocation} />
+                  <InfoRow label="Start Date"      value={fmtDate(data.employmentStartDate)} />
+                  <InfoRow label="Supervisor"      value={data.supervisor} />
+                  <InfoRow label="HR Manager"      value={data.hr} />
+                  {data.visaType && <InfoRow label="Visa Type"       value={data.visaType} />}
+                  {data.visaEndDate && <InfoRow label="Visa End Date"   value={fmtDate(data.visaEndDate)} />}
                 </div>
               </SectionCard>
             )}
@@ -601,11 +303,11 @@ const ProfileView = memo(({ data, onBackToHome }) => {
             {/* ── BANK TAB ── */}
             {activeTab === "bank" && (
               <SectionCard icon={Building} title="Bank Details">
-                <div className="pv-info-grid">
-                  <InfoRow label="Bank Name"       value={data.bankName} />
-                  <InfoRow label="Branch"          value={data.bankBranch} />
-                  <InfoRow label="Account Number"  value={data.bankAccountNumber ? `****${data.bankAccountNumber.slice(-4)}` : null} />
-                  <InfoRow label="IFSC Code"       value={data.ifscCode} />
+                <div className="grid grid-cols-2 gap-0 max-[700px]:grid-cols-1">
+                  <InfoRow label="Bank Name"      value={data.bankName} />
+                  <InfoRow label="Branch"         value={data.bankBranch} />
+                  <InfoRow label="Account Number" value={data.bankAccountNumber ? `****${data.bankAccountNumber.slice(-4)}` : null} />
+                  <InfoRow label="IFSC Code"      value={data.ifscCode} />
                 </div>
               </SectionCard>
             )}

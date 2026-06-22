@@ -62,7 +62,6 @@ const CreateUser = () => {
 
   const fetchUsers = async () => {
     try {
-      console.log("📡 Fetching users from API...");
       const response = await fetch("http://localhost:5000/api/users");
       console.log("📡 Response status:", response.status);
       
@@ -73,12 +72,10 @@ const CreateUser = () => {
       const contentType = response.headers.get("content-type");
       if (!contentType || !contentType.includes("application/json")) {
         const text = await response.text();
-        console.error("❌ Received non-JSON response:", text.substring(0, 200));
         throw new Error("Server returned HTML instead of JSON. Backend might not be running.");
       }
       
       const data = await response.json();
-      console.log("📡 Response data:", data);
       
       if (data.success) {
         setUsers(data.users);
@@ -97,7 +94,6 @@ const CreateUser = () => {
   const fetchClients = async () => {
     try {
       setClientsLoading(true);
-      console.log("📡 Fetching client names from demands...");
       const response = await fetch("http://localhost:5000/api/demand/clients/list");
       
       if (!response.ok) {
@@ -105,7 +101,6 @@ const CreateUser = () => {
       }
       
       const data = await response.json();
-      console.log("📡 Clients response:", data);
       
       if (data.success) {
         setClients(data.clients);
@@ -157,7 +152,6 @@ const CreateUser = () => {
       submitData.assignedClient = formData.assignedClient;
     }
 
-    console.log("📤 Submitting user data:", { ...submitData, password: "[HIDDEN]" });
 
     const response = await fetch("http://localhost:5000/api/users", {
       method: "POST",
@@ -167,7 +161,6 @@ const CreateUser = () => {
       body: JSON.stringify(submitData),
     });
 
-    console.log("📥 Response status:", response.status);
 
     // First check if response is ok
     if (!response.ok) {
@@ -250,7 +243,6 @@ const CreateUser = () => {
           throw new Error(`${formData.role} role requires an assigned client. Please select a client.`);
         }
         updateData.assignedClient = formData.assignedClient;
-        console.log(`Updating user ${editingUser.username} - Role: ${formData.role}, Client: ${formData.assignedClient}`);
       }
 
       const response = await fetch(`http://localhost:5000/api/users/${encodeURIComponent(editingUser.username)}`, {

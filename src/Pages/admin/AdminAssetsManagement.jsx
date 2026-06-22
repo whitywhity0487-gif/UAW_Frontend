@@ -17,8 +17,7 @@ const AdminAssetsManagement = () => {
   const [stats, setStats] = useState({
     totalEmployees: 0,
     totalSubmissions: 0,
-    totalAssets: 0,
-    pendingReviews: 0
+    totalAssets: 0
   });
 
   const navigate = useNavigate();
@@ -49,15 +48,13 @@ const AdminAssetsManagement = () => {
         setFilteredAssets(response.data.data);
         
         // Calculate stats
-        const uniqueEmployees = new Set(response.data.data.map(a => a.employee_id || a.user_id));
+        const uniqueEmployees = new Set(response.data.data.map(a => a.employee_number));
         const totalAssetsCount = response.data.data.reduce((sum, asset) => sum + (asset.assets?.length || 0), 0);
-        const pendingCount = response.data.data.filter(a => a.status === "Submitted").length;
         
         setStats({
           totalEmployees: uniqueEmployees.size,
           totalSubmissions: response.data.data.length,
-          totalAssets: totalAssetsCount,
-          pendingReviews: pendingCount
+          totalAssets: totalAssetsCount
         });
       }
     } catch (err) {
@@ -87,9 +84,6 @@ const AdminAssetsManagement = () => {
       console.error("Search error:", err);
       const filtered = assets.filter(asset => 
         asset.employee_name?.toLowerCase().includes(term.toLowerCase()) ||
-        asset.employee_id?.toLowerCase().includes(term.toLowerCase()) ||
-        asset.user_id?.toLowerCase().includes(term.toLowerCase()) ||
-        asset.username?.toLowerCase().includes(term.toLowerCase()) ||
         asset.employee_number?.toLowerCase().includes(term.toLowerCase()) ||
         asset.assets?.some(a => a.asset_name?.toLowerCase().includes(term.toLowerCase()))
       );
@@ -119,11 +113,10 @@ const AdminAssetsManagement = () => {
   };
 
   const getStatusColor = (status) => {
-    switch(status) {
-      case "Submitted": return "bg-yellow-100 text-yellow-700";
-      case "Updated": return "bg-blue-100 text-blue-700";
-      case "Approved": return "bg-green-100 text-green-700";
-      default: return "bg-gray-100 text-gray-700";
+    switch(status?.toLowerCase()) {
+      case "approved": return "bg-green-100 text-green-700";
+      case "rejected": return "bg-red-100 text-red-700";
+      default: return "bg-blue-100 text-blue-700";
     }
   };
 
@@ -162,7 +155,7 @@ const AdminAssetsManagement = () => {
       {/* Main Content */}
       <div className="max-w-7xl mx-auto px-6 py-8">
         {/* Stats Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
           <div className="bg-gradient-to-r from-blue-500 to-blue-600 rounded-xl p-4 text-white">
             <div className="text-2xl font-bold">{stats.totalEmployees}</div>
             <div className="text-sm opacity-90">Employees</div>
@@ -174,10 +167,6 @@ const AdminAssetsManagement = () => {
           <div className="bg-gradient-to-r from-purple-500 to-purple-600 rounded-xl p-4 text-white">
             <div className="text-2xl font-bold">{stats.totalAssets}</div>
             <div className="text-sm opacity-90">Total Assets</div>
-          </div>
-          <div className="bg-gradient-to-r from-orange-500 to-orange-600 rounded-xl p-4 text-white">
-            <div className="text-2xl font-bold">{stats.pendingReviews}</div>
-            <div className="text-sm opacity-90">Pending Review</div>
           </div>
         </div>
 
@@ -230,8 +219,7 @@ const AdminAssetsManagement = () => {
                     <th className="text-left py-3 px-6 text-sm font-semibold text-gray-600">Employee ID</th>
                     <th className="text-left py-3 px-6 text-sm font-semibold text-gray-600">Employee Name</th>
                     <th className="text-left py-3 px-6 text-sm font-semibold text-gray-600">Assets</th>
-                    <th className="text-left py-3 px-6 text-sm font-semibold text-gray-600">Submitted Date</th>
-                    <th className="text-left py-3 px-6 text-sm font-semibold text-gray-600">Status</th>
+                    <th className="text-left py-3 px-6 text-sm font-semibold text-gray-600">Last Updated</th>
                     <th className="text-left py-3 px-6 text-sm font-semibold text-gray-600 text-center">Action</th>
                   </tr>
                 </thead>
@@ -239,7 +227,7 @@ const AdminAssetsManagement = () => {
                   {filteredAssets.map((asset) => (
                     <tr key={asset.id} className="border-b border-gray-100 hover:bg-gray-50 transition-colors">
                       <td className="py-4 px-6 text-sm text-gray-700 font-medium">
-                        {asset.employee_id || asset.user_id || asset.employee_number || "-"}
+                        {asset.employee_number || "-"}
                       </td>
                       <td className="py-4 px-6 text-sm text-gray-700 font-medium">
                         {asset.employee_name}
@@ -260,11 +248,8 @@ const AdminAssetsManagement = () => {
                           </div>
                         ) : 'No assets'}
                       </td>
-                      <td className="py-4 px-6 text-sm text-gray-500">{asset.submitted_date}</td>
-                      <td className="py-4 px-6">
-                        <span className={`px-2 py-1 rounded-full text-xs font-medium ${getStatusColor(asset.status)}`}>
-                          {asset.status || "Submitted"}
-                        </span>
+                      <td className="py-4 px-6 text-sm text-gray-500">
+                        {asset.updated_at ? new Date(asset.updated_at).toLocaleDateString() : asset.submitted_date}
                       </td>
                       <td className="py-4 px-6 text-sm text-center">
                         <button
@@ -291,8 +276,7 @@ const AdminAssetsManagement = () => {
               <div>
                 <h2 className="text-xl font-bold text-gray-800">{selectedAsset.employee_name}</h2>
                 <p className="text-sm text-gray-500">
-                  ID: {selectedAsset.employee_id || selectedAsset.user_id || selectedAsset.employee_number || "-"} 
-                  {selectedAsset.username && ` | Username: ${selectedAsset.username}`}
+                  Employee No: {selectedAsset.employee_number || "-"}
                 </p>
               </div>
               <button onClick={closeModal} className="text-gray-400 hover:text-gray-600 text-2xl">×</button>
@@ -316,7 +300,7 @@ const AdminAssetsManagement = () => {
                         <th className="text-left py-3 px-4 text-sm font-semibold text-gray-600">Asset Name</th>
                         <th className="text-left py-3 px-4 text-sm font-semibold text-gray-600 w-24">Quantity</th>
                         <th className="text-left py-3 px-4 text-sm font-semibold text-gray-600">Serial Number</th>
-                        <th className="text-left py-3 px-4 text-sm font-semibold text-gray-600 w-28">Condition</th>
+                        <th className="text-left py-3 px-4 text-sm font-semibold text-gray-600 w-28">Model Name</th>
                       </tr>
                     </thead>
                     <tbody>
@@ -326,10 +310,8 @@ const AdminAssetsManagement = () => {
                             <td className="py-3 px-4 text-sm text-gray-700 font-medium">{asset.asset_name}</td>
                             <td className="py-3 px-4 text-sm text-gray-700">{asset.quantity}</td>
                             <td className="py-3 px-4 text-sm text-gray-500">{asset.serial_number || "-"}</td>
-                            <td className="py-3 px-4">
-                              <span className={`text-xs px-2 py-1 rounded-full ${getConditionColor(asset.condition)}`}>
-                                {asset.condition || "Good"}
-                              </span>
+                            <td className="py-3 px-4 text-sm text-gray-700">
+                              {asset.model_name || asset.condition || "-"}
                             </td>
                           </tr>
                         ))

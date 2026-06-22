@@ -85,17 +85,14 @@
         // Store client name for Interviewer
         if (user.role === "Interviewer" && user.clientName) {
           setUserClientName(user.clientName);
-          console.log(`👤 Interviewer logged in - Client: ${user.clientName}`);
         }
         // Store client name for Recruiter if needed
         if (user.role === "Recruiter" && user.clientName) {
           setUserClientName(user.clientName);
-          console.log(`👤 Recruiter logged in - Client: ${user.clientName}`);
         }
         // Store client name for Client Interviewer
         if (user.role === "Client Interviewer" && user.clientName) {
           setUserClientName(user.clientName);
-          console.log(`👤 Client Interviewer logged in - Client: ${user.clientName}`);
         }
       }
     }, []);
@@ -119,14 +116,12 @@
     // Function to ONLY update isInProgress to false WITHOUT deleting selections
     const updateCandidatesToNotInProgress = async (demandId) => {
       try {
-        console.log(`🔄 Updating candidates status for demand ${demandId} to not in progress (keeping selections)`);
 
         // Call the new endpoint that ONLY updates isInProgress, doesn't delete
         const response = await axios.put(`http://localhost:5000/api/selected-candidates/demand/${demandId}/update-status`);
 
         if (response.data.success) {
-          console.log(`✅ Updated ${response.data.data?.updatedCount || 0} candidates to not in progress`);
-          console.log(`   (Selections still preserved in database)`);
+     
           return true;
         }
         return false;
@@ -139,12 +134,10 @@
     // Function to remove all selected candidates (DELETE relationships) - Keep this if needed for other purposes
     const removeAllSelectedCandidates = async (demandId) => {
       try {
-        console.log(`🗑️ Removing all selected candidates for demand ${demandId}`);
 
         const response = await axios.delete(`http://localhost:5000/api/selected-candidates/demand/${demandId}/all`);
 
         if (response.data.success) {
-          console.log(`✅ Removed all selected candidates for demand ${demandId}`);
 
           // Update local state
           setSelectedCandidates(prev => ({
@@ -220,10 +213,7 @@
       const currentCandidate = selectedStatusCandidate;
       const currentDemandId = selectedDemandId;
 
-      console.log("🔍 handleStatusUpdate called");
-      console.log("Current status from state:", currentStatus);
-      console.log("Current candidate:", currentCandidate);
-
+   
       if (!currentStatus || !currentReason.trim() || !currentCandidate) return;
 
       try {
@@ -240,14 +230,11 @@
           changedBy: changedBy
         };
 
-        console.log("Sending PUT request with body:", requestBody);
 
         const response = await axios.put(`http://localhost:5000/api/selected-candidates/status`, requestBody);
 
-        console.log("Response from server:", response.data);
 
         if (response.data.success) {
-          console.log("✅ Status update successful, refreshing candidates...");
 
           const updatedCandidates = await fetchSelectedCandidates(currentDemandId);
           setCurrentSelectedCandidates(updatedCandidates);
@@ -262,7 +249,6 @@
           setStatusReason('');
 
         } else {
-          console.error("❌ Update failed - response success false");
           alert('Failed to update status');
         }
       } catch (err) {
@@ -446,7 +432,6 @@ const handleExport = () => {
           status: newDemand.status || "Active"
         };
 
-        console.log("📝 Sending demand data to backend:", demandToCreate);
 
         const response = await fetch("http://localhost:5000/api/demand", {
           method: "POST",
@@ -457,10 +442,8 @@ const handleExport = () => {
           body: JSON.stringify(demandToCreate),
         });
 
-        console.log("📡 Response status:", response.status);
 
         const responseText = await response.text();
-        console.log("📡 Response body:", responseText);
 
         if (!response.ok) {
           let errorMessage = `Server error: ${response.status}`;
@@ -474,7 +457,6 @@ const handleExport = () => {
         }
 
         const result = JSON.parse(responseText);
-        console.log("✅ Demand created successfully:", result);
 
         // Refresh the demands list
         await fetchDemands();
@@ -496,7 +478,6 @@ const handleExport = () => {
       }
 
       try {
-        console.log(`🗑️ Deleting demand with ID: ${demandId}`);
 
         const response = await fetch(`http://localhost:5000/api/demand/${demandId}`, {
           method: "DELETE",
@@ -507,7 +488,6 @@ const handleExport = () => {
 
         // Get response text first
         const responseText = await response.text();
-        console.log("📡 Response from server:", responseText);
 
         let responseData;
         try {
@@ -520,7 +500,6 @@ const handleExport = () => {
           throw new Error(responseData.message || `Server error: ${response.status}`);
         }
 
-        console.log("✅ Demand deleted successfully");
 
         // Refresh the demands list
         await fetchDemands();
@@ -702,11 +681,9 @@ const handleExport = () => {
           // Store as a simple string with date and user info
           updatedDemand.statusHistory = `${reasonText} (by ${user.name || "Unknown"} on ${new Date().toLocaleString()})`;
 
-          console.log("📝 Status changed - storing reason:", updatedDemand.statusHistory);
 
           // ✅ IF LEAVING ACTIVE STATUS, UPDATE isInProgress to false (BUT DON'T DELETE SELECTIONS)
           if (isLeavingActive) {
-            console.log(`⚠️ Demand ${editedDemand.id} is leaving "Active" status. Updating candidate statuses...`);
             // ✅ Use this function instead of removeAllSelectedCandidates
             await updateCandidatesToNotInProgress(editedDemand.id);
           }
@@ -724,10 +701,8 @@ const handleExport = () => {
           // Reason updated without status change - REPLACE with new reason
           const newReasonText = statusChangeDesc.trim();
           updatedDemand.statusHistory = `${newReasonText} (by ${user.name || "Unknown"} on ${new Date().toLocaleString()})`;
-          console.log("📝 Reason updated - replacing with:", updatedDemand.statusHistory);
         }
 
-        console.log("📝 Sending updated demand to backend:", JSON.stringify(updatedDemand, null, 2));
 
         const response = await fetch(
           `http://localhost:5000/api/demand/${editedDemand.id}`,
@@ -741,7 +716,6 @@ const handleExport = () => {
         );
 
         const responseText = await response.text();
-        console.log("📡 Response from server:", responseText);
 
         if (!response.ok) {
           let errorMessage = `Server error: ${response.status}`;
@@ -755,7 +729,6 @@ const handleExport = () => {
         }
 
         const result = JSON.parse(responseText);
-        console.log("✅ Update successful:", result);
 
         // Refresh the demands list
         await fetchDemands();
@@ -886,7 +859,6 @@ const handleExport = () => {
       // ✅ ADD THIS - Pass client name for Zone filtering
       if (demand.clientName) {
         queryParams.append('clientName', demand.clientName);
-        console.log(`🔍 Filtering out candidates in Zone for client: ${demand.clientName}`);
       }
 
       // Add a flag to indicate we want to auto-apply filters
@@ -901,7 +873,6 @@ const handleExport = () => {
         queryParams.append('userRole', user.role);
       }
 
-      console.log("Navigating to recruiter with params:", queryParams.toString());
 
       // Navigate to recruiter page with query parameters
       navigate(`/recruiter?${queryParams.toString()}`);
@@ -932,12 +903,9 @@ const handleExport = () => {
     };
 
   const updateCandidateStatus = async (newStatus) => {
-    console.log("🔍 updateCandidateStatus called with status:", newStatus);
-    console.log("🔍 Status reason:", statusReason);
-    console.log("🔍 Selected candidate:", selectedStatusCandidate);
+
 
     if (!newStatus || !statusReason.trim() || !selectedStatusCandidate) {
-      console.log("❌ Missing required fields");
       return;
     }
 
@@ -979,7 +947,6 @@ const handleExport = () => {
         changedBy: changedBy
       };
 
-      console.log("📤 Sending status update:", statusRequest);
 
      const statusResponse = await axios.put(
   `http://localhost:5000/api/selected-candidates/status-with-zone`,
@@ -987,7 +954,6 @@ const handleExport = () => {
 );
 
       if (statusResponse.data.success) {
-        console.log("✅ Status updated successfully");
 
         // STEP 2: Determine isInProgress value based on status
         let shouldBeInProgress = activeStatuses.includes(newStatus);
@@ -997,7 +963,6 @@ const handleExport = () => {
         // STEP 3: Update candidate's isInProgress flag in Candidate_Profile
         if (shouldBeInProgress) {
           // Active status - set isInProgress = true
-          console.log(`📌 Status "${newStatus}" is active - setting isInProgress = true`);
           await axios.put(
             `http://localhost:5000/api/candidates/${selectedStatusCandidate.id}/progress`,
             { isInProgress: true }
@@ -1008,13 +973,11 @@ try {
     `http://localhost:5000/api/zone/remove/${selectedStatusCandidate.id}/${selectedDemandDetails?.clientName}`
   );
 
-  console.log("✅ Removed candidate from Zone");
 } catch (zoneRemoveErr) {
   console.warn("⚠️ Failed to remove from Zone:", zoneRemoveErr.message);
 }
         } else {
           // Non-active status (Joined or Rejection) - set isInProgress = false
-          console.log(`📌 Status "${newStatus}" is not active - setting isInProgress = false`);
           await axios.put(
             `http://localhost:5000/api/candidates/${selectedStatusCandidate.id}/progress`,
             { isInProgress: false }
@@ -1023,7 +986,6 @@ try {
 
         // STEP 4: Handle Zone entry for rejection statuses
         if (shouldGoToZone) {
-          console.log(`🚫 Status "${newStatus}" is a rejection - adding to Zone`);
           
           const zoneRequest = {
             candidateId: selectedStatusCandidate.id,
@@ -1039,7 +1001,6 @@ try {
               `http://localhost:5000/api/zone/manage`,
               zoneRequest
             );
-            console.log(`✅ Candidate added to Zone with status: ${newStatus}`);
           } catch (zoneErr) {
             // Zone is already written by addToZone() inside the /status endpoint.
             // Don't crash the whole flow if this secondary call fails.
@@ -1047,7 +1008,6 @@ try {
           }
         } 
         else if (isJoinedStatus) {
-          console.log(`🎉 Status "${newStatus}" - Candidate joined! Not adding to Zone, just updating isInProgress=false`);
           // No zone entry for Joined status
         }
         else if (shouldBeInProgress) {
@@ -1914,7 +1874,6 @@ try {
                         value={selectedNewStatus}
                         onChange={(e) => {
                           const newValue = e.target.value;
-                          console.log("📝 Dropdown changed to:", newValue);
                           setSelectedNewStatus(newValue);
                         }}
                         className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
@@ -1965,8 +1924,7 @@ try {
                     </button>
                     <button
                       onClick={() => {
-                        console.log("🔍 Update button clicked - selectedNewStatus:", selectedNewStatus);
-                        console.log("🔍 Status reason:", statusReason);
+                      
 
                         if (selectedNewStatus && statusReason.trim()) {
                           // Make sure we're passing the exact status string

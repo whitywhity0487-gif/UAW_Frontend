@@ -91,6 +91,7 @@ const Holiday = () => {
   const navigate = useNavigate();
   const { profileStatus, hasModuleAccess, isHydrated } = useUser();
   const [holidays, setHolidays] = useState([]);
+  const [approvedLeaves, setApprovedLeaves] = useState([]);
   const [selectedGroup, setSelectedGroup] = useState("");
   const [showModal, setShowModal] = useState(false);
   const [modalMode, setModalMode] = useState("add");
@@ -127,9 +128,7 @@ const Holiday = () => {
     // Wait until user context is fully loaded
     if (!isHydrated) return;
 
-    // For non-admin, check profile status
-    console.log("Profile Status:", profileStatus);
-    console.log("Has Module Access:", hasModuleAccess);
+
 
     // APPROVED -> Full access
     if (profileStatus === 'APPROVED') {
@@ -218,6 +217,20 @@ const Holiday = () => {
       } else {
         setHolidays([]);
       }
+
+      // Fetch leaves for employees
+      if (userId && role !== "Admin") {
+         try {
+           const leaveRes = await fetch(`http://localhost:5000/api/leave/user/${userId}`);
+           const leaveData = await leaveRes.json();
+           if (leaveData.success) {
+             setApprovedLeaves(leaveData.history.filter(l => l.status === 'Approved'));
+           }
+         } catch (e) {
+           console.error("Failed to fetch leaves", e);
+         }
+      }
+
     } catch (error) {
       console.error("Failed to fetch holidays:", error);
     } finally {
@@ -314,43 +327,43 @@ const Holiday = () => {
     });
   };
 
-const handleSubmit = async (e) => {
-  e.preventDefault();
-  if (userRole !== "Admin") { 
-    alert("Only Admin can add/edit holidays"); 
-    return; 
-  }
-  
-  const holidayData = { 
-    ...formData, 
-    day: formData.day || getDayOfWeek(formData.date), 
-    groupName: selectedGroup,
-    type: "holiday" // Add this line - specify the type
-  };
-  
-  try {
-    setLoading(true);
-    const url = modalMode === "add"
-      ? "http://localhost:5000/api/holiday/add"
-      : `http://localhost:5000/api/holiday/${currentHoliday.holiday.id}`;
-    const res = await fetch(url, {
-      method: modalMode === "add" ? "POST" : "PUT",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(holidayData)
-    });
-    const data = await res.json();
-    if (data.success) { 
-      setShowModal(false); 
-      await fetchHolidays(); 
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    if (userRole !== "Admin") {
+      alert("Only Admin can add/edit holidays");
+      return;
     }
-    else alert("Failed: " + data.message);
-  } catch (err) { 
-    alert("Error: " + err.message); 
-  }
-  finally { 
-    setLoading(false); 
-  }
-};
+
+    const holidayData = {
+      ...formData,
+      day: formData.day || getDayOfWeek(formData.date),
+      groupName: selectedGroup,
+      type: "holiday" // Add this line - specify the type
+    };
+
+    try {
+      setLoading(true);
+      const url = modalMode === "add"
+        ? "http://localhost:5000/api/holiday/add"
+        : `http://localhost:5000/api/holiday/${currentHoliday.holiday.id}`;
+      const res = await fetch(url, {
+        method: modalMode === "add" ? "POST" : "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(holidayData)
+      });
+      const data = await res.json();
+      if (data.success) {
+        setShowModal(false);
+        await fetchHolidays();
+      }
+      else alert("Failed: " + data.message);
+    } catch (err) {
+      alert("Error: " + err.message);
+    }
+    finally {
+      setLoading(false);
+    }
+  };
 
   const totalHolidays = filteredByGroup.filter((h) => {
     const d = new Date(h.holiday.date);
@@ -436,13 +449,19 @@ const handleSubmit = async (e) => {
           </div>
         ) : null}
 
-    
+
 
         {/* Legend */}
-        <div className="flex items-center gap-3 ml-auto text-xs text-gray-500">
+        <div className="flex flex-wrap items-center gap-3 ml-auto text-xs text-gray-500">
           <span className="flex items-center gap-1"><span className="text-base">😊</span> Holiday</span>
           <span className="flex items-center gap-1">
-            <span className="w-5 h-5 rounded-md bg-blue-600 inline-block"></span> Today
+             <div className="w-5 h-5 flex justify-center items-center rounded-full bg-emerald-50 border border-emerald-200 text-xs">🏖️</div> Leave
+          </span>
+          <span className="flex items-center gap-1">
+             <div className="w-5 h-5 flex justify-center items-center rounded-full bg-purple-50 border border-purple-200 text-xs">💻</div> WFH
+          </span>
+          <span className="flex items-center gap-1">
+            <span className="w-4 h-4 rounded-md bg-blue-600 inline-block ml-2"></span> Today
           </span>
         </div>
       </div>
@@ -491,6 +510,7 @@ const handleSubmit = async (e) => {
 
                   const dateKey = `${selectedYear}-${String(monthIndex + 1).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
                   const holidayItem = holidayMap[dateKey];
+                  const approvedLeave = approvedLeaves.find(l => dateKey >= l.startDate && dateKey <= l.endDate);
                   const isToday = day === todayNum;
                   const isSunday = (firstDay + day - 1) % 7 === 0;
                   const isSaturday = (firstDay + day - 1) % 7 === 6;
@@ -514,6 +534,15 @@ const handleSubmit = async (e) => {
                             <span className="text-base leading-none select-none">😊</span>
                           </div>
                           <span className="block text-center text-xs font-semibold text-amber-700 leading-tight mt-0.5">{day}</span>
+                        </div>
+                      ) : approvedLeave ? (
+                        <div>
+                          <div className={`w-7 h-7 flex items-center justify-center rounded-full cursor-pointer mx-auto
+                            ${approvedLeave.leaveType === 'Work From Home' ? 'bg-purple-50 border border-purple-200' : 'bg-emerald-50 border border-emerald-200'}`}
+                          >
+                             <span className="text-sm leading-none select-none">{approvedLeave.leaveType === 'Work From Home' ? '💻' : '🏖️'}</span>
+                          </div>
+                          <span className={`block text-center text-[10px] font-semibold leading-tight mt-0.5 ${approvedLeave.leaveType === 'Work From Home' ? 'text-purple-700' : 'text-emerald-700'}`}>{day}</span>
                         </div>
                       ) : (
                         <div className={`w-7 h-7 rounded-full flex items-center justify-center

@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import PolicyTemplate from './PolicyTemplate';
-import SalaryAdvanceForm from '../../../components/SalaryAdvanceForm';
+import SalaryAdvanceForm from './SalaryAdvanceForm';
 import AdminSalaryAdvance from '../../admin/AdminSalaryAdvance';
 
 // Main Salaryadvance Component with Tabs
@@ -88,10 +88,10 @@ const Salaryadvance = () => {
                 <circle cx="12" cy="12" r="3" />
               </svg>
             }
-            gradientColors={["#D1FAE5", "#A7F3D0"]}
-            accentColor="#065F46"
-            bgColor="#D1FAE5"
-            headerGradient="linear-gradient(90deg, #065F46 0%, #10B981 60%, #34D399 100%)"
+            gradientColors={["#1E3A5F", "#2563EB"]}
+            accentColor="#1E3A5F"
+            bgColor="#EFF6FF"
+            headerGradient="linear-gradient(90deg, #1E3A5F 0%, #2563EB 60%, #60A5FA 100%)"
             filterKeywords={["salary", "advance", "loan"]}
             showAddButton={isAdmin}
             footerMessage="Salary advance requests must be submitted by the 20th of each month. Approval may take 3-5 business days."

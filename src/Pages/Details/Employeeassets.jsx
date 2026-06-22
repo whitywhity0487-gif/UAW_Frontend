@@ -2,8 +2,10 @@
 import React, { useState, useEffect } from "react";
 import axios from "axios";
 import { useNavigate } from "react-router-dom";
+import { ChevronLeft, Plus, X } from 'lucide-react';
+import Button from "../../components/Button";
 
-const API_BASE_URL = "http://localhost:5000/api/employee-assets";
+const API_BASE_URL = "http://localhost:5000/api/employeeassets";
 
 // Available asset types for dropdown (without emojis)
 const assetOptions = [
@@ -26,49 +28,89 @@ const assetOptions = [
 
 const MyAssets = () => {
   const [assets, setAssets] = useState([
-    { id: 1, asset_name: "Laptop", quantity: "", serial_number: "", condition: "Good", remarks: "", custom_asset: "" }
+    { id: 1, asset_name: "Laptop", quantity: "", serial_number: "", model_name: "", remarks: "", custom_asset: "" }
   ]);
   const [submittedAssets, setSubmittedAssets] = useState([]);
   const [loading, setLoading] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [employeeName, setEmployeeName] = useState("");
-  const [employeeId, setEmployeeId] = useState("");
+  const [employeeNumber, setEmployeeNumber] = useState("");
   const [nextId, setNextId] = useState(2);
   const [showSuccess, setShowSuccess] = useState(false);
-  const [editMode, setEditMode] = useState(false);
-  const [editId, setEditId] = useState(null);
 
   const navigate = useNavigate();
 
-  // Get employee info from localStorage
+  // Get employee info from localStorage and fetch personal details
   useEffect(() => {
     const storedUser = localStorage.getItem("user");
     if (storedUser) {
       try {
         const user = JSON.parse(storedUser);
-        setEmployeeName(user.name || user.username || "Employee");
-        setEmployeeId(user.id || user.username || "EMP001");
+        const identifier = user.userId || user.username || user.id;
+        if (identifier) {
+          fetchPersonalDetailsAndAssets(identifier);
+        }
       } catch (err) {
         console.error("Error parsing user data:", err);
       }
     }
-    fetchMyAssets();
   }, []);
 
-  // Fetch employee's submitted assets
-const fetchMyAssets = async () => {
+const fetchPersonalDetailsAndAssets = async (username) => {
   setLoading(true);
   try {
-    const storedUser = JSON.parse(localStorage.getItem("user"));
-    // Try to get userId, username, or employeeNumber
-    const identifier = storedUser?.userId || storedUser?.username || storedUser?.id;
+    let empNum = "";
+    let fullName = "";
     
-    const response = await axios.get(`${API_BASE_URL}/employee/${identifier}`);
-    if (response.data.success) {
-      setSubmittedAssets(response.data.data);
+    // 1. Fetch personal details
+    try {
+      const pdRes = await axios.get(`http://localhost:5000/api/personal-details?userId=${username}`);
+      console.log("Personal details response:", pdRes.data);
+      
+      if (pdRes.data.success && pdRes.data.data) {
+        empNum = pdRes.data.data.employeeNumber || "";
+        fullName = pdRes.data.data.fullName || "";
+      }
+    } catch (e) {
+      console.warn("Could not fetch personal details:", e);
+      // Try alternative endpoint if needed
+      try {
+        const altRes = await axios.get(`http://localhost:5000/api/personal-details/${username}`);
+        if (altRes.data.success && altRes.data.data) {
+          empNum = altRes.data.data.employeeNumber || "";
+          fullName = altRes.data.data.fullName || "";
+        }
+      } catch (altErr) {
+        console.warn("Alternative fetch also failed:", altErr);
+      }
+    }
+    
+    console.log("Found employee data:", { empNum, fullName });
+    setEmployeeNumber(empNum);
+    setEmployeeName(fullName);
+
+    // 2. Fetch existing assets only if we have employee number
+    if (empNum) {
+      const response = await axios.get(`${API_BASE_URL}/employee/${empNum}`);
+      console.log("Assets response:", response.data);
+      
+      if (response.data.success && response.data.data && response.data.data.length > 0) {
+        const existingRecord = response.data.data[0];
+        if (existingRecord.assets && existingRecord.assets.length > 0) {
+          setSubmittedAssets(existingRecord.assets.map((asset, index) => ({
+            ...asset,
+            submitted_date: existingRecord.submitted_date
+          })));
+        }
+      }
+    } else {
+      console.warn("No employee number found, cannot fetch assets");
     }
   } catch (err) {
-    console.error("Error fetching assets:", err);
+    console.error("Error fetching data:", err);
+    if (err.response) {
+      console.error("Error response:", err.response.data);
+    }
   } finally {
     setLoading(false);
   }
@@ -78,7 +120,7 @@ const fetchMyAssets = async () => {
   const addAsset = () => {
     setAssets([
       ...assets,
-      { id: nextId, asset_name: "", quantity: "", serial_number: "", condition: "Good", remarks: "", custom_asset: "" }
+      { id: nextId, asset_name: "", quantity: "", serial_number: "", model_name: "", remarks: "", custom_asset: "" }
     ]);
     setNextId(nextId + 1);
   };
@@ -131,7 +173,7 @@ const fetchMyAssets = async () => {
           asset_name: getFinalAssetName(asset),
           quantity: parseInt(asset.quantity),
           serial_number: asset.serial_number || "",
-          condition: asset.condition,
+          model_name: asset.model_name || "",
           remarks: asset.remarks || "",
           submitted_date: new Date().toISOString().split('T')[0]
         });
@@ -145,15 +187,12 @@ const fetchMyAssets = async () => {
 
     setSubmitting(true);
     try {
-    // In handleSubmit function
-const payload = {
-  user_id: employeeId,  // Add this
-  employee_id: employeeId,
-  employee_name: employeeName,
-  username: storedUser?.username,
-  employee_number: employeeNumber || "",  // Add if you have it
-  assets: filteredAssets
-};
+      // In handleSubmit function
+      const payload = {
+        employee_number: employeeNumber,
+        employee_name: employeeName,
+        assets: filteredAssets
+      };
 
       const response = await axios.post(API_BASE_URL, payload);
       if (response.data.success) {
@@ -162,94 +201,32 @@ const payload = {
         
         // Reset form
         setAssets([
-          { id: 1, asset_name: "Laptop", quantity: "", serial_number: "", condition: "Good", remarks: "", custom_asset: "" }
+          { id: 1, asset_name: "Laptop", quantity: "", serial_number: "", model_name: "", remarks: "", custom_asset: "" }
         ]);
         setNextId(2);
         
-        // Refresh submitted assets
-        fetchMyAssets();
+        // Refresh history
+        if (employeeNumber) {
+          fetchPersonalDetailsAndAssets(employeeNumber);
+        } else {
+          fetchPersonalDetailsAndAssets(employeeName);
+        }
       }
     } catch (err) {
       console.error("Error submitting assets:", err);
-      alert(err.response?.data?.message || "Failed to submit assets");
+      alert(err.response?.data?.message || "Failed to save assets");
     } finally {
       setSubmitting(false);
     }
   };
 
-  // Edit existing submission
-  const handleEdit = (submission) => {
-    setEditMode(true);
-    setEditId(submission.id);
-    // Convert submission data to form format
-    const convertedAssets = submission.assets.map((asset, index) => ({
-      id: index + 1,
-      asset_name: asset.asset_name,
-      quantity: asset.quantity,
-      serial_number: asset.serial_number || "",
-      condition: asset.condition || "Good",
-      remarks: asset.remarks || "",
-      custom_asset: ""
-    }));
-    setAssets(convertedAssets);
-    setNextId(convertedAssets.length + 1);
-    window.scrollTo({ top: 0, behavior: "smooth" });
-  };
-
-  // Cancel edit
-  const cancelEdit = () => {
-    setEditMode(false);
-    setEditId(null);
-    setAssets([
-      { id: 1, asset_name: "Laptop", quantity: "", serial_number: "", condition: "Good", remarks: "", custom_asset: "" }
-    ]);
-    setNextId(2);
-  };
-
-  // Update existing submission
-  const handleUpdate = async (e) => {
-    e.preventDefault();
-    
-    const filteredAssets = [];
-    for (const asset of assets) {
-      if (asset.asset_name && asset.quantity && parseInt(asset.quantity) > 0) {
-        if (asset.asset_name === "Other" && !asset.custom_asset.trim()) {
-          alert("Please specify the asset name when selecting 'Other'");
-          return;
-        }
-        filteredAssets.push({
-          asset_name: getFinalAssetName(asset),
-          quantity: parseInt(asset.quantity),
-          serial_number: asset.serial_number || "",
-          condition: asset.condition,
-          remarks: asset.remarks || ""
-        });
-      }
-    }
-    
-    setSubmitting(true);
-    try {
-      const response = await axios.put(`${API_BASE_URL}/${editId}`, {
-        assets: filteredAssets
-      });
-      
-      if (response.data.success) {
-        setShowSuccess(true);
-        setTimeout(() => setShowSuccess(false), 3000);
-        setEditMode(false);
-        setEditId(null);
-        setAssets([
-          { id: 1, asset_name: "Laptop", quantity: "", serial_number: "", condition: "Good", remarks: "", custom_asset: "" }
-        ]);
-        fetchMyAssets();
-      }
-    } catch (err) {
-      console.error("Error updating assets:", err);
-      alert(err.response?.data?.message || "Failed to update assets");
-    } finally {
-      setSubmitting(false);
-    }
-  };
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500"></div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-gray-50 font-['DM_Sans','Inter',sans-serif]">
@@ -257,15 +234,14 @@ const payload = {
       <div className="bg-white border-b border-gray-200 sticky top-0 z-30">
         <div className="flex items-center justify-between px-6 py-4">
           <div className="flex items-center gap-4">
-            <button
+            <Button
+              variant="secondary"
+              size="sm"
+              icon={ChevronLeft}
               onClick={() => navigate('/home')}
-              className="flex items-center gap-2 px-3 py-2 rounded-lg border border-gray-200 text-gray-600 text-sm font-medium hover:bg-gray-50 transition"
             >
-              <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
-                <path d="M15 18l-6-6 6-6" strokeLinecap="round" strokeLinejoin="round" />
-              </svg>
               Back to Home
-            </button>
+            </Button>
             <div className="flex items-center gap-2">
               <div className="w-8 h-8 bg-gradient-to-r from-green-500 to-emerald-600 rounded-lg flex items-center justify-center">
                 <svg className="w-4 h-4 text-white" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
@@ -293,7 +269,7 @@ const payload = {
                 <path d="M5 13l4 4L19 7" strokeLinecap="round" strokeLinejoin="round" />
               </svg>
               <p className="text-green-700 font-medium">
-                {editMode ? "Assets updated successfully!" : "Assets submitted successfully!"}
+                Assets saved successfully!
               </p>
             </div>
           </div>
@@ -324,14 +300,14 @@ const payload = {
         <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
           <div className="px-6 py-4 border-b border-gray-200 bg-gray-50">
             <h2 className="text-lg font-semibold text-gray-800">
-              {editMode ? "Edit Your Assets" : "Enter Your Assets"}
+              Enter Your Assets
             </h2>
             <p className="text-sm text-gray-500 mt-1">
               Please list all assets provided to you by the company
             </p>
           </div>
 
-          <form onSubmit={editMode ? handleUpdate : handleSubmit} className="p-6">
+          <form onSubmit={handleSubmit} className="p-6">
             {/* Assets Table */}
             <div className="overflow-x-auto">
               <table className="w-full">
@@ -340,7 +316,7 @@ const payload = {
                     <th className="text-left py-3 px-2 text-sm font-semibold text-gray-600">Asset Type</th>
                     <th className="text-left py-3 px-2 text-sm font-semibold text-gray-600 w-24">Quantity</th>
                     <th className="text-left py-3 px-2 text-sm font-semibold text-gray-600">Serial Number</th>
-                    <th className="text-left py-3 px-2 text-sm font-semibold text-gray-600">Condition</th>
+                    <th className="text-left py-3 px-2 text-sm font-semibold text-gray-600">Model Name</th>
                     <th className="text-left py-3 px-2 text-sm font-semibold text-gray-600 w-16"></th>
                   </tr>
                 </thead>
@@ -348,35 +324,28 @@ const payload = {
                   {assets.map((asset) => (
                     <tr key={asset.id} className="border-b border-gray-100">
                       <td className="py-3 px-2">
-                        {asset.id === 1 && !editMode ? (
-                          <div className="flex items-center gap-2">
-                            <span className="font-medium text-gray-700">Laptop</span>
-                            <input type="hidden" value="Laptop" />
-                          </div>
-                        ) : (
-                          <div>
-                            <select
-                              value={asset.asset_name}
-                              onChange={(e) => updateAsset(asset.id, "asset_name", e.target.value)}
-                              className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
-                            >
-                              <option value="">Select Asset</option>
-                              {assetOptions.map(opt => (
-                                <option key={opt.value} value={opt.value}>{opt.label}</option>
-                              ))}
-                            </select>
-                            {asset.asset_name === "Other" && (
-                              <input
-                                type="text"
-                                value={asset.custom_asset}
-                                onChange={(e) => updateAsset(asset.id, "custom_asset", e.target.value)}
-                                placeholder="Enter asset name"
-                                className="mt-2 w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
-                                required
-                              />
-                            )}
-                          </div>
-                        )}
+                        <div>
+                          <select
+                            value={asset.asset_name}
+                            onChange={(e) => updateAsset(asset.id, "asset_name", e.target.value)}
+                            className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
+                          >
+                            <option value="">Select Asset</option>
+                            {assetOptions.map(opt => (
+                              <option key={opt.value} value={opt.value}>{opt.label}</option>
+                            ))}
+                          </select>
+                          {asset.asset_name === "Other" && (
+                            <input
+                              type="text"
+                              value={asset.custom_asset}
+                              onChange={(e) => updateAsset(asset.id, "custom_asset", e.target.value)}
+                              placeholder="Enter asset name"
+                              className="mt-2 w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
+                              required
+                            />
+                          )}
+                        </div>
                       </td>
                       <td className="py-3 px-2">
                         <input
@@ -399,28 +368,23 @@ const payload = {
                         />
                       </td>
                       <td className="py-3 px-2">
-                        <select
-                          value={asset.condition}
-                          onChange={(e) => updateAsset(asset.id, "condition", e.target.value)}
+                        <input
+                          type="text"
+                          value={asset.model_name}
+                          onChange={(e) => updateAsset(asset.id, "model_name", e.target.value)}
+                          placeholder="e.g. Lenovo, Dell"
                           className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
-                        >
-                          <option value="Good">Good</option>
-                          <option value="Fair">Fair</option>
-                          <option value="Poor">Poor</option>
-                        </select>
+                        />
                       </td>
                       <td className="py-3 px-2 text-center">
                         {asset.id !== 1 && (
-                          <button
-                            type="button"
+                          <Button
+                            variant="danger-soft"
+                            size="sm"
+                            icon={X}
                             onClick={() => removeAsset(asset.id)}
-                            className="text-red-500 hover:text-red-700 transition"
                             title="Remove asset"
-                          >
-                            <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
-                              <path d="M6 18L18 6M6 6l12 12" strokeLinecap="round" strokeLinejoin="round" />
-                            </svg>
-                          </button>
+                          />
                         )}
                       </td>
                     </tr>
@@ -430,54 +394,33 @@ const payload = {
             </div>
 
             {/* Add Asset Button */}
-            <button
-              type="button"
+            <Button
+              variant="ghost"
+              className="mt-4 text-blue-600 hover:text-blue-700 hover:bg-blue-50"
+              icon={Plus}
               onClick={addAsset}
-              className="mt-4 flex items-center gap-2 text-blue-600 hover:text-blue-700 font-medium text-sm transition"
             >
-              <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
-                <line x1="12" y1="5" x2="12" y2="19" />
-                <line x1="5" y1="12" x2="19" y2="12" />
-              </svg>
-              + Add Asset
-            </button>
+              Add Asset
+            </Button>
 
             {/* Form Buttons */}
             <div className="flex gap-3 mt-6 pt-4 border-t border-gray-200">
-              {editMode ? (
-                <>
-                  <button
-                    type="button"
-                    onClick={cancelEdit}
-                    className="px-6 py-2.5 rounded-lg border border-gray-300 text-gray-700 font-medium hover:bg-gray-50 transition"
-                  >
-                    Cancel
-                  </button>
-                  <button
-                    type="submit"
-                    disabled={submitting}
-                    className="flex-1 px-6 py-2.5 rounded-lg bg-blue-600 text-white font-semibold hover:bg-blue-700 transition disabled:opacity-50"
-                  >
-                    {submitting ? "Updating..." : "Update Assets"}
-                  </button>
-                </>
-              ) : (
-                <button
-                  type="submit"
-                  disabled={submitting}
-                  className="w-full px-6 py-2.5 rounded-lg bg-green-600 text-white font-semibold hover:bg-green-700 transition disabled:opacity-50"
-                >
-                  {submitting ? "Submitting..." : "Submit Assets"}
-                </button>
-              )}
+              <Button
+                type="submit"
+                variant="primary"
+                className="w-full"
+                isLoading={submitting}
+              >
+                Save Assets
+              </Button>
             </div>
           </form>
         </div>
 
-        {/* Previously Submitted Assets */}
+        {/* Previously Submitted Assets History */}
         {submittedAssets.length > 0 && (
           <div className="mt-8">
-            <h3 className="text-lg font-semibold text-gray-800 mb-4">Previously Submitted Assets</h3>
+            <h3 className="text-lg font-semibold text-gray-800 mb-4">Your Submissions History</h3>
             <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
               <div className="overflow-x-auto">
                 <table className="w-full">
@@ -486,42 +429,21 @@ const payload = {
                       <th className="text-left py-3 px-4 text-sm font-semibold text-gray-600">Asset</th>
                       <th className="text-left py-3 px-4 text-sm font-semibold text-gray-600">Quantity</th>
                       <th className="text-left py-3 px-4 text-sm font-semibold text-gray-600">Serial Number</th>
-                      <th className="text-left py-3 px-4 text-sm font-semibold text-gray-600">Condition</th>
+                      <th className="text-left py-3 px-4 text-sm font-semibold text-gray-600">Model Name</th>
                       <th className="text-left py-3 px-4 text-sm font-semibold text-gray-600">Submitted On</th>
-                      <th className="text-left py-3 px-4 text-sm font-semibold text-gray-600 w-16"></th>
                     </tr>
                   </thead>
                   <tbody>
-                    {submittedAssets.map((submission, submissionIdx) => (
-                      <React.Fragment key={submission.id || submissionIdx}>
-                        {submission.assets && submission.assets.map((asset, idx) => (
-                          <tr key={`${submission.id}-${idx}`} className="border-b border-gray-100">
-                            <td className="py-3 px-4 text-sm text-gray-700">{asset.asset_name}</td>
-                            <td className="py-3 px-4 text-sm text-gray-700">{asset.quantity}</td>
-                            <td className="py-3 px-4 text-sm text-gray-500">{asset.serial_number || "-"}</td>
-                            <td className="py-3 px-4 text-sm">
-                              <span className={`px-2 py-1 rounded-full text-xs ${
-                                asset.condition === "Good" ? "bg-green-100 text-green-700" :
-                                asset.condition === "Fair" ? "bg-yellow-100 text-yellow-700" :
-                                "bg-red-100 text-red-700"
-                              }`}>
-                                {asset.condition}
-                              </span>
-                            </td>
-                            <td className="py-3 px-4 text-sm text-gray-500">{submission.submitted_date}</td>
-                            {idx === 0 && (
-                              <td className="py-3 px-4 text-center" rowSpan={submission.assets.length}>
-                                <button
-                                  onClick={() => handleEdit(submission)}
-                                  className="text-blue-600 hover:text-blue-700 text-sm font-medium"
-                                >
-                                  Edit
-                                </button>
-                              </td>
-                            )}
-                          </tr>
-                        ))}
-                      </React.Fragment>
+                    {submittedAssets.map((asset, idx) => (
+                      <tr key={idx} className="border-b border-gray-100">
+                        <td className="py-3 px-4 text-sm text-gray-700">{asset.asset_name}</td>
+                        <td className="py-3 px-4 text-sm text-gray-700">{asset.quantity}</td>
+                        <td className="py-3 px-4 text-sm text-gray-500">{asset.serial_number || "-"}</td>
+                        <td className="py-3 px-4 text-sm text-gray-700">
+                          {asset.model_name || asset.condition || "-"}
+                        </td>
+                        <td className="py-3 px-4 text-sm text-gray-500">{asset.submitted_date || "-"}</td>
+                      </tr>
                     ))}
                   </tbody>
                 </table>

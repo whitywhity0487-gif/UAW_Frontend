@@ -24,10 +24,10 @@ const Travelpolicy = () => {
           <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
         </svg>
       }
-      gradientColors={["#DBEAFE", "#BFDBFE"]}
-      accentColor="#1E40AF"
-      bgColor="#DBEAFE"
-      headerGradient="linear-gradient(90deg, #1E40AF 0%, #3B82F6 60%, #60A5FA 100%)"
+      gradientColors={["#1E3A5F", "#2563EB"]}
+      accentColor="#1E3A5F"
+      bgColor="#EFF6FF"
+      headerGradient="linear-gradient(90deg, #1E3A5F 0%, #2563EB 60%, #60A5FA 100%)"
       filterKeywords={["travel", "domestic", "tour", "transport"]}
       showAddButton={isAdmin}
       footerMessage="All travel requests must be submitted at least 7 days in advance. International travel requires additional management approval."

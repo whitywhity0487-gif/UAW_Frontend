@@ -80,6 +80,8 @@ const AdminProfileManagement = () => {
   const [showProfileModal, setShowProfileModal] = useState(false);
   const [rejectionReason, setRejectionReason] = useState('');
   const [showRejectModal, setShowRejectModal] = useState(false);
+  const [showApproveModal, setShowApproveModal] = useState(false);
+  const [approveStartDate, setApproveStartDate] = useState('');
   const [selectedUserId, setSelectedUserId] = useState(null);
   const [stats, setStats] = useState({ total: 0, pending: 0, approved: 0, rejected: 0 });
   const [isEditing, setIsEditing] = useState(false);
@@ -348,15 +350,32 @@ const AdminProfileManagement = () => {
     );
   };
 
-  const approveProfile = async (userId) => {
-    if (!window.confirm("Are you sure you want to approve this profile?")) return;
+  const openApproveModal = (userId) => {
+    setSelectedUserId(userId);
+    setApproveStartDate('');
+    setShowApproveModal(true);
+  };
+
+  const approveProfile = async () => {
+    if (!approveStartDate) {
+      alert("Please provide a start date");
+      return;
+    }
     try {
-      const response = await fetch(`${API_BASE}/admin/approve/${userId}`, { method: 'PUT' });
+      const response = await fetch(`${API_BASE}/admin/approve/${selectedUserId}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ startDate: approveStartDate })
+      });
       const data = await response.json();
       if (data.success) {
+        setShowApproveModal(false);
+        setSelectedUserId(null);
         await fetchProfiles(); await fetchStats();
         if (showProfileModal) setShowProfileModal(false);
         alert("Profile approved successfully!");
+      } else {
+        alert(data.message || "Failed to approve profile");
       }
     } catch (error) { alert("Failed to approve profile"); }
   };
@@ -532,7 +551,7 @@ const AdminProfileManagement = () => {
                         <Eye size={18} />
                       </button>
                       {profile.approvalStatus === 'PENDING' && (<>
-                        <button onClick={() => approveProfile(profile.userId)}
+                        <button onClick={() => openApproveModal(profile.userId)}
                           disabled={computeCompletion(profile) < 100}
                           className={`mr-3 ${computeCompletion(profile) < 100 ? 'text-gray-300 cursor-not-allowed opacity-50' : 'text-green-600 hover:text-green-800'}`}
                           title={computeCompletion(profile) < 100 ? "Profile incomplete" : "Approve"}>
@@ -757,7 +776,7 @@ const AdminProfileManagement = () => {
                     </div>
                   )}
                   <div className="flex gap-3">
-                    <button onClick={() => approveProfile(selectedProfile.userId)}
+                    <button onClick={() => { setShowProfileModal(false); openApproveModal(selectedProfile.userId); }}
                       disabled={computeCompletion(selectedProfile) < 100}
                       className="flex-1 px-4 py-2 bg-green-600 hover:bg-green-700 disabled:bg-green-600/50 disabled:cursor-not-allowed text-white rounded-lg font-medium flex items-center justify-center gap-2 transition-all">
                       <CheckCircle size={18} /> Approve Profile
@@ -791,6 +810,27 @@ const AdminProfileManagement = () => {
                 className="flex-1 px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50">Cancel</button>
               <button onClick={rejectProfile}
                 className="flex-1 px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg font-medium">Confirm Reject</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Approve Modal */}
+      {showApproveModal && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-2xl max-w-md w-full p-6">
+            <div className="flex items-center gap-3 mb-4">
+              <div className="p-2 bg-green-100 rounded-full"><CheckCircle className="text-green-600" size={24} /></div>
+              <h3 className="text-lg font-semibold">Approve Profile</h3>
+            </div>
+            <p className="text-gray-600 mb-4">Please provide the employment start date to approve this profile:</p>
+            <input type="date" value={approveStartDate} onChange={(e) => setApproveStartDate(e.target.value)}
+              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500 outline-none" />
+            <div className="flex gap-3 mt-6">
+              <button onClick={() => { setShowApproveModal(false); setApproveStartDate(''); setSelectedUserId(null); }}
+                className="flex-1 px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50">Cancel</button>
+              <button onClick={approveProfile}
+                className="flex-1 px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg font-medium">Confirm Approve</button>
             </div>
           </div>
         </div>
