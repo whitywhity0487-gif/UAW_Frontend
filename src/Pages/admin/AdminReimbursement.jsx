@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
 
-const API_BASE_URL = 'http://localhost:5000/api/reimbursements';
+const API_BASE_URL = 'https://uaw-backend.vercel.app/api/reimbursements';
 
 const AdminReimbursement = () => {
   const [reimbursements, setReimbursements] = useState([]);
