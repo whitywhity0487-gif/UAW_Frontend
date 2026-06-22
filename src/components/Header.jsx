@@ -38,7 +38,7 @@ const Header = () => {
 
   const fetchNotifications = async () => {
     try {
-      const res = await axios.get(`http://localhost:5000/api/notifications/user/${username}`);
+      const res = await axios.get(`https://uaw-backend.vercel.app/api/notifications/user/${username}`);
       if (res.data.success) {
         const newNotifs = res.data.data;
 
@@ -68,7 +68,7 @@ const Header = () => {
 
   const markAsRead = async (id) => {
     try {
-      await axios.put(`http://localhost:5000/api/notifications/read/${id}`);
+      await axios.put(`https://uaw-backend.vercel.app/api/notifications/read/${id}`);
       fetchNotifications();
     } catch (error) {
       console.error("Failed to mark as read", error);
