@@ -14,7 +14,7 @@ export const useSkills = (setSuccessMessage, setError) => {
   const fetchSkillsData = useCallback(async () => {
     try {
       setSkillsLoading(true);
-      const response = await axios.get('http://localhost:5000/api/skillsmatch/skills');
+      const response = await axios.get('https://uaw-backend.vercel.app/api/skillsmatch/skills');
 
       if (response.data.success && response.data.data) {
         let skillsList = response.data.data;
@@ -94,7 +94,7 @@ export const useSkills = (setSuccessMessage, setError) => {
 
     try {
       setSkillsLoading(true);
-      const response = await axios.post('http://localhost:5000/api/skills', {
+      const response = await axios.post('https://uaw-backend.vercel.app/api/skills', {
         name: newSkillName.trim()
       });
 
@@ -128,7 +128,7 @@ export const useSkills = (setSuccessMessage, setError) => {
 
     try {
       setSkillsLoading(true);
-      const response = await axios.delete(`http://localhost:5000/api/skills/${encodeURIComponent(skillName)}`);
+      const response = await axios.delete(`https://uaw-backend.vercel.app/api/skills/${encodeURIComponent(skillName)}`);
 
       if (response.data.success) {
         await fetchSkillsData();
