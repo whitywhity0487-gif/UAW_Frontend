@@ -571,7 +571,7 @@
         employeeNumber: user.employeeNumber || "EMP001",
       };
 
-      axios.get(`http://localhost:5000/api/personal-details?userId=${id}`)
+      axios.get(`https://uaw-backend.vercel.app/api/personal-details?userId=${id}`)
         .then((r) => {
           if (r.data.success && r.data.data) {
             setEmployeeDetails({
@@ -586,11 +586,11 @@
         })
         .catch(() => setEmployeeDetails(fallback));
 
-      axios.get(`http://localhost:5000/api/salary-advance/pending/${id}`)
+      axios.get(`https://uaw-backend.vercel.app/api/salary-advance/pending/${id}`)
         .then((r) => r.data.success && setHasPending(r.data.hasPending))
         .catch(() => {});
 
-      axios.get(`http://localhost:5000/api/salary-advance/employee-analytics/${id}`)
+      axios.get(`https://uaw-backend.vercel.app/api/salary-advance/employee-analytics/${id}`)
         .then((r) => {
           if (r.data.success && r.data.data) {
             setIsEligible(r.data.data.salaryAdvanceEligible);
@@ -602,14 +602,14 @@
         })
         .catch(() => {});
 
-      axios.get(`http://localhost:5000/api/salary-advance/employee-requests/${id}`)
+      axios.get(`https://uaw-backend.vercel.app/api/salary-advance/employee-requests/${id}`)
         .then((r) => r.data.success && setRequests(r.data.data || []))
         .catch(() => {});
     }, []);
 
     const refreshRequests = () => {
       if (!employeeId) return;
-      axios.get(`http://localhost:5000/api/salary-advance/employee-requests/${employeeId}`)
+      axios.get(`https://uaw-backend.vercel.app/api/salary-advance/employee-requests/${employeeId}`)
         .then((r) => r.data.success && setRequests(r.data.data || []))
         .catch(() => {});
     };
@@ -641,7 +641,7 @@
 
       setIsSubmitting(true);
       try {
-        const res = await axios.post("http://localhost:5000/api/salary-advance/request", {
+        const res = await axios.post("https://uaw-backend.vercel.app/api/salary-advance/request", {
           employeeId, amount: numAmount, reason: trimmedReason,
         });
         if (res.data.success) {
