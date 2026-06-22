@@ -54,7 +54,7 @@ const AdminSalaryAdvance = () => {
         params.append('dateTo', endDate.toISOString());
       }
       
-      const url = `http://localhost:5000/api/salary-advance/requests${params.toString() ? `?${params.toString()}` : ''}`;
+      const url = `https://uaw-backend.vercel.app/api/salary-advance/requests${params.toString() ? `?${params.toString()}` : ''}`;
       const response = await axios.get(url);
       
       if (response.data.success) {
@@ -75,7 +75,7 @@ const AdminSalaryAdvance = () => {
 
   const fetchEmployeeDetails = async (employeeId) => {
     try {
-      const response = await axios.get(`http://localhost:5000/api/salary-advance/employee-analytics/${employeeId}`);
+      const response = await axios.get(`https://uaw-backend.vercel.app/api/salary-advance/employee-analytics/${employeeId}`);
       if (response.data.success) {
         setSelectedEmployee(response.data.data);
         setShowEmployeeModal(true);
@@ -105,7 +105,7 @@ const AdminSalaryAdvance = () => {
     }
 
     try {
-      const response = await axios.put(`http://localhost:5000/api/salary-advance/request/${actionModal.requestId}/${actionModal.action}`, {
+      const response = await axios.put(`https://uaw-backend.vercel.app/api/salary-advance/request/${actionModal.requestId}/${actionModal.action}`, {
         adminRemarks: actionModal.remarks,
         reviewedBy: adminName
       });
@@ -143,7 +143,7 @@ const AdminSalaryAdvance = () => {
     }
 
     try {
-      const response = await axios.post(`http://localhost:5000/api/salary-advance/admin/repay/${repayModal.employeeNumber}`, {
+      const response = await axios.post(`https://uaw-backend.vercel.app/api/salary-advance/admin/repay/${repayModal.employeeNumber}`, {
         remarks: repayModal.remarks,
         adminName
       });
