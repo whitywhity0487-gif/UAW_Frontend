@@ -29,7 +29,7 @@ export const CompanyProvider = ({ children }) => {
     
     try {
       // Only fetch from personal-details endpoint
-      const response = await fetch(`http://localhost:5000/api/personal-details?userId=${userId}`);
+      const response = await fetch(`https://uaw-backend.vercel.app/api/personal-details?userId=${userId}`);
       
       if (!response.ok) {
         console.warn(`⚠️ Personal details API returned ${response.status}`);
@@ -66,7 +66,7 @@ export const CompanyProvider = ({ children }) => {
     const client = clientName || assignedClient;
     
     try {
-      let url = 'http://localhost:5000/api/holiday/companies';
+      let url = 'https://uaw-backend.vercel.app/api/holiday/companies';
       if (client && client !== 'undefined' && client !== 'null') {
         url += `?client=${encodeURIComponent(client)}`;
       }
