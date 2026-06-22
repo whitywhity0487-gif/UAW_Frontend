@@ -3,7 +3,7 @@ import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
 import { Search, Calendar, Briefcase, FileText, ChevronLeft, X, Eye } from 'lucide-react';
 
-const API_BASE_URL = 'http://localhost:5000/api/leave';
+const API_BASE_URL = 'https://uaw-backend.vercel.app/api/leave';
 
 const AdminLeaveManagement = () => {
   const [employeeStats, setEmployeeStats] = useState([]);
