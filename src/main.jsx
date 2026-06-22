@@ -11,7 +11,7 @@ import { UserProvider } from './context/UserContext';
 ReactDOM.createRoot(document.getElementById("root")).render(
   <React.StrictMode>
     {/* 🔥 ADD basename */}
-    <BrowserRouter basename="/myuandwe">
+    <BrowserRouter basename="/">
     <UserProvider>
       <CompanyProvider>
 
