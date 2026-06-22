@@ -22,7 +22,7 @@ const MyTeam = () => {
       if (!username) return;
       
       try {
-        const res = await axios.get(`http://localhost:5000/api/teams/user/${username}`);
+        const res = await axios.get(`https://uaw-backend.vercel.app/api/teams/user/${username}`);
         if (res.data.success) {
           setSupervisedTeams(res.data.data.supervises || []);
           setMemberTeam(res.data.data.memberOf || null);
@@ -30,7 +30,7 @@ const MyTeam = () => {
           // If supervising, fetch team leave requests
           if (res.data.data.supervises && res.data.data.supervises.length > 0) {
             try {
-              const leaveRes = await axios.get(`http://localhost:5000/api/leave/team/${username}`);
+              const leaveRes = await axios.get(`https://uaw-backend.vercel.app/api/leave/team/${username}`);
               if (leaveRes.data.success) {
                 setTeamLeaves(leaveRes.data.data);
               }
@@ -52,7 +52,7 @@ const MyTeam = () => {
   const handleLeaveAction = async (leaveId, status) => {
     setActionLoading(leaveId);
     try {
-      const res = await axios.put(`http://localhost:5000/api/leave/status/${leaveId}`, {
+      const res = await axios.put(`https://uaw-backend.vercel.app/api/leave/status/${leaveId}`, {
         status,
         remarks: ''
       });
