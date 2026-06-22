@@ -5,7 +5,7 @@ import { useNavigate } from "react-router-dom";
 import { ChevronLeft, Plus, X } from 'lucide-react';
 import Button from "../../components/Button";
 
-const API_BASE_URL = "http://localhost:5000/api/employeeassets";
+const API_BASE_URL = "https://uaw-backend.vercel.app/api/employeeassets";
 
 // Available asset types for dropdown (without emojis)
 const assetOptions = [
@@ -64,7 +64,7 @@ const fetchPersonalDetailsAndAssets = async (username) => {
     
     // 1. Fetch personal details
     try {
-      const pdRes = await axios.get(`http://localhost:5000/api/personal-details?userId=${username}`);
+      const pdRes = await axios.get(`https://uaw-backend.vercel.app/api/personal-details?userId=${username}`);
       console.log("Personal details response:", pdRes.data);
       
       if (pdRes.data.success && pdRes.data.data) {
@@ -75,7 +75,7 @@ const fetchPersonalDetailsAndAssets = async (username) => {
       console.warn("Could not fetch personal details:", e);
       // Try alternative endpoint if needed
       try {
-        const altRes = await axios.get(`http://localhost:5000/api/personal-details/${username}`);
+        const altRes = await axios.get(`https://uaw-backend.vercel.app/api/personal-details/${username}`);
         if (altRes.data.success && altRes.data.data) {
           empNum = altRes.data.data.employeeNumber || "";
           fullName = altRes.data.data.fullName || "";
