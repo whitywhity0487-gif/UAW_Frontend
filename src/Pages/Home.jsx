@@ -82,7 +82,7 @@ const Home = () => {
 
     const fetchNotificationsForToast = async () => {
       try {
-        const res = await axios.get(`http://localhost:5000/api/notifications/user/${username}`);
+        const res = await axios.get(`https://uaw-backend.vercel.app/api/notifications/user/${username}`);
         if (res.data.success) {
           const newNotifs = res.data.data;
           
@@ -122,7 +122,7 @@ const Home = () => {
   const markAsReadFromToast = async (id) => {
     setToasts(t => t.filter(x => x.id !== id));
     try {
-      await axios.put(`http://localhost:5000/api/notifications/read/${id}`);
+      await axios.put(`https://uaw-backend.vercel.app/api/notifications/read/${id}`);
     } catch (error) {
       console.error("Failed to mark as read", error);
     }
@@ -154,7 +154,7 @@ const Home = () => {
 
         if (username) {
           try {
-            const res = await fetch(`http://localhost:5000/api/personal-details?userId=${username}`);
+            const res = await fetch(`https://uaw-backend.vercel.app/api/personal-details?userId=${username}`);
             if (res.ok) {
               const data = await res.json();
               if (data?.data?.nationality) {
@@ -206,7 +206,7 @@ const Home = () => {
     const fetchPendingCount = async () => {
       if (currentUser?.role !== 'Admin') return;
       try {
-        const res = await fetch('http://localhost:5000/api/profile-approval/admin/stats');
+        const res = await fetch('https://uaw-backend.vercel.app/api/profile-approval/admin/stats');
         const data = await res.json();
         if (data.success) setPendingCount(data.data.pending || 0);
       } catch (e) {
