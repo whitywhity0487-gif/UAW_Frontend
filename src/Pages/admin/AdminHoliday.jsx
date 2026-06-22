@@ -47,10 +47,10 @@ const AdminHoliday = () => {
 
       // For Admin: fetch all holidays
       // For others: fetch only their client's holidays
-      let url = "http://localhost:5000/api/holiday/all";
+      let url = "https://uaw-backend.vercel.app/api/holiday/all";
 
       if (role !== "Admin" && client) {
-        url = `http://localhost:5000/api/holiday/group/${encodeURIComponent(client)}`;
+        url = `https://uaw-backend.vercel.app/api/holiday/group/${encodeURIComponent(client)}`;
       }
 
       const res = await fetch(url);
@@ -155,7 +155,7 @@ const AdminHoliday = () => {
     if (!window.confirm(`Delete "${item.holiday.name}"?`)) return;
     try {
       setLoading(true);
-      const res = await fetch(`http://localhost:5000/api/holiday/${item.holiday.id}`, {
+      const res = await fetch(`https://uaw-backend.vercel.app/api/holiday/${item.holiday.id}`, {
         method: "DELETE",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ groupName: item.group.name })
@@ -198,8 +198,8 @@ const handleSubmit = async (e) => {
   try {
     setLoading(true);
     const url = modalMode === "add"
-      ? "http://localhost:5000/api/holiday/add"
-      : `http://localhost:5000/api/holiday/${currentHoliday.holiday.id}`;
+      ? "https://uaw-backend.vercel.app/api/holiday/add"
+      : `https://uaw-backend.vercel.app/api/holiday/${currentHoliday.holiday.id}`;
     const res = await fetch(url, {
       method: modalMode === "add" ? "POST" : "PUT",
       headers: { "Content-Type": "application/json" },
