@@ -4,7 +4,7 @@ import axios from "axios";
 import { useNavigate } from "react-router-dom";
 import PolicySecurity from "./PolicySecurity";
 
-const API_BASE_URL = "http://localhost:5000/api/policy";
+const API_BASE_URL = "https://uaw-backend.vercel.app/api/policy";
 
 // ─── Chevron helper ───────────────────────────────────────────────────────────
 const ChevronRight = () => (
