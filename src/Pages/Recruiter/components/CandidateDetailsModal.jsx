@@ -200,7 +200,7 @@ const CandidateDetailsModal = ({
               {selectedCandidate.resumePath && (
                 <button
                   onClick={() => {
-                    setSelectedResumeUrl(`http://localhost:5000${selectedCandidate.resumePath}`);
+                    setSelectedResumeUrl(`https://uaw-backend.vercel.app${selectedCandidate.resumePath}`);
                     setShowResumeModal(true);
                   }}
                   className="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition flex items-center gap-2"
