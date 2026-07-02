@@ -3,28 +3,31 @@ import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
 import { ArrowLeft } from 'lucide-react';
 import Button from '../../components/Button';
+import DashboardLayout, { DashboardContainer } from '../../components/dashboard/DashboardLayout';
+import DashboardHeader from '../../components/dashboard/DashboardHeader';
 
-const API_BASE_URL   = 'http://localhost:5000/api/reimbursements';
-const PD_API_URL     = 'http://localhost:5000/api/personal-details';
+const API_BASE_URL = 'http://localhost:5000/api/reimbursements';
+const PD_API_URL   = 'http://localhost:5000/api/personal-details';
 
 const REIMB_TYPES = ['Travel', 'Food', 'Medical', 'Internet/Phone', 'Relocation', 'Other'];
 
-/* ── Status badge ─────────────────────────────────────────────── */
+/* ── Status badge — strictly monochrome ───────────────────────── */
 const StatusBadge = ({ status }) => {
+  const s = (status || 'PENDING').toUpperCase();
   const map = {
-    APPROVED: 'bg-emerald-50 text-emerald-700 border-emerald-200',
-    REJECTED: 'bg-rose-50 text-rose-700 border-rose-200',
-    PENDING:  'bg-amber-50  text-amber-700  border-amber-200',
+    APPROVED: { bg: 'bg-[#1C1C1C]', text: 'text-white',          border: 'border-[#1C1C1C]' },
+    REJECTED: { bg: 'bg-white',      text: 'text-[#1C1C1C]',      border: 'border-[#1C1C1C]' },
+    PENDING:  { bg: 'bg-[#F0F0F0]',  text: 'text-[#5A5A5A]',      border: 'border-[#C8C8C8]' },
   };
   const dot = {
-    APPROVED: 'bg-emerald-500',
-    REJECTED: 'bg-rose-500',
-    PENDING:  'bg-amber-400 animate-pulse',
+    APPROVED: 'bg-white',
+    REJECTED: 'bg-[#1C1C1C]',
+    PENDING:  'bg-[#9A9A9A]',
   };
-  const s = (status || 'PENDING').toUpperCase();
+  const style = map[s] || map.PENDING;
   const label = s.charAt(0) + s.slice(1).toLowerCase();
   return (
-    <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold border ${map[s] || map.PENDING}`}>
+    <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 text-[11px] font-semibold tracking-wide border ${style.bg} ${style.text} ${style.border}`}>
       <span className={`w-1.5 h-1.5 rounded-full flex-shrink-0 ${dot[s] || dot.PENDING}`} />
       {label}
     </span>
@@ -39,9 +42,20 @@ const Spinner = () => (
   </svg>
 );
 
+/* ── Shared input classes (from Mypersonaldetails) ──────────────── */
+const inputCls =
+  "w-full px-4 py-3 text-sm bg-gray-50/50 backdrop-blur-sm border border-gray-200 rounded-xl outline-none transition-all duration-300 focus:ring-2 focus:ring-indigo-500/30 focus:border-indigo-500 hover:border-indigo-300 shadow-sm placeholder:text-gray-400";
+
+/* ── Section label ─────────────────────────────────────────────── */
+const SectionLabel = ({ children, required }) => (
+  <label className="block text-[11px] font-semibold uppercase tracking-wider text-gray-500 mb-2">
+    {children}{required && <span className="ml-1 text-red-400">*</span>}
+  </label>
+);
+
 /* ── Main ─────────────────────────────────────────────────────── */
 const Reimbursements = () => {
-  const [employeeDetails, setEmployeeDetails] = useState({ employeeNumber: '', employeeName: '' });
+  const [employeeDetails, setEmployeeDetails] = useState({ employeeNumber: '', employeeName: '', userId: '' });
   const [formData, setFormData]   = useState({ reimbursementType: '', amount: '', description: '', document: null });
   const [history, setHistory]     = useState([]);
   const [loading, setLoading]     = useState(false);
@@ -64,7 +78,7 @@ const Reimbursements = () => {
         const pd  = res.data.data;
         const num = pd.employeeNumber || '';
         const name = pd.fullName || '';
-        setEmployeeDetails({ employeeNumber: num, employeeName: name });
+        setEmployeeDetails({ employeeNumber: num, employeeName: name, userId: userId });
         if (num) fetchReimbursementHistory(num);
         else { setFetchingHistory(false); setError('Employee number missing in Personal Details.'); }
       } else {
@@ -124,7 +138,7 @@ const Reimbursements = () => {
       });
 
       if (res.data.success) {
-        setSuccessMsg('Request submitted — the finance team will review it shortly.');
+        setSuccessMsg('Request submitted. The finance team will review it shortly.');
         setFormData({ reimbursementType: '', amount: '', description: '', document: null });
         if (fileRef.current) fileRef.current.value = '';
         fetchReimbursementHistory(employeeDetails.employeeNumber);
@@ -136,243 +150,210 @@ const Reimbursements = () => {
     }
   };
 
-  /* ── Shared input classes ─────────────────────────────────────── */
-  const inputCls =
-    'w-full px-3.5 py-2.5 text-sm border border-stone-200 rounded-lg bg-white text-stone-900 ' +
-    'outline-none focus:ring-2 focus:ring-slate-800/15 focus:border-slate-700 transition-all placeholder:text-stone-400';
-
   return (
-    <div className="min-h-screen bg-stone-50 font-sans">
-      <div className="max-w-3xl mx-auto px-4 py-10 space-y-10">
+    <DashboardLayout>
+      <DashboardHeader 
+        title="Reimbursements"
+        subtitle="Submit and track your expense claims"
+      />
+      <DashboardContainer>
+        <div className="max-w-4xl mx-auto space-y-8">
 
-        {/* ── Page header ─────────────────────────────────────── */}
-        <div className="flex items-end justify-between border-b border-stone-200 pb-6">
-          <div>
-            <Button
-              variant="ghost"
-              size="sm"
-              icon={ArrowLeft}
-              onClick={() => navigate('/home')}
-              className="mb-4"
-            >
-              Back to Home
-            </Button>
-            <h1 className="text-2xl font-semibold tracking-tight text-stone-900">Reimbursements</h1>
-          </div>
-          <div className="text-right">
-            <p className="text-sm font-semibold text-stone-800">{employeeDetails.employeeName || '—'}</p>
-            <p className="text-xs text-stone-400 font-mono">{employeeDetails.employeeNumber || '—'}</p>
-          </div>
-        </div>
-
-        {/* ── Banners ─────────────────────────────────────────── */}
         {error && (
-          <div className="flex items-start gap-3 px-4 py-3 rounded-lg bg-rose-50 border border-rose-200 text-rose-700 text-sm">
-            <svg className="w-4 h-4 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth="2">
+          <div className="flex items-start gap-3 px-4 py-3 rounded-xl border border-red-200 bg-red-50 text-red-700 text-sm shadow-sm">
+            <svg className="w-5 h-5 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth="2">
               <circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/>
             </svg>
-            {error}
+            <p className="font-medium">{error}</p>
           </div>
         )}
         {successMsg && (
-          <div className="flex items-start gap-3 px-4 py-3 rounded-lg bg-emerald-50 border border-emerald-200 text-emerald-700 text-sm">
-            <svg className="w-4 h-4 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth="2.5">
+          <div className="flex items-start gap-3 px-4 py-3 rounded-xl border border-emerald-200 bg-emerald-50 text-emerald-700 text-sm shadow-sm">
+            <svg className="w-5 h-5 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth="2.5">
               <polyline points="20 6 9 17 4 12"/>
             </svg>
-            {successMsg}
+            <p className="font-medium">{successMsg}</p>
           </div>
         )}
 
         {/* ── Form card ───────────────────────────────────────── */}
-        <div className="bg-white rounded-xl border border-stone-200 overflow-hidden">
-          <div className="px-6 py-4 border-b border-stone-100">
-            <h2 className="text-sm font-semibold text-stone-900">New Request</h2>
-            <p className="text-xs text-stone-400 mt-0.5">All fields marked * are required</p>
+        <div className="bg-white rounded-2xl shadow-xl border border-gray-100 overflow-hidden relative">
+          
+          {/* Card header */}
+          <div className="px-8 py-6 border-b border-gray-100 flex items-center justify-between">
+            <h2 className="text-xl font-bold text-gray-900 tracking-tight">Expense claim form</h2>
+            <div className="text-right">
+              <p className="text-sm font-semibold text-gray-900">{employeeDetails.userId || '—'}</p>
+              <p className="text-xs text-gray-400 font-mono mt-0.5">{employeeDetails.employeeNumber || '—'}</p>
+            </div>
           </div>
 
-          <form onSubmit={handleSubmit} className="p-6 space-y-6">
-
-            {/* Type + Amount row */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
-              <div>
-                <label className="block text-xs font-semibold uppercase tracking-widest text-stone-400 mb-2">
-                  Type <span className="text-rose-500">*</span>
-                </label>
-                <select
-                  name="reimbursementType"
-                  value={formData.reimbursementType}
-                  onChange={handleInputChange}
-                  required
-                  className={inputCls + ' appearance-none bg-[url("data:image/svg+xml,%3Csvg xmlns=\'http://www.w3.org/2000/svg\' width=\'12\' height=\'12\' viewBox=\'0 0 24 24\' fill=\'none\' stroke=\'%239ca3af\' stroke-width=\'2\'%3E%3Cpolyline points=\'6 9 12 15 18 9\'%3E%3C/polyline%3E%3C/svg%3E")] bg-no-repeat bg-[right_12px_center] pr-9'}
-                >
-                  <option value="">Select type</option>
-                  {REIMB_TYPES.map(t => <option key={t} value={t}>{t}</option>)}
-                </select>
-              </div>
-
-              <div>
-                <label className="block text-xs font-semibold uppercase tracking-widest text-stone-400 mb-2">
-                  Amount (₹) <span className="text-rose-500">*</span>
-                </label>
-                <div className="relative">
-                  <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-stone-400 text-base font-medium pointer-events-none">₹</span>
-                  <input
-                    type="text"
-                    name="amount"
-                    value={formData.amount}
-                    onChange={handleInputChange}
-                    placeholder="0"
-                    required
-                    className={inputCls + ' pl-8 font-semibold tabular-nums'}
-                  />
-                </div>
-              </div>
-            </div>
-
-            {/* Divider */}
-            <hr className="border-stone-100" />
+          <form onSubmit={handleSubmit} className="p-8 space-y-7">
 
             {/* Description */}
             <div>
-              <label className="block text-xs font-semibold uppercase tracking-widest text-stone-400 mb-2">
-                Description
-              </label>
-              <textarea
+              <SectionLabel required>Claim title / Description</SectionLabel>
+              <input
+                type="text"
                 name="description"
                 value={formData.description}
                 onChange={handleInputChange}
-                rows={3}
-                placeholder="Brief description of the expense…"
-                className={inputCls + ' resize-none leading-relaxed'}
+                required
+                placeholder="For example: Client meeting lunch"
+                className={inputCls}
               />
+            </div>
+
+            {/* Type + Amount row */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+              <div>
+                <SectionLabel required>Category</SectionLabel>
+                <div className="relative">
+                  <select
+                    name="reimbursementType"
+                    value={formData.reimbursementType}
+                    onChange={handleInputChange}
+                    required
+                    className={inputCls + ' appearance-none cursor-pointer'}
+                  >
+                    <option value="" className="cursor-pointer">Select a category</option>
+                    {REIMB_TYPES.map(t => <option key={t} value={t} className="cursor-pointer">{t}</option>)}
+                  </select>
+                  <svg className="absolute right-4 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7"/></svg>
+                </div>
+              </div>
+
+              <div>
+                <SectionLabel required>Amount (INR)</SectionLabel>
+                <input
+                  type="number"
+                  name="amount"
+                  value={formData.amount}
+                  onChange={handleInputChange}
+                  placeholder="0.00"
+                  min="1"
+                  required
+                  className={inputCls}
+                />
+              </div>
             </div>
 
             {/* Document upload */}
             <div>
-              <label className="block text-xs font-semibold uppercase tracking-widest text-stone-400 mb-2">
-                Supporting Document <span className="text-rose-500">*</span>
-              </label>
+              <SectionLabel required>Upload Receipt</SectionLabel>
 
               <label
                 htmlFor="document"
                 className={`
-                  flex items-center gap-4 px-4 py-4 border rounded-lg cursor-pointer transition-all
+                  flex flex-col items-center justify-center p-8 border-2 border-dashed rounded-2xl cursor-pointer transition-all duration-300
                   ${formData.document
-                    ? 'border-slate-700 bg-slate-50'
-                    : 'border-stone-200 bg-stone-50 hover:border-slate-400 hover:bg-white'}
+                    ? 'border-indigo-400 bg-indigo-50/50'
+                    : 'border-gray-300 bg-gray-50/50 hover:border-indigo-400 hover:bg-indigo-50/30'}
                 `}
               >
-                {/* Icon */}
-                <div className={`w-9 h-9 rounded-lg flex items-center justify-center flex-shrink-0 ${formData.document ? 'bg-slate-800' : 'bg-stone-200'}`}>
-                  {formData.document ? (
-                    <svg className="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth="2">
-                      <polyline points="20 6 9 17 4 12"/>
+                {formData.document ? (
+                  <>
+                    <div className="w-12 h-12 rounded-full bg-indigo-100 flex items-center justify-center mb-3">
+                      <svg className="w-6 h-6 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth="2">
+                        <polyline points="20 6 9 17 4 12"/>
+                      </svg>
+                    </div>
+                    <p className="text-sm font-bold text-gray-900 truncate max-w-xs">{formData.document.name}</p>
+                    <p className="text-xs text-gray-500 mt-1">Click to replace file</p>
+                  </>
+                ) : (
+                  <>
+                    <svg className="w-8 h-8 text-gray-400 mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth="1.5">
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5m-13.5-9L12 3m0 0l4.5 4.5M12 3v13.5" />
                     </svg>
-                  ) : (
-                    <svg className="w-4 h-4 text-stone-500" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth="2">
-                      <path strokeLinecap="round" strokeLinejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"/>
-                    </svg>
-                  )}
-                </div>
-
-                <div className="flex-1 min-w-0">
-                  {formData.document ? (
-                    <>
-                      <p className="text-sm font-semibold text-slate-800 truncate">{formData.document.name}</p>
-                      <p className="text-xs text-stone-400 mt-0.5">Click to replace</p>
-                    </>
-                  ) : (
-                    <>
-                      <p className="text-sm font-medium text-stone-700">Upload a file</p>
-                      <p className="text-xs text-stone-400 mt-0.5">PDF, PNG, JPG — up to 5 MB</p>
-                    </>
-                  )}
-                </div>
-
+                    <p className="text-sm font-medium text-gray-700">Drag and drop a file, or <span className="text-indigo-600 underline">Browse</span></p>
+                    <p className="text-xs text-gray-400 mt-1.5">Max file size is 10MB</p>
+                  </>
+                )}
                 <input
-                  id="document"
-                  ref={fileRef}
                   type="file"
-                  className="sr-only"
+                  id="document"
+                  name="document"
                   onChange={handleFileChange}
-                  accept=".pdf,.jpg,.jpeg,.png"
+                  accept=".pdf,image/png,image/jpeg,image/jpg"
+                  className="hidden"
+                  ref={fileRef}
                 />
               </label>
             </div>
 
             {/* Submit */}
-            <div className="flex justify-end pt-2">
-              <Button
+            <div className="flex justify-end pt-4">
+              <button
                 type="submit"
-                variant="primary"
-                isLoading={loading}
+                disabled={loading}
+                className="inline-flex items-center gap-2 px-8 py-3 text-sm font-bold bg-indigo-600 text-white rounded-xl hover:bg-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-lg shadow-indigo-200 cursor-pointer"
               >
-                Submit Request
-              </Button>
+                {loading && <Spinner />}
+                {loading ? 'Submitting…' : 'Submit Request'}
+              </button>
             </div>
           </form>
         </div>
 
         {/* ── History ─────────────────────────────────────────── */}
-        <div>
-          <div className="flex items-center justify-between mb-4">
-            <h2 className="text-sm font-semibold text-stone-900">
-              Request History
-              {history.length > 0 && (
-                <span className="ml-2 inline-block bg-stone-100 text-stone-500 text-xs font-semibold px-2 py-0.5 rounded-full">
-                  {history.length}
-                </span>
-              )}
-            </h2>
+        <div className="bg-white rounded-2xl shadow-xl border border-gray-100 overflow-hidden">
+          <div className="px-8 py-6 border-b border-gray-100 flex items-center justify-between">
+            <h2 className="text-lg font-bold text-gray-900 tracking-tight">Request History</h2>
+            {history.length > 0 && (
+              <span className="text-xs font-bold text-gray-500 bg-gray-100 px-3 py-1 rounded-full">
+                {history.length}
+              </span>
+            )}
           </div>
 
-          <div className="bg-white rounded-xl border border-stone-200 overflow-hidden">
+          <div className="bg-white">
             {fetchingHistory ? (
-              <div className="flex items-center justify-center gap-3 py-16 text-stone-400 text-sm">
-                <Spinner /> Loading history…
+              <div className="flex items-center justify-center gap-3 py-16 text-gray-400 text-sm font-medium">
+                <Spinner /> Loading…
               </div>
             ) : history.length === 0 ? (
-              <div className="py-16 text-center">
-                <div className="w-10 h-10 bg-stone-100 rounded-xl flex items-center justify-center mx-auto mb-4">
-                  <svg className="w-5 h-5 text-stone-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth="1.5">
+              <div className="py-20 text-center">
+                <div className="w-14 h-14 bg-gray-50 rounded-full flex items-center justify-center mx-auto mb-4 border border-gray-100">
+                  <svg className="w-6 h-6 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth="1.5">
                     <path strokeLinecap="round" strokeLinejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
                   </svg>
                 </div>
-                <p className="text-sm font-medium text-stone-700 mb-1">No requests yet</p>
-                <p className="text-xs text-stone-400">Submitted requests will appear here</p>
+                <p className="text-base font-bold text-gray-800 mb-1">No requests on record</p>
+                <p className="text-sm text-gray-500">Submitted requests will appear here</p>
               </div>
             ) : (
               <div className="overflow-x-auto">
                 <table className="w-full text-sm">
                   <thead>
-                    <tr className="border-b border-stone-100">
+                    <tr className="border-b border-gray-100 bg-gray-50/50">
                       {['Date', 'Type', 'Amount', 'Description', 'Status'].map(h => (
-                        <th key={h} className="px-5 py-3 text-left text-xs font-semibold uppercase tracking-widest text-stone-400 whitespace-nowrap">
+                        <th key={h} className="px-6 py-4 text-left text-[11px] font-bold uppercase tracking-wider text-gray-500 whitespace-nowrap">
                           {h}
                         </th>
                       ))}
                     </tr>
                   </thead>
-                  <tbody className="divide-y divide-stone-100">
+                  <tbody className="divide-y divide-gray-50">
                     {history.map((item, idx) => (
-                      <tr key={item.id || idx} className="hover:bg-stone-50 transition-colors">
-                        <td className="px-5 py-4 whitespace-nowrap text-stone-500 text-xs tabular-nums">
-                          {new Date(item.createdAt).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' })}
+                      <tr key={item.id || idx} className="hover:bg-gray-50/50 transition-colors">
+                        <td className="px-6 py-4 whitespace-nowrap text-gray-500 text-sm font-medium tabular-nums">
+                          {new Date(item.createdAt).toLocaleDateString('en-IN', { year: 'numeric', month: 'short', day: 'numeric' })}
                         </td>
-                        <td className="px-5 py-4 whitespace-nowrap font-medium text-stone-800">
+                        <td className="px-6 py-4 whitespace-nowrap font-bold text-gray-900 text-sm">
                           {item.reimbursementType}
                         </td>
-                        <td className="px-5 py-4 whitespace-nowrap font-semibold text-stone-900 tabular-nums">
-                          ₹{Number(item.amount).toLocaleString()}
+                        <td className="px-6 py-4 whitespace-nowrap font-bold text-gray-900 tabular-nums text-sm">
+                          ₹{Number(item.amount).toLocaleString('en-IN')}
                         </td>
-                        <td className="px-5 py-4 text-stone-500 max-w-[180px] truncate" title={item.description}>
-                          {item.description || <span className="text-stone-300">—</span>}
+                        <td className="px-6 py-4 text-gray-600 text-sm max-w-[180px] truncate" title={item.description}>
+                          {item.description || <span className="text-gray-300">—</span>}
                         </td>
-                        <td className="px-5 py-4 whitespace-nowrap">
+                        <td className="px-6 py-4 whitespace-nowrap">
                           <StatusBadge status={item.status} />
-                          {item.reason && (
-                            <p className="text-[11px] text-stone-500 mt-1 max-w-[150px] truncate" title={item.reason}>
-                              <span className="font-medium text-stone-600">Remarks:</span> {item.reason}
+                          {item.status === 'REJECTED' && item.reason && (
+                            <p className="text-[11px] text-gray-500 mt-1.5 max-w-[150px] truncate" title={item.reason}>
+                              <span className="font-bold text-gray-700">Remarks: </span>{item.reason}
                             </p>
                           )}
                         </td>
@@ -385,8 +366,9 @@ const Reimbursements = () => {
           </div>
         </div>
 
-      </div>
-    </div>
+        </div>
+      </DashboardContainer>
+    </DashboardLayout>
   );
 };
 

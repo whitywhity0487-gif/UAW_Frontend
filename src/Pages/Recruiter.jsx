@@ -176,18 +176,18 @@ const Recruiter = ({ user }) => {
     }
   };
 
-  // Fetch joined candidate IDs to exclude them
+  // Fetch candidate IDs to exclude them (Joined, Pending Offer, Pending Joinee, Offer Decline)
   const fetchJoinedCandidateIds = async () => {
     try {
-      const response = await axios.get('http://localhost:5000/api/candidates/joined/all');
+      const response = await axios.get('http://localhost:5000/api/candidates/hidden-ids');
       if (response.data.success) {
-        const joinedIds = new Set(response.data.data.map(c => c.id));
-        setJoinedCandidateIds(joinedIds);
-        return joinedIds;
+        // response.data.data is already an array of IDs
+        const ids = new Set(response.data.data);
+        setJoinedCandidateIds(ids);
+        return ids;
       }
     } catch (err) {
-      console.error('Error fetching joined candidates:', err);
-      return new Set();
+      console.error('Error fetching hidden candidate IDs:', err);
     }
     return new Set();
   };
@@ -1322,7 +1322,7 @@ const Recruiter = ({ user }) => {
             <p className="text-gray-600">{error}</p>
             <button
               onClick={() => window.location.reload()}
-              className="mt-4 px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+              className="mt-4 px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 cursor-pointer"
             >
               Retry
             </button>
@@ -1357,7 +1357,7 @@ const Recruiter = ({ user }) => {
               {userRole === 'Admin' && (
                 <button
                   onClick={exportToExcel}
-                  className="flex items-center gap-2 px-6 py-2 bg-green-600 text-white rounded-xl shadow hover:bg-green-700 transition"
+                  className="flex items-center gap-2 px-6 py-2 bg-green-600 text-white rounded-xl shadow hover:bg-green-700 transition cursor-pointer"
                   title={showSelectedView ? "Export selected candidates to Excel" : "Export all candidates to Excel"}
                 >
                   <FileText size={18} />
@@ -1366,7 +1366,7 @@ const Recruiter = ({ user }) => {
               )}
               <button
                 onClick={() => setShowAddProfile(true)}
-                className="flex items-center gap-2 px-6 py-2 bg-blue-600 text-white rounded-xl shadow hover:bg-blue-700 transition"
+                className="flex items-center gap-2 px-6 py-2 bg-blue-600 text-white rounded-xl shadow hover:bg-blue-700 transition cursor-pointer"
               >
                 <Plus size={18} />
                 Add Profile
@@ -1423,14 +1423,14 @@ const Recruiter = ({ user }) => {
               <div className="flex items-center gap-2">
                 <button
                   onClick={editSearchFilters}
-                  className="flex items-center gap-1 text-sm text-blue-600 hover:text-blue-800 font-medium"
+                  className="flex items-center gap-1 text-sm text-blue-600 hover:text-blue-800 font-medium cursor-pointer"
                 >
                   <Pencil size={14} />
                   Edit
                 </button>
                 <button
                   onClick={resetSearchFilters}
-                  className="text-sm text-red-600 hover:text-red-800 font-medium"
+                  className="text-sm text-red-600 hover:text-red-800 font-medium cursor-pointer"
                 >
                   Clear Filters
                 </button>
@@ -1508,7 +1508,7 @@ const Recruiter = ({ user }) => {
                   {showSelectedView && (
                     <button
                       onClick={() => setShowSelectedView(false)}
-                      className="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition"
+                      className="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition cursor-pointer"
                     >
                       Back to All Candidates
                     </button>
@@ -1544,12 +1544,12 @@ const Recruiter = ({ user }) => {
                               {/* Candidate Header */}
                               <div className="flex justify-between items-start mb-3">
                                 <div className="flex-1 min-w-0">
-                                  <h4 className="font-bold text-lg truncate hover:text-blue-600">{candidate.name}</h4>
-                                  <p className="text-gray-600 text-sm truncate">{candidate.currentOrg}</p>
+                                  <h4 className="font-bold text-lg truncate hover:text-blue-600">{candidate.name?.replace(/[^\x20-\x7E]/g, ' ')}</h4>
+                                  <p className="text-gray-600 text-sm truncate">{candidate.currentOrg?.replace(/[^\x20-\x7E]/g, ' ')}</p>
                                 </div>
                                 <button
                                   onClick={(e) => handleRemoveCandidate(candidate.id, e)}
-                                  className="px-3 py-1 rounded text-sm ml-2 flex-shrink-0 bg-red-100 text-red-700 hover:bg-red-200"
+                                  className="px-3 py-1 rounded text-sm ml-2 flex-shrink-0 bg-red-100 text-red-700 hover:bg-red-200 cursor-pointer"
                                 >
                                   Remove
                                 </button>
@@ -1559,7 +1559,7 @@ const Recruiter = ({ user }) => {
                               <div className="space-y-2 mb-4">
                                 <div className="flex items-center gap-2 text-sm">
                                   <Phone size={14} className="text-gray-500 flex-shrink-0" />
-                                  <span>{candidate.mobile}</span>
+                                  <span>{candidate.mobile?.replace(/[^0-9+\s-]/g, '')}</span>
                                 </div>
                                 <div className="flex items-center gap-2 text-sm">
                                   <Briefcase size={14} className="text-gray-500 flex-shrink-0" />
@@ -1567,7 +1567,7 @@ const Recruiter = ({ user }) => {
                                 </div>
                                 <div className="flex items-center gap-2 text-sm">
                                   <Building2 size={14} className="text-gray-500 flex-shrink-0" />
-                                  <span>Client: {candidate.clientName || "N/A"}</span>
+                                  <span>Client: {candidate.clientName ? candidate.clientName.replace(/[^\x20-\x7E]/g, ' ') : "N/A"}</span>
                                 </div>
                               </div>
 
@@ -1620,7 +1620,7 @@ const Recruiter = ({ user }) => {
                               <div className="flex gap-2">
                                 <button
                                   onClick={(e) => handleSendEmail(candidate.email, e)}
-                                  className="flex-1 px-3 py-2 bg-blue-100 hover:bg-blue-200 text-blue-700 rounded-lg text-sm font-medium flex items-center justify-center gap-1"
+                                  className="flex-1 px-3 py-2 bg-blue-100 hover:bg-blue-200 text-blue-700 rounded-lg text-sm font-medium flex items-center justify-center gap-1 cursor-pointer"
                                   title="Send Email"
                                 >
                                   <Mail size={14} />
@@ -1628,7 +1628,7 @@ const Recruiter = ({ user }) => {
                                 </button>
                                 <button
                                   onClick={(e) => handleSendWhatsApp(candidate.mobile, e)}
-                                  className="flex-1 px-3 py-2 bg-green-100 hover:bg-green-200 text-green-700 rounded-lg text-sm font-medium flex items-center justify-center gap-1"
+                                  className="flex-1 px-3 py-2 bg-green-100 hover:bg-green-200 text-green-700 rounded-lg text-sm font-medium flex items-center justify-center gap-1 cursor-pointer"
                                   title="Send WhatsApp"
                                 >
                                   <MessageCircle size={14} />
@@ -1636,7 +1636,7 @@ const Recruiter = ({ user }) => {
                                 </button>
                                 <button
                                   onClick={(e) => handleViewResume(candidate, e)}
-                                  className={`flex-1 px-3 py-2 rounded-lg text-sm font-medium flex items-center justify-center gap-1 ${candidate.resumePath || candidate.googleDriveViewLink
+                                  className={`flex-1 px-3 py-2 rounded-lg text-sm font-medium flex items-center justify-center gap-1 cursor-pointer ${candidate.resumePath || candidate.googleDriveViewLink
                                     ? 'bg-purple-100 text-purple-700 hover:bg-purple-200'
                                     : 'bg-gray-100 text-gray-400 cursor-not-allowed'
                                     }`}
@@ -1685,7 +1685,7 @@ const Recruiter = ({ user }) => {
                             setSelectedSkill("All");
                             setDisplayedCandidates(candidates);
                           }}
-                          className="mt-4 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+                          className="mt-4 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 cursor-pointer"
                         >
                           Clear Filters
                         </button>

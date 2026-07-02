@@ -4,6 +4,8 @@ import { useNavigate } from 'react-router-dom';
 import {
   Users, UserPlus, Trash2, Edit, Save, X, ChevronLeft, Search, CheckCircle, XCircle, Shield
 } from 'lucide-react';
+import DashboardLayout, { DashboardContainer } from '../../components/dashboard/DashboardLayout';
+import DashboardHeader from '../../components/dashboard/DashboardHeader';
 
 const API_BASE_URL = 'http://localhost:5000/api/teams';
 
@@ -24,6 +26,7 @@ export default function AdminMyTeam() {
   const [formData, setFormData] = useState({
     name: '',
     supervisorId: '',
+    hrId: '',
     members: []
   });
 
@@ -31,6 +34,8 @@ export default function AdminMyTeam() {
   const [showMemberDropdown, setShowMemberDropdown] = useState(false);
   const [supervisorSearchTerm, setSupervisorSearchTerm] = useState('');
   const [showSupervisorDropdown, setShowSupervisorDropdown] = useState(false);
+  const [hrSearchTerm, setHrSearchTerm] = useState('');
+  const [showHrDropdown, setShowHrDropdown] = useState(false);
 
   useEffect(() => {
     fetchData();
@@ -48,7 +53,7 @@ export default function AdminMyTeam() {
         setTeams(teamsRes.data.data);
       }
       if (empRes.data.success) {
-        const approved = empRes.data.data.filter(emp => 
+        const approved = empRes.data.data.filter(emp =>
           emp.profileStatus === 'APPROVED' || emp.approvalStatus === 'APPROVED'
         );
         setEmployees(approved);
@@ -85,6 +90,8 @@ export default function AdminMyTeam() {
     setShowMemberDropdown(false);
     setSupervisorSearchTerm('');
     setShowSupervisorDropdown(false);
+    setHrSearchTerm('');
+    setShowHrDropdown(false);
     setShowModal(true);
   };
 
@@ -94,12 +101,15 @@ export default function AdminMyTeam() {
     setFormData({
       name: team.name,
       supervisorId: team.supervisorId || '',
+      hrId: team.hrId || '',
       members: team.members.map(m => m.userId)
     });
     setSearchTerm('');
     setShowMemberDropdown(false);
     setSupervisorSearchTerm('');
     setShowSupervisorDropdown(false);
+    setHrSearchTerm('');
+    setShowHrDropdown(false);
     setShowModal(true);
   };
 
@@ -107,8 +117,8 @@ export default function AdminMyTeam() {
     e.preventDefault();
     setError(''); setSuccess('');
 
-    if (!formData.name.trim() || !formData.supervisorId) {
-      setError('Name and Supervisor are required.');
+    if (!formData.name.trim() || !formData.supervisorId || !formData.hrId) {
+      setError('Name, Supervisor, and HR are required.');
       return;
     }
 
@@ -143,30 +153,21 @@ export default function AdminMyTeam() {
 
 
   return (
-    <div className="min-h-screen bg-gray-50/50 pb-12">
-      <div className="max-w-7xl mx-auto px-4 py-8 sm:px-6 lg:px-8">
-        
-        {/* Header */}
-        <div className="flex flex-col md:flex-row md:items-end justify-between mb-8 gap-4 border-b border-gray-200 pb-6">
-          <div>
-            <button
-              onClick={() => navigate('/home')}
-              className="mb-4 inline-flex items-center gap-1.5 text-sm font-medium text-gray-500 hover:text-gray-800 transition-colors"
-            >
-              <ChevronLeft size={16} /> Back to Home
-            </button>
-            <h1 className="text-3xl font-bold text-gray-900 tracking-tight">Team Management</h1>
-            <p className="text-gray-500 mt-1">Create and manage teams, assign supervisors and members</p>
-          </div>
-          <div>
-            <button
-              onClick={openCreateModal}
-              className="bg-blue-600 hover:bg-blue-700 text-white px-5 py-2.5 rounded-xl font-medium shadow-sm transition-colors flex items-center gap-2"
-            >
-              <UserPlus size={18} /> Create Team
-            </button>
-          </div>
-        </div>
+    <DashboardLayout>
+      <DashboardHeader 
+        title="Team Management"
+        subtitle="Create and manage teams, assign supervisors and members"
+        actions={
+          <button
+            onClick={openCreateModal}
+            className="bg-blue-600 hover:bg-blue-700 text-white px-5 py-2.5 rounded-lg font-medium shadow-sm transition-colors flex items-center gap-2 cursor-pointer"
+          >
+            <UserPlus size={18} /> Create Team
+          </button>
+        }
+      />
+
+      <DashboardContainer>
 
         {error && (
           <div className="mb-6 bg-red-50 text-red-700 p-4 rounded-xl flex items-center gap-3 border border-red-100 animate-fade-in">
@@ -204,6 +205,10 @@ export default function AdminMyTeam() {
                       <Shield size={12} className="text-emerald-500" />
                       Supervisor: <span className="font-semibold text-gray-700">{team.supervisorName || 'Unassigned'}</span>
                     </div>
+                    <div className="text-xs text-gray-500 font-mono mt-1 flex items-center gap-1.5">
+                      <Shield size={12} className="text-blue-500" />
+                      HR: <span className="font-semibold text-gray-700">{team.hrName || 'Unassigned'}</span>
+                    </div>
                   </div>
                   <div className="flex gap-2">
                     <button onClick={() => openEditModal(team)} className="p-1.5 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors">
@@ -214,7 +219,7 @@ export default function AdminMyTeam() {
                     </button>
                   </div>
                 </div>
-                
+
                 <div className="flex-1 mt-2">
                   <h4 className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-3 flex justify-between">
                     <span>Members</span>
@@ -242,7 +247,7 @@ export default function AdminMyTeam() {
           </div>
         )}
 
-      </div>
+      </DashboardContainer>
 
       {/* Create/Edit Modal */}
       {showModal && (
@@ -280,9 +285,9 @@ export default function AdminMyTeam() {
                         <span className="block text-xs font-mono text-blue-600/80">Emp No: {employees.find(e => e.userId === formData.supervisorId)?.employeeNumber || formData.supervisorId}</span>
                       </div>
                     </div>
-                    <button 
+                    <button
                       type="button"
-                      onClick={() => setFormData(prev => ({...prev, supervisorId: ''}))}
+                      onClick={() => setFormData(prev => ({ ...prev, supervisorId: '' }))}
                       className="text-blue-400 hover:text-red-500 hover:bg-red-50 p-1.5 rounded-lg transition-colors"
                       title="Remove Supervisor"
                     >
@@ -305,27 +310,110 @@ export default function AdminMyTeam() {
                       onFocus={() => setShowSupervisorDropdown(true)}
                       className="w-full border border-gray-300 rounded-xl pl-10 pr-4 py-2.5 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-shadow shadow-sm"
                     />
-                    
+
                     {showSupervisorDropdown && (
                       <div className="absolute z-20 w-full mt-2 bg-white border border-gray-200 rounded-xl shadow-xl max-h-60 overflow-y-auto">
-                        {employees.filter(emp => 
+                        {employees.filter(emp =>
                           `${emp.firstName} ${emp.lastName}`.toLowerCase().includes(supervisorSearchTerm.toLowerCase()) ||
                           (emp.employeeNumber && emp.employeeNumber.toLowerCase().includes(supervisorSearchTerm.toLowerCase())) ||
                           emp.userId.toLowerCase().includes(supervisorSearchTerm.toLowerCase())
                         ).length === 0 ? (
                           <div className="p-4 text-center text-sm text-gray-500">No matching employees found</div>
                         ) : (
-                          employees.filter(emp => 
+                          employees.filter(emp =>
                             `${emp.firstName} ${emp.lastName}`.toLowerCase().includes(supervisorSearchTerm.toLowerCase()) ||
                             (emp.employeeNumber && emp.employeeNumber.toLowerCase().includes(supervisorSearchTerm.toLowerCase())) ||
                             emp.userId.toLowerCase().includes(supervisorSearchTerm.toLowerCase())
                           ).map(emp => (
-                            <div 
+                            <div
                               key={emp.userId}
                               onClick={() => {
-                                setFormData(prev => ({...prev, supervisorId: emp.userId}));
+                                setFormData(prev => ({ ...prev, supervisorId: emp.userId }));
                                 setSupervisorSearchTerm('');
                                 setShowSupervisorDropdown(false);
+                              }}
+                              className="flex items-center px-4 py-3 cursor-pointer hover:bg-gray-50 transition-colors border-b border-gray-50 last:border-0"
+                            >
+                              <div className="w-8 h-8 bg-gray-100 text-gray-600 rounded-full flex items-center justify-center text-sm font-bold mr-3 border border-gray-200">
+                                {emp.firstName?.[0] || 'U'}
+                              </div>
+                              <div>
+                                <p className="text-sm font-medium text-gray-900">{emp.firstName} {emp.lastName}</p>
+                                <p className="text-xs text-gray-500 font-mono">Emp No: {emp.employeeNumber || emp.userId}</p>
+                              </div>
+                            </div>
+                          ))
+                        )}
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
+
+              {/* HR Selection */}
+              <div className="relative">
+                <label className="block text-sm font-medium text-gray-700 mb-1.5">Assigned HR *</label>
+                {formData.hrId ? (
+                  <div className="flex items-center justify-between border border-purple-200 bg-purple-50/50 rounded-xl px-4 py-2.5 shadow-sm">
+                    <div className="flex items-center gap-3">
+                      <div className="w-8 h-8 bg-purple-100 text-purple-700 rounded-full flex items-center justify-center text-sm font-bold border border-purple-200">
+                        {employees.find(e => e.userId === formData.hrId)?.firstName?.[0] || 'H'}
+                      </div>
+                      <div>
+                        <span className="block text-sm font-semibold text-purple-900">
+                          {employees.find(e => e.userId === formData.hrId)?.firstName} {employees.find(e => e.userId === formData.hrId)?.lastName}
+                        </span>
+                        <span className="block text-xs font-mono text-purple-600/80">Emp No: {employees.find(e => e.userId === formData.hrId)?.employeeNumber || formData.hrId}</span>
+                      </div>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => setFormData(prev => ({ ...prev, hrId: '' }))}
+                      className="text-purple-400 hover:text-red-500 hover:bg-red-50 p-1.5 rounded-lg transition-colors"
+                      title="Remove HR"
+                    >
+                      <X size={18} />
+                    </button>
+                  </div>
+                ) : (
+                  <div className="relative">
+                    <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                      <Search size={16} className="text-gray-400" />
+                    </div>
+                    <input
+                      type="text"
+                      placeholder="Search and select HR..."
+                      value={hrSearchTerm}
+                      onChange={(e) => {
+                        setHrSearchTerm(e.target.value);
+                        setShowHrDropdown(true);
+                      }}
+                      onFocus={() => setShowHrDropdown(true)}
+                      className="w-full border border-gray-300 rounded-xl pl-10 pr-4 py-2.5 focus:ring-2 focus:ring-purple-500 focus:border-purple-500 outline-none transition-shadow shadow-sm"
+                    />
+
+                    {showHrDropdown && (
+                      <div className="absolute z-20 w-full mt-2 bg-white border border-gray-200 rounded-xl shadow-xl max-h-60 overflow-y-auto">
+                        {employees.filter(emp =>
+                          emp.userId !== formData.supervisorId && // Exclude already selected supervisor
+                          (`${emp.firstName} ${emp.lastName}`.toLowerCase().includes(hrSearchTerm.toLowerCase()) ||
+                            (emp.employeeNumber && emp.employeeNumber.toLowerCase().includes(hrSearchTerm.toLowerCase())) ||
+                            emp.userId.toLowerCase().includes(hrSearchTerm.toLowerCase()))
+                        ).length === 0 ? (
+                          <div className="p-4 text-center text-sm text-gray-500">No matching employees found</div>
+                        ) : (
+                          employees.filter(emp =>
+                            emp.userId !== formData.supervisorId &&
+                            (`${emp.firstName} ${emp.lastName}`.toLowerCase().includes(hrSearchTerm.toLowerCase()) ||
+                              (emp.employeeNumber && emp.employeeNumber.toLowerCase().includes(hrSearchTerm.toLowerCase())) ||
+                              emp.userId.toLowerCase().includes(hrSearchTerm.toLowerCase()))
+                          ).map(emp => (
+                            <div
+                              key={emp.userId}
+                              onClick={() => {
+                                setFormData(prev => ({ ...prev, hrId: emp.userId }));
+                                setHrSearchTerm('');
+                                setShowHrDropdown(false);
                               }}
                               className="flex items-center px-4 py-3 cursor-pointer hover:bg-gray-50 transition-colors border-b border-gray-50 last:border-0"
                             >
@@ -350,7 +438,7 @@ export default function AdminMyTeam() {
                   <label className="block text-sm font-medium text-gray-700">Team Members</label>
                   <span className="text-xs text-gray-500">{formData.members.length} selected</span>
                 </div>
-                
+
                 {/* Selected Members Chips */}
                 {formData.members.length > 0 && (
                   <div className="flex flex-wrap gap-2 mb-3 p-3 bg-gray-50 rounded-xl border border-gray-200 shadow-inner">
@@ -359,8 +447,8 @@ export default function AdminMyTeam() {
                       return emp ? (
                         <div key={memberId} className="flex items-center gap-1.5 bg-white border border-gray-300 text-gray-700 px-2.5 py-1.5 rounded-lg text-sm shadow-sm transition-colors hover:border-red-200">
                           <span className="font-medium text-gray-900">{emp.firstName} {emp.lastName}</span>
-                          <button 
-                            type="button" 
+                          <button
+                            type="button"
                             onClick={() => handleMemberToggle(memberId)}
                             className="text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-md p-0.5 transition-colors"
                             title="Remove Member"
@@ -379,7 +467,7 @@ export default function AdminMyTeam() {
                   </div>
                   <input
                     type="text" placeholder="Search and add members..."
-                    value={searchTerm} 
+                    value={searchTerm}
                     onChange={(e) => {
                       setSearchTerm(e.target.value);
                       setShowMemberDropdown(true);
@@ -387,25 +475,25 @@ export default function AdminMyTeam() {
                     onFocus={() => setShowMemberDropdown(true)}
                     className="w-full border border-gray-300 rounded-xl pl-10 pr-4 py-2.5 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-shadow shadow-sm"
                   />
-                  
+
                   {showMemberDropdown && (
                     <div className="absolute z-10 w-full mt-2 bg-white border border-gray-200 rounded-xl shadow-xl max-h-60 overflow-y-auto">
-                      {employees.filter(emp => 
-                        !formData.members.includes(emp.userId) && emp.userId !== formData.supervisorId &&
+                      {employees.filter(emp =>
+                        !formData.members.includes(emp.userId) && emp.userId !== formData.supervisorId && emp.userId !== formData.hrId &&
                         (`${emp.firstName} ${emp.lastName}`.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         (emp.employeeNumber && emp.employeeNumber.toLowerCase().includes(searchTerm.toLowerCase())) ||
-                         emp.userId.toLowerCase().includes(searchTerm.toLowerCase()))
+                          (emp.employeeNumber && emp.employeeNumber.toLowerCase().includes(searchTerm.toLowerCase())) ||
+                          emp.userId.toLowerCase().includes(searchTerm.toLowerCase()))
                       ).length === 0 ? (
                         <div className="p-4 text-center text-sm text-gray-500">No employees available to add</div>
                       ) : (
-                        employees.filter(emp => 
-                          !formData.members.includes(emp.userId) && emp.userId !== formData.supervisorId &&
+                        employees.filter(emp =>
+                          !formData.members.includes(emp.userId) && emp.userId !== formData.supervisorId && emp.userId !== formData.hrId &&
                           (`${emp.firstName} ${emp.lastName}`.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                           (emp.employeeNumber && emp.employeeNumber.toLowerCase().includes(searchTerm.toLowerCase())) ||
-                           emp.userId.toLowerCase().includes(searchTerm.toLowerCase()))
+                            (emp.employeeNumber && emp.employeeNumber.toLowerCase().includes(searchTerm.toLowerCase())) ||
+                            emp.userId.toLowerCase().includes(searchTerm.toLowerCase()))
                         ).map(emp => (
-                          <div 
-                            key={emp.userId} 
+                          <div
+                            key={emp.userId}
                             onClick={() => {
                               handleMemberToggle(emp.userId);
                               setSearchTerm('');
@@ -439,7 +527,7 @@ export default function AdminMyTeam() {
                 Cancel
               </button>
               <button
-                onClick={handleSubmit} 
+                onClick={handleSubmit}
                 className="flex-1 py-2.5 bg-blue-600 text-white font-medium rounded-xl hover:bg-blue-700 shadow-sm transition flex justify-center items-center gap-2"
               >
                 <Save size={18} /> {isEditing ? 'Update Team' : 'Create Team'}
@@ -455,6 +543,6 @@ export default function AdminMyTeam() {
         @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
         @keyframes scaleIn { from { transform: scale(0.95); opacity: 0; } to { transform: scale(1); opacity: 1; } }
       `}</style>
-    </div>
+    </DashboardLayout>
   );
 }

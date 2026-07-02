@@ -8,6 +8,8 @@ import {
   FileText, Activity, Briefcase, Plus, X, ChevronLeft, ChevronRight
 } from 'lucide-react';
 import Button from '../../components/Button';
+import DashboardLayout, { DashboardContainer } from '../../components/dashboard/DashboardLayout';
+import DashboardHeader from '../../components/dashboard/DashboardHeader';
 
 const API_BASE_URL = 'http://localhost:5000/api/leave';
 const PD_API_URL = 'http://localhost:5000/api/personal-details';
@@ -23,6 +25,9 @@ const DAYS_SHORT = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 
 export default function LeaveManagement() {
   const navigate = useNavigate();
+  const storedUser = JSON.parse(localStorage.getItem('user') || '{}');
+  const userRole = storedUser?.role;
+  
   const [employeeDetails, setEmployeeDetails] = useState({
     employeeNumber: '', employeeName: '', company: '', userId: ''
   });
@@ -44,6 +49,27 @@ export default function LeaveManagement() {
 
   // Modal state
   const [showApplyModal, setShowApplyModal] = useState(false);
+  const [showViewModal, setShowViewModal] = useState(false);
+  const [selectedViewLeave, setSelectedViewLeave] = useState(null);
+  const [selectedEmployeeBalances, setSelectedEmployeeBalances] = useState(null);
+  const [loadingBalances, setLoadingBalances] = useState(false);
+
+  const handleViewLeave = async (req) => {
+    setSelectedViewLeave(req);
+    setShowViewModal(true);
+    setSelectedEmployeeBalances(null);
+    setLoadingBalances(true);
+    try {
+      const res = await axios.get(`${API_BASE_URL}/user/${req.userId}`);
+      if (res.data.success) {
+        setSelectedEmployeeBalances(res.data.balances);
+      }
+    } catch (e) {
+      console.error(e);
+    } finally {
+      setLoadingBalances(false);
+    }
+  };
 
   // Inline selection state for mini calendar
   const [inlineStartDate, setInlineStartDate] = useState(null);
@@ -141,12 +167,23 @@ export default function LeaveManagement() {
 
   const checkSupervisorAndFetchTeamLeaves = async (userId) => {
     try {
-      const teamRes = await axios.get(`http://localhost:5000/api/teams/user/${userId}`);
-      if (teamRes.data.success && teamRes.data.data.supervises && teamRes.data.data.supervises.length > 0) {
-        setIsSupervisor(true);
-        const leavesRes = await axios.get(`${API_BASE_URL}/team/${userId}`);
+      const storedUser = JSON.parse(localStorage.getItem('user'));
+      const role = storedUser?.role;
+      
+      if (role === 'HR') {
+        setIsSupervisor(true); // Reuse the same UI state for simplicity
+        const leavesRes = await axios.get(`${API_BASE_URL}/hr/${userId}`);
         if (leavesRes.data.success) {
           setTeamLeaves(leavesRes.data.data);
+        }
+      } else {
+        const teamRes = await axios.get(`http://localhost:5000/api/teams/user/${userId}`);
+        if (teamRes.data.success && teamRes.data.data.supervises && teamRes.data.data.supervises.length > 0) {
+          setIsSupervisor(true);
+          const leavesRes = await axios.get(`${API_BASE_URL}/team/${userId}`);
+          if (leavesRes.data.success) {
+            setTeamLeaves(leavesRes.data.data);
+          }
         }
       }
     } catch (err) {
@@ -157,7 +194,14 @@ export default function LeaveManagement() {
   const handleUpdateLeaveStatus = async (id, newStatus) => {
     if (window.confirm(`Are you sure you want to mark this request as ${newStatus}?`)) {
       try {
-        const res = await axios.put(`${API_BASE_URL}/status/${id}`, { status: newStatus });
+        const storedUser = JSON.parse(localStorage.getItem('user'));
+        const role = storedUser?.role;
+        const approverRole = role === 'HR' ? 'HR' : 'Supervisor';
+        
+        const res = await axios.put(`${API_BASE_URL}/status/${id}`, { 
+          status: newStatus,
+          approverRole: approverRole
+        });
         if (res.data.success) {
           setSuccessMsg(`Leave request ${newStatus.toLowerCase()} successfully.`);
           setTimeout(() => setSuccessMsg(''), 3000);
@@ -254,6 +298,7 @@ export default function LeaveManagement() {
 
     setSubmitLoading(true);
     try {
+      const storedUser = JSON.parse(localStorage.getItem('user'));
       const payload = {
         userId: employeeDetails.userId,
         employeeName: employeeDetails.employeeName,
@@ -266,7 +311,8 @@ export default function LeaveManagement() {
         endTime: '18:00',
         reason: inlineReason,
         customReason: inlineCustomReason,
-        totalDays: days
+        totalDays: days,
+        role: storedUser?.role
       };
 
       const res = await axios.post(`${API_BASE_URL}/apply`, payload);
@@ -320,12 +366,14 @@ export default function LeaveManagement() {
 
     setSubmitLoading(true);
     try {
+      const storedUser = JSON.parse(localStorage.getItem('user'));
       const payload = {
         userId: employeeDetails.userId,
         employeeName: employeeDetails.employeeName,
         employeeNumber: employeeDetails.employeeNumber,
         company: employeeDetails.company,
-        ...formData
+        ...formData,
+        role: storedUser?.role
       };
 
       const res = await axios.post(`${API_BASE_URL}/apply`, payload);
@@ -387,13 +435,16 @@ export default function LeaveManagement() {
   // Status Badge Component
   const StatusBadge = ({ status }) => {
     const s = status || 'Pending';
+    if (s === 'N/A') {
+      return <span className="font-bold text-gray-400 flex items-center justify-center">-</span>;
+    }
     const config = {
       Approved: 'bg-emerald-100 text-emerald-800',
       Rejected: 'bg-rose-100 text-rose-800',
       Pending: 'bg-amber-100 text-amber-800'
     };
     return (
-      <span className={`px-2.5 py-1 rounded-full text-xs font-semibold ${config[s]}`}>
+      <span className={`px-2.5 py-1 rounded-full text-xs font-semibold ${config[s] || 'bg-gray-100 text-gray-800'}`}>
         {s}
       </span>
     );
@@ -404,39 +455,27 @@ export default function LeaveManagement() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50/50 pb-12">
-      <div className="max-w-7xl mx-auto px-4 py-8 sm:px-6 lg:px-8">
-
-        {/* Header */}
-        <div className="flex flex-col md:flex-row md:items-end justify-between mb-8 gap-4 border-b border-gray-200 pb-6">
-          <div>
-            <Button
-              variant="ghost"
-              size="sm"
-              icon={ChevronLeft}
-              onClick={() => navigate('/home')}
-              className="mb-4"
-            >
-              Back to Home
-            </Button>
-            <h1 className="text-3xl font-bold text-gray-900 tracking-tight">Leave Dashboard</h1>
-            <p className="text-gray-500 mt-1">Manage your leaves and view your balances</p>
-          </div>
+    <DashboardLayout>
+      <DashboardHeader 
+        title="Leave Dashboard"
+        subtitle="Manage your leaves and view your balances"
+        actions={
           <div className="flex items-center gap-4">
-            <div className="text-right hidden sm:block">
-              <p className="text-sm font-semibold text-gray-900">{employeeDetails.employeeName}</p>
-              <p className="text-xs text-gray-500 font-mono">{employeeDetails.employeeNumber} • {employeeDetails.company}</p>
+            <div className="text-right hidden sm:block text-white/90">
+              <p className="text-sm font-semibold text-white">{employeeDetails.userId}</p>
+              <p className="text-xs opacity-75 font-mono">{employeeDetails.employeeNumber} • {employeeDetails.company}</p>
             </div>
-            <Button
-              variant="primary"
-              size="lg"
-              icon={Plus}
+            <button
               onClick={() => setShowApplyModal(true)}
+              className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 shadow-md cursor-pointer transition-colors text-sm font-medium border border-blue-500/30"
             >
-              Apply Leave
-            </Button>
+              <Plus size={16} /> Apply Leave
+            </button>
           </div>
-        </div>
+        }
+      />
+      <DashboardContainer>
+        <div className="max-w-7xl mx-auto">
 
         {error && (
           <div className="mb-6 bg-red-50 text-red-700 p-4 rounded-xl flex items-center gap-3 border border-red-100">
@@ -517,7 +556,9 @@ export default function LeaveManagement() {
                       <th className="px-6 py-3 text-center">LOP</th>
                       <th className="px-6 py-3 text-center">Salary Impact</th>
                       <th className="px-6 py-3">Reason</th>
-                      <th className="px-6 py-3">Status</th>
+                      {!isSupervisor && <th className="px-6 py-3">Sup. Status</th>}
+                      <th className="px-6 py-3">HR Status</th>
+                      <th className="px-6 py-3">Overall Status</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-gray-100">
@@ -552,6 +593,14 @@ export default function LeaveManagement() {
                           <td className="px-6 py-4 text-gray-600 max-w-[150px] truncate" title={req.reason}>
                             {req.reason}
                           </td>
+                          {!isSupervisor && (
+                            <td className="px-6 py-4">
+                              <StatusBadge status={req.supervisorStatus} />
+                            </td>
+                          )}
+                          <td className="px-6 py-4">
+                            <StatusBadge status={req.hrStatus} />
+                          </td>
                           <td className="px-6 py-4">
                             <StatusBadge status={req.status} />
                             {req.adjustmentReason && (
@@ -574,7 +623,7 @@ export default function LeaveManagement() {
                 <div className="px-6 py-5 border-b border-gray-100 flex justify-between items-center bg-blue-50/30">
                   <h2 className="text-lg font-semibold text-gray-800">Team Leave Requests</h2>
                 </div>
-                <div className="overflow-x-auto">
+                {/* Removed Team Leave Summary Cards as requested */}                <div className="overflow-x-auto">
                   <table className="w-full text-sm text-left">
                     <thead className="bg-gray-50 text-gray-500 font-medium">
                       <tr>
@@ -583,7 +632,9 @@ export default function LeaveManagement() {
                         <th className="px-6 py-3">From - To</th>
                         <th className="px-6 py-3 text-center">Days</th>
                         <th className="px-6 py-3">Reason</th>
-                        <th className="px-6 py-3">Status</th>
+                        <th className="px-6 py-3">Sup. Status</th>
+                        <th className="px-6 py-3">HR Status</th>
+                        <th className="px-6 py-3">Overall Status</th>
                         <th className="px-6 py-3 text-right">Actions</th>
                       </tr>
                     </thead>
@@ -611,16 +662,38 @@ export default function LeaveManagement() {
                             <td className="px-6 py-4 text-gray-600 max-w-[150px] truncate" title={req.reason}>
                               {req.reason}
                             </td>
+                            <td className="px-6 py-4"><StatusBadge status={req.supervisorStatus} /></td>
+                            <td className="px-6 py-4"><StatusBadge status={req.hrStatus} /></td>
                             <td className="px-6 py-4"><StatusBadge status={req.status} /></td>
                             <td className="px-6 py-4 text-right">
-                              {req.status === 'Pending' ? (
-                                <div className="flex justify-end gap-2">
-                                  <button onClick={() => handleUpdateLeaveStatus(req.id, 'Approved')} className="px-3 py-1 bg-emerald-100 text-emerald-700 hover:bg-emerald-200 rounded-lg text-xs font-semibold transition-colors">Approve</button>
-                                  <button onClick={() => handleUpdateLeaveStatus(req.id, 'Rejected')} className="px-3 py-1 bg-rose-100 text-rose-700 hover:bg-rose-200 rounded-lg text-xs font-semibold transition-colors">Reject</button>
-                                </div>
-                              ) : (
-                                <span className="text-xs text-gray-400">Processed</span>
-                              )}
+                              {(() => {
+                                const storedUser = JSON.parse(localStorage.getItem('user') || '{}');
+                                const role = storedUser?.role;
+                                // If they are HR, check hrStatus. If they are Supervisor, check supervisorStatus.
+                                const isPendingForMe = role === 'HR' 
+                                  ? (req.hrStatus === 'Pending' || !req.hrStatus) 
+                                  : (req.supervisorStatus === 'Pending' || !req.supervisorStatus);
+                                  
+                                return (
+                                  <div className="flex justify-end gap-2 items-center">
+                                    <button 
+                                      onClick={() => handleViewLeave(req)} 
+                                      className="px-3 py-1 bg-blue-100 text-blue-700 hover:bg-blue-200 rounded-lg text-xs font-semibold transition-colors"
+                                    >
+                                      View
+                                    </button>
+                                    
+                                    {isPendingForMe ? (
+                                      <>
+                                        <button onClick={() => handleUpdateLeaveStatus(req.id, 'Approved')} className="px-3 py-1 bg-emerald-100 text-emerald-700 hover:bg-emerald-200 rounded-lg text-xs font-semibold transition-colors">Approve</button>
+                                        <button onClick={() => handleUpdateLeaveStatus(req.id, 'Rejected')} className="px-3 py-1 bg-rose-100 text-rose-700 hover:bg-rose-200 rounded-lg text-xs font-semibold transition-colors">Reject</button>
+                                      </>
+                                    ) : (
+                                      <span className="text-xs text-gray-400 ml-1">Processed</span>
+                                    )}
+                                  </div>
+                                );
+                              })()}
                             </td>
                           </tr>
                         ))
@@ -964,6 +1037,152 @@ export default function LeaveManagement() {
         </div>
       )}
 
+      {/* View Leave Modal */}
+      {showViewModal && selectedViewLeave && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+          <div className="absolute inset-0 bg-gray-900/40 backdrop-blur-sm" onClick={() => setShowViewModal(false)}></div>
+          <div className="relative w-full max-w-lg bg-white rounded-3xl shadow-2xl flex flex-col max-h-[90vh] animate-slide-in-right overflow-hidden">
+            <div className="px-6 py-5 border-b border-gray-100 flex justify-between items-center bg-gray-50/80">
+              <h2 className="text-xl font-bold text-gray-800">Leave Request Details</h2>
+              <button onClick={() => setShowViewModal(false)} className="p-2 text-gray-400 hover:bg-gray-100 rounded-full transition-colors">
+                <X size={20} />
+              </button>
+            </div>
+            
+            <div className="p-6 overflow-y-auto space-y-6">
+              <div className="flex items-center gap-4 border-b border-gray-100 pb-4">
+                <div className="w-12 h-12 rounded-full bg-blue-100 flex items-center justify-center text-blue-700 font-bold text-lg">
+                  {selectedViewLeave.employeeName ? selectedViewLeave.employeeName.charAt(0).toUpperCase() : 'E'}
+                </div>
+                <div>
+                  <h3 className="text-lg font-bold text-gray-900">{selectedViewLeave.employeeName}</h3>
+                  <p className="text-sm text-gray-500 font-mono">{selectedViewLeave.userId}</p>
+                </div>
+              </div>
+
+              {/* Mini Dashboard */}
+              <div>
+                <h4 className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">Employee Leave Dashboard</h4>
+                {loadingBalances ? (
+                  <div className="flex justify-center p-4">
+                    <Activity className="animate-spin w-5 h-5 text-blue-500" />
+                  </div>
+                ) : selectedEmployeeBalances ? (
+                  <div className="space-y-4">
+                    <div>
+                      <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-1.5">This Year</p>
+                      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                        <div className="bg-blue-50 p-3 rounded-xl border border-blue-100">
+                          <p className="text-[10px] font-semibold text-blue-600 uppercase">Available</p>
+                          <p className="text-xl font-bold text-blue-900">{selectedEmployeeBalances.annualBalance}</p>
+                        </div>
+                        <div className="bg-emerald-50 p-3 rounded-xl border border-emerald-100">
+                          <p className="text-[10px] font-semibold text-emerald-600 uppercase">Used AL</p>
+                          <p className="text-xl font-bold text-emerald-900">{selectedEmployeeBalances.annualUsed}</p>
+                        </div>
+                        <div className="bg-purple-50 p-3 rounded-xl border border-purple-100">
+                          <p className="text-[10px] font-semibold text-purple-600 uppercase">WFH Used</p>
+                          <p className="text-xl font-bold text-purple-900">{selectedEmployeeBalances.wfhUsed}</p>
+                        </div>
+                        <div className="bg-red-50 p-3 rounded-xl border border-red-100">
+                          <p className="text-[10px] font-semibold text-red-600 uppercase">LOP Days</p>
+                          <p className="text-xl font-bold text-red-900">{selectedEmployeeBalances.lopUsed}</p>
+                        </div>
+                      </div>
+                    </div>
+                    
+                    <div>
+                      <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-1.5">This Month</p>
+                      <div className="grid grid-cols-3 gap-3">
+                        <div className="bg-emerald-50/50 p-2.5 rounded-xl border border-emerald-100">
+                          <p className="text-[10px] font-semibold text-emerald-600 uppercase">Leave Taken</p>
+                          <p className="text-lg font-bold text-emerald-900">{selectedEmployeeBalances.monthlyAL}</p>
+                        </div>
+                        <div className="bg-purple-50/50 p-2.5 rounded-xl border border-purple-100">
+                          <p className="text-[10px] font-semibold text-purple-600 uppercase">WFH Taken</p>
+                          <p className="text-lg font-bold text-purple-900">{selectedEmployeeBalances.monthlyWFH}</p>
+                        </div>
+                        <div className="bg-red-50/50 p-2.5 rounded-xl border border-red-100">
+                          <p className="text-[10px] font-semibold text-red-600 uppercase">LOP Taken</p>
+                          <p className="text-lg font-bold text-red-900">{selectedEmployeeBalances.monthlyLOP}</p>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                ) : (
+                  <p className="text-xs text-gray-400 italic">Failed to load balances</p>
+                )}
+              </div>
+              
+              <div className="grid grid-cols-2 gap-4 border-t border-gray-100 pt-4">
+                <div>
+                  <p className="text-xs text-gray-500 font-medium">Leave Type</p>
+                  <p className="text-sm font-semibold text-gray-900 mt-1">{selectedViewLeave.leaveType}</p>
+                </div>
+                <div>
+                  <p className="text-xs text-gray-500 font-medium">Total Days</p>
+                  <p className="text-sm font-semibold text-gray-900 mt-1">{selectedViewLeave.totalDays} Days</p>
+                </div>
+                <div>
+                  <p className="text-xs text-gray-500 font-medium">Dates</p>
+                  <p className="text-sm font-semibold text-gray-900 mt-1">
+                    {new Date(selectedViewLeave.startDate).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })} 
+                    <span className="text-gray-400 mx-1">to</span> 
+                    {new Date(selectedViewLeave.endDate).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })}
+                  </p>
+                </div>
+                <div>
+                  <p className="text-xs text-gray-500 font-medium">Loss Of Pay (LOP)</p>
+                  <p className="text-sm font-semibold text-red-600 mt-1">{selectedViewLeave.isLOP ? `${selectedViewLeave.lopDays || 0} Days` : 'None'}</p>
+                </div>
+              </div>
+
+              <div>
+                <p className="text-xs text-gray-500 font-medium mb-1.5">Reason</p>
+                <div className="p-4 bg-gray-50 rounded-xl border border-gray-100">
+                  <p className="text-sm text-gray-800 font-medium">{selectedViewLeave.reason}</p>
+                  {selectedViewLeave.customReason && (
+                    <p className="text-sm text-gray-600 mt-2 italic">{selectedViewLeave.customReason}</p>
+                  )}
+                </div>
+              </div>
+              
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <p className="text-xs text-gray-500 font-medium mb-1">Supervisor Status</p>
+                  <StatusBadge status={selectedViewLeave.supervisorStatus} />
+                </div>
+                <div>
+                  <p className="text-xs text-gray-500 font-medium mb-1">HR Status</p>
+                  <StatusBadge status={selectedViewLeave.hrStatus} />
+                </div>
+              </div>
+            </div>
+
+            <div className="p-6 border-t border-gray-100 bg-gray-50 flex gap-3 justify-end">
+              {(() => {
+                const storedUser = JSON.parse(localStorage.getItem('user') || '{}');
+                const role = storedUser?.role;
+                const isPendingForMe = role === 'HR' 
+                  ? (selectedViewLeave.hrStatus === 'Pending' || !selectedViewLeave.hrStatus)
+                  : (selectedViewLeave.supervisorStatus === 'Pending' || !selectedViewLeave.supervisorStatus);
+                  
+                if (isPendingForMe) {
+                  return (
+                    <>
+                      <Button variant="ghost" onClick={() => setShowViewModal(false)} className="mr-auto">Close</Button>
+                      <button onClick={() => { handleUpdateLeaveStatus(selectedViewLeave.id, 'Rejected'); setShowViewModal(false); }} className="px-5 py-2.5 bg-rose-100 text-rose-700 hover:bg-rose-200 rounded-xl text-sm font-bold transition-colors">Reject</button>
+                      <button onClick={() => { handleUpdateLeaveStatus(selectedViewLeave.id, 'Approved'); setShowViewModal(false); }} className="px-5 py-2.5 bg-emerald-600 text-white hover:bg-emerald-700 rounded-xl text-sm font-bold shadow-sm transition-colors">Approve</button>
+                    </>
+                  );
+                }
+                return <Button variant="secondary" onClick={() => setShowViewModal(false)}>Close</Button>;
+              })()}
+            </div>
+          </div>
+        </div>
+      )}
+
       <style>{`
         .animate-slide-in-right {
           animation: slideInRight 0.3s ease-out forwards;
@@ -973,6 +1192,7 @@ export default function LeaveManagement() {
           to { transform: translateX(0); }
         }
       `}</style>
-    </div>
+      </DashboardContainer>
+    </DashboardLayout>
   );
 }

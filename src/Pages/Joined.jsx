@@ -60,6 +60,7 @@ const Joined = () => {
   const [filteredCandidates, setFilteredCandidates] = useState([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
+  const [statusFilter, setStatusFilter] = useState("Joined");
   const [selectedCandidate, setSelectedCandidate] = useState(null);
   const [showDetailsModal, setShowDetailsModal] = useState(false);
   const [showResumeModal, setShowResumeModal] = useState(false);
@@ -192,13 +193,13 @@ const Joined = () => {
   };
 
   // Only change the fetchJoinedCandidates function
-const fetchJoinedCandidates = async () => {
+const fetchJoinedCandidates = async (status = statusFilter) => {
   try {
     setLoading(true);
     setError(null);
 
-    // Single API call to get all joined candidates directly
-    const response = await axios.get("http://localhost:5000/api/candidates/joined/all");
+    const url = `http://localhost:5000/api/candidates/by-status?status=${encodeURIComponent(status)}`;
+    const response = await axios.get(url);
     
     if (response.data.success) {
       const joined = response.data.data.map(candidate => ({
@@ -238,8 +239,8 @@ const fetchJoinedCandidates = async () => {
 };
 
   useEffect(() => {
-    fetchJoinedCandidates();
-  }, []);
+    fetchJoinedCandidates(statusFilter);
+  }, [statusFilter]);
 
   // Filter candidates by search term
   useEffect(() => {
@@ -306,7 +307,8 @@ const fetchJoinedCandidates = async () => {
     try {
       setLoading(true);
 
-      const response = await axios.get('http://localhost:5000/api/candidates/joined/all');
+      const url = `http://localhost:5000/api/candidates/by-status?status=${encodeURIComponent(statusFilter)}`;
+      const response = await axios.get(url);
 
       if (!response.data.success) {
         alert("Failed to fetch candidates");
@@ -366,7 +368,8 @@ const fetchJoinedCandidates = async () => {
           'Visa type': candidate.visaType || 'NA',
           'Visa Validity Date': candidate.visaValidityDate || '',
           'Key Skills': skillsString,
-          'Joined At': formatDate(candidate.joinedAt),
+          'Status': statusFilter,
+          [`${statusFilter} At`]: formatDate(candidate.joinedAt),
           'createdAt': formatDate(candidate.createdAt),
           'updatedAt': formatDate(candidate.updatedAt)
         };
@@ -380,15 +383,15 @@ const fetchJoinedCandidates = async () => {
         { wch: 15 }, { wch: 15 }, { wch: 15 }, { wch: 20 },
         { wch: 20 }, { wch: 15 }, { wch: 20 }, { wch: 15 },
         { wch: 15 }, { wch: 40 }, { wch: 15 }, { wch: 15 },
-        { wch: 15 }
+        { wch: 15 }, { wch: 20 }
       ];
 
       const workbook = XLSX.utils.book_new();
-      XLSX.utils.book_append_sheet(workbook, worksheet, "Joined Candidates");
-      const filename = `Joined_Candidates_${new Date().toISOString().slice(0, 10)}.xlsx`;
+      XLSX.utils.book_append_sheet(workbook, worksheet, `${statusFilter} Candidates`);
+      const filename = `${statusFilter.replace(/\s+/g, '_')}_Candidates_${new Date().toISOString().slice(0, 10)}.xlsx`;
       XLSX.writeFile(workbook, filename);
       
-      setSuccessMessage(`✅ Exported ${allJoinedCandidates.length} joined candidates to Excel`);
+      setSuccessMessage(`✅ Exported ${allJoinedCandidates.length} ${statusFilter.toLowerCase()} candidates to Excel`);
       setTimeout(() => setSuccessMessage(""), 3000);
 
     } catch (err) {
@@ -415,7 +418,7 @@ const fetchJoinedCandidates = async () => {
         <div className="min-h-screen bg-white/50 backdrop-blur-sm flex items-center justify-center">
           <div className="text-center">
             <Loader className="w-12 h-12 animate-spin text-blue-600 mx-auto mb-4" />
-            <p className="text-gray-600">Loading joined candidates...</p>
+            <p className="text-gray-600">Loading {statusFilter.toLowerCase()} candidates...</p>
           </div>
         </div>
       </div>
@@ -432,7 +435,7 @@ const fetchJoinedCandidates = async () => {
             <p className="text-gray-600">{error}</p>
             <button
               onClick={() => window.location.reload()}
-              className="mt-4 px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+              className="mt-4 px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 cursor-pointer"
             >
               Retry
             </button>
@@ -453,16 +456,26 @@ const fetchJoinedCandidates = async () => {
             <div>
               <h2 className="text-3xl font-bold flex items-center gap-2">
                 <CheckCircle className="text-green-600" size={28} />
-                Joined Candidates
+                {statusFilter} Candidates
               </h2>
               <p className="text-gray-500">
-                {filteredCandidates.length} candidates successfully hired
+                {filteredCandidates.length} candidates with {statusFilter} status
               </p>
             </div>
             <div className="flex gap-3 items-center">
+              <select
+                value={statusFilter}
+                onChange={(e) => setStatusFilter(e.target.value)}
+                className="px-4 py-2 border-2 border-blue-500 rounded-xl focus:border-blue-600 focus:ring-2 focus:ring-blue-200 outline-none bg-white font-medium text-gray-700 cursor-pointer"
+              >
+                <option value="Joined">Joined</option>
+                <option value="Pending Offer">Pending Offer</option>
+                <option value="Pending Joinee">Pending Joinee</option>
+                <option value="Offer Decline">Offer Decline</option>
+              </select>
               <button
                 onClick={exportToExcel}
-                className="flex items-center gap-2 px-6 py-2 bg-green-600 text-white rounded-xl shadow hover:bg-green-700 transition"
+                className="flex items-center gap-2 px-6 py-2 bg-green-600 text-white rounded-xl shadow hover:bg-green-700 transition cursor-pointer"
               >
                 <Download size={18} />
                 Export
@@ -485,12 +498,12 @@ const fetchJoinedCandidates = async () => {
           <div className="bg-white rounded-2xl shadow-xl p-4 mb-4">
             <div className="flex justify-between items-center">
               <div>
-                <h3 className="text-lg font-semibold">Joined Candidates</h3>
+                <h3 className="text-lg font-semibold">{statusFilter} Candidates</h3>
                 <p className="text-sm text-gray-500">
                   {filteredCandidates.length > 0 ? (
-                    `Showing ${indexOfFirstItem + 1} to ${Math.min(indexOfLastItem, filteredCandidates.length)} of ${filteredCandidates.length} joined candidates`
+                    `Showing ${indexOfFirstItem + 1} to ${Math.min(indexOfLastItem, filteredCandidates.length)} of ${filteredCandidates.length} ${statusFilter.toLowerCase()} candidates`
                   ) : (
-                    "No joined candidates found"
+                    `No ${statusFilter.toLowerCase()} candidates found`
                   )}
                   {searchTerm && ` (filtered by "${searchTerm}")`}
                 </p>
@@ -504,10 +517,10 @@ const fetchJoinedCandidates = async () => {
               <div className="text-center py-12">
                 <Users className="w-12 h-12 text-gray-400 mx-auto mb-4" />
                 <h3 className="text-lg font-semibold text-gray-700 mb-2">
-                  No joined candidates found
+                  No {statusFilter.toLowerCase()} candidates found
                 </h3>
                 <p className="text-gray-500">
-                  {searchTerm ? "Try a different search term." : "Candidates marked as 'Joined' will appear here."}
+                  {searchTerm ? "Try a different search term." : `Candidates marked as '${statusFilter}' will appear here.`}
                 </p>
               </div>
             ) : (
@@ -522,8 +535,8 @@ const fetchJoinedCandidates = async () => {
                       {/* Candidate Header */}
                       <div className="flex justify-between items-start mb-3">
                         <div className="flex-1 min-w-0">
-                          <h4 className="font-bold text-lg truncate hover:text-blue-600">{candidate.name}</h4>
-                          <p className="text-gray-600 text-sm truncate">{candidate.currentOrg}</p>
+                          <h4 className="font-bold text-lg truncate hover:text-blue-600">{candidate.name?.replace(/[^\x20-\x7E]/g, ' ')}</h4>
+                          <p className="text-gray-600 text-sm truncate">{candidate.currentOrg?.replace(/[^\x20-\x7E]/g, ' ')}</p>
                         </div>
 
                         {/* Visa Type Badge */}
@@ -537,10 +550,16 @@ const fetchJoinedCandidates = async () => {
                           </span>
                         )}
 
-                        {/* Joined Badge */}
-                        <span className="ml-2 px-2 py-1 bg-green-100 text-green-800 rounded-full text-xs font-medium flex items-center gap-1">
-                          <CheckCircle size={12} />
-                          Joined
+                        {/* Status Badge */}
+                        <span className={`ml-2 px-2 py-1 rounded-full text-xs font-medium flex items-center gap-1 ${
+                          statusFilter === 'Joined' ? 'bg-green-100 text-green-800' :
+                          statusFilter === 'Offer Decline' ? 'bg-red-100 text-red-800' :
+                          'bg-yellow-100 text-yellow-800'
+                        }`}>
+                          {statusFilter === 'Joined' ? <CheckCircle size={12} /> : 
+                           statusFilter === 'Offer Decline' ? <XCircle size={12} /> : 
+                           <Clock size={12} />}
+                          {statusFilter}
                         </span>
                       </div>
 
@@ -548,7 +567,7 @@ const fetchJoinedCandidates = async () => {
                       <div className="space-y-2 mb-4">
                         <div className="flex items-center gap-2 text-sm">
                           <Phone size={14} className="text-gray-500 flex-shrink-0" />
-                          <span>{candidate.mobile}</span>
+                          <span>{candidate.mobile?.replace(/[^0-9+\s-]/g, '')}</span>
                         </div>
                         <div className="flex items-center gap-2 text-sm">
                           <Briefcase size={14} className="text-gray-500 flex-shrink-0" />
@@ -556,7 +575,7 @@ const fetchJoinedCandidates = async () => {
                         </div>
                         <div className="flex items-center gap-2 text-sm">
                           <Building2 size={14} className="text-gray-500 flex-shrink-0" />
-                          <span>Client: {candidate.clientName || "N/A"}</span>
+                          <span>Client: {candidate.clientName ? candidate.clientName.replace(/[^\x20-\x7E]/g, ' ') : "N/A"}</span>
                         </div>
                         <div className="flex items-center gap-2 text-sm">
                           <Award size={14} className="text-gray-500 flex-shrink-0" />
@@ -589,7 +608,7 @@ const fetchJoinedCandidates = async () => {
                       <div className="flex gap-2">
                         <button
                           onClick={(e) => handleSendEmail(candidate.email, e)}
-                          className="flex-1 px-3 py-2 bg-blue-100 hover:bg-blue-200 text-blue-700 rounded-lg text-sm font-medium flex items-center justify-center gap-1"
+                          className="flex-1 px-3 py-2 bg-blue-100 hover:bg-blue-200 text-blue-700 rounded-lg text-sm font-medium flex items-center justify-center gap-1 cursor-pointer"
                           title="Send Email"
                         >
                           <Mail size={14} />
@@ -597,7 +616,7 @@ const fetchJoinedCandidates = async () => {
                         </button>
                         <button
                           onClick={(e) => handleSendWhatsApp(candidate.mobile, e)}
-                          className="flex-1 px-3 py-2 bg-green-100 hover:bg-green-200 text-green-700 rounded-lg text-sm font-medium flex items-center justify-center gap-1"
+                          className="flex-1 px-3 py-2 bg-green-100 hover:bg-green-200 text-green-700 rounded-lg text-sm font-medium flex items-center justify-center gap-1 cursor-pointer"
                           title="Send WhatsApp"
                         >
                           <MessageCircle size={14} />
@@ -605,7 +624,7 @@ const fetchJoinedCandidates = async () => {
                         </button>
                         <button
                           onClick={(e) => handleViewResume(candidate, e)}
-                          className={`flex-1 px-3 py-2 rounded-lg text-sm font-medium flex items-center justify-center gap-1 ${
+                          className={`flex-1 px-3 py-2 rounded-lg text-sm font-medium flex items-center justify-center gap-1 cursor-pointer ${
                             candidate.resumePath || candidate.googleDriveViewLink
                               ? 'bg-purple-100 text-purple-700 hover:bg-purple-200'
                               : 'bg-gray-100 text-gray-400 cursor-not-allowed'
@@ -631,7 +650,7 @@ const fetchJoinedCandidates = async () => {
                       <button
                         onClick={goToPreviousPage}
                         disabled={currentPage === 1}
-                        className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+                        className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2 cursor-pointer"
                       >
                         <ChevronLeft size={18} />
                         Previous
@@ -639,7 +658,7 @@ const fetchJoinedCandidates = async () => {
                       <button
                         onClick={goToNextPage}
                         disabled={currentPage === totalPages}
-                        className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+                        className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2 cursor-pointer"
                       >
                         Next
                         <ChevronRight size={18} />
@@ -664,7 +683,7 @@ const fetchJoinedCandidates = async () => {
                   </div>
                   <button
                     onClick={() => setShowDetailsModal(false)}
-                    className="text-gray-500 hover:text-gray-700 p-2 hover:bg-gray-100 rounded-full transition"
+                    className="text-gray-500 hover:text-gray-700 p-2 hover:bg-gray-100 rounded-full transition cursor-pointer"
                   >
                     <X size={24} />
                   </button>
@@ -799,7 +818,7 @@ const fetchJoinedCandidates = async () => {
                     <div className="flex justify-end">
                       <button
                         onClick={() => handleViewResume(selectedCandidate, { stopPropagation: () => {} })}
-                        className="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition flex items-center gap-2"
+                        className="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition flex items-center gap-2 cursor-pointer"
                       >
                         <FileText size={16} />
                         View Resume
@@ -823,7 +842,7 @@ const fetchJoinedCandidates = async () => {
                     setShowResumeModal(false);
                     setSelectedResumeUrl(null);
                   }}
-                  className="text-gray-500 hover:text-gray-700 p-2 hover:bg-gray-100 rounded-full transition"
+                  className="text-gray-500 hover:text-gray-700 p-2 hover:bg-gray-100 rounded-full transition cursor-pointer"
                 >
                   <X size={24} />
                 </button>

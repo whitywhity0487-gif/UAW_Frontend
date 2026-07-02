@@ -1,11 +1,12 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import axios from 'axios';
+import DashboardLayout, { DashboardContainer } from '../../components/dashboard/DashboardLayout';
+import DashboardHeader from '../../components/dashboard/DashboardHeader';
 import {
   Cake, Gift, Calendar, UserCircle, Loader2, AlertCircle,
   Clock, Users, Mail, X, Send, ChevronDown, CheckSquare,
   Square, Check, AlertTriangle
 } from 'lucide-react';
-import Navbar from '../../components/Header';
 
 // ─── Birthday Templates ─────────────────────────────────────────────────────
 const TEMPLATES = {
@@ -412,7 +413,6 @@ const Birthdaywishes = () => {
   if (loading) {
     return (
       <div className="flex flex-col h-screen bg-[#f4f6f9]">
-        <Navbar />
         <div className="flex-1 flex justify-center items-center">
           <div className="flex flex-col items-center gap-3">
             <Loader2 className="w-9 h-9 animate-spin text-blue-600" />
@@ -426,7 +426,6 @@ const Birthdaywishes = () => {
   if (error) {
     return (
       <div className="flex flex-col h-screen bg-[#f4f6f9]">
-        <Navbar />
         <div className="flex-1 flex justify-center items-center">
           <div className="bg-white text-red-600 p-5 rounded-xl shadow-sm border border-red-100 flex items-center gap-3 max-w-md">
             <AlertCircle className="w-5 h-5 flex-shrink-0" />
@@ -438,8 +437,7 @@ const Birthdaywishes = () => {
   }
 
   return (
-    <div className="min-h-screen bg-[#f4f6f9] flex flex-col">
-      <Navbar />
+    <DashboardLayout>
 
       {/* Send Wishes Modal */}
       {wishModal && (
@@ -450,20 +448,12 @@ const Birthdaywishes = () => {
         />
       )}
 
-      <div className="flex-1 max-w-[1400px] w-full mx-auto px-4 sm:px-6 lg:px-8 py-6">
-
-        {/* ── Page Header ── */}
-        <div className="mb-8">
-          <div className="flex items-center gap-3 mb-1">
-            <div className="w-10 h-10 rounded-xl bg-blue-600 flex items-center justify-center shadow-sm">
-              <Cake className="w-5 h-5 text-white" />
-            </div>
-            <div>
-              <h1 className="text-2xl font-bold text-slate-800 leading-tight">Birthday Wishes</h1>
-              <p className="text-sm text-slate-500 mt-0.5">Celebrate your team members' special days</p>
-            </div>
-          </div>
-        </div>
+      <DashboardHeader
+        title="Birthday Wishes"
+        subtitle="Celebrate your team members' special days"
+      />
+      
+      <DashboardContainer>
 
         {/* ── Stats Row ── */}
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-8">
@@ -680,8 +670,8 @@ const Birthdaywishes = () => {
           </section>
 
         </div>
-      </div>
-    </div>
+      </DashboardContainer>
+    </DashboardLayout>
   );
 };
 

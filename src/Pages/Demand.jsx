@@ -1076,7 +1076,7 @@ try {
                 {userRole === "Admin" && (
                   <button
                     onClick={handleAddButtonClick}
-                    className="px-6 py-2 bg-blue-600 text-white rounded-xl shadow hover:bg-blue-700 transition"
+                    className="px-6 py-2 bg-blue-600 text-white rounded-xl shadow hover:bg-blue-700 transition cursor-pointer"
                   >
                     ADD
                   </button>
@@ -1086,7 +1086,7 @@ try {
                 {userRole === "Admin" && (
                   <button
                     onClick={handleExport}
-                    className="px-6 py-2 bg-green-600 text-white rounded-xl shadow hover:bg-green-700 transition"
+                    className="px-6 py-2 bg-green-600 text-white rounded-xl shadow hover:bg-green-700 transition cursor-pointer"
                   >
                     Export
                   </button>
@@ -1202,7 +1202,7 @@ try {
                     disabled={currentPage === 1}
                     className={`px-4 py-2 rounded-lg transition-colors ${currentPage === 1
                       ? "bg-gray-100 text-gray-400 cursor-not-allowed"
-                      : "bg-blue-500 text-white hover:bg-blue-600"
+                      : "bg-blue-500 text-white hover:bg-blue-600 cursor-pointer"
                       }`}
                   >
                     Previous
@@ -1223,8 +1223,8 @@ try {
                             key={pageNumber}
                             onClick={() => paginate(pageNumber)}
                             className={`w-10 h-10 rounded-lg transition-colors ${currentPage === pageNumber
-                              ? "bg-blue-600 text-white"
-                              : "bg-gray-100 text-gray-700 hover:bg-gray-200"
+                              ? "bg-blue-600 text-white cursor-pointer"
+                              : "bg-gray-100 text-gray-700 hover:bg-gray-200 cursor-pointer"
                               }`}
                           >
                             {pageNumber}
@@ -1244,7 +1244,7 @@ try {
                     disabled={currentPage === totalPages}
                     className={`px-4 py-2 rounded-lg transition-colors ${currentPage === totalPages
                       ? "bg-gray-100 text-gray-400 cursor-not-allowed"
-                      : "bg-blue-500 text-white hover:bg-blue-600"
+                      : "bg-blue-500 text-white hover:bg-blue-600 cursor-pointer"
                       }`}
                   >
                     Next
@@ -1323,7 +1323,7 @@ try {
                         {userRole === "Admin" && (
                           <button
                             onClick={() => handleEditDemand(selectedDemand)}
-                            className="flex items-center gap-2 px-4 py-2 bg-yellow-500 text-white rounded-lg hover:bg-yellow-600 transition-colors"
+                            className="flex items-center gap-2 px-4 py-2 bg-yellow-500 text-white rounded-lg hover:bg-yellow-600 transition-colors cursor-pointer"
                             title="Edit"
                           >
                             <Pencil size={18} />
@@ -1335,7 +1335,7 @@ try {
                         {userRole === "Admin" && (
                           <button
                             onClick={() => handleDeleteDemand(selectedDemand.id)}
-                            className="flex items-center gap-2 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors"
+                            className="flex items-center gap-2 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors cursor-pointer"
                             title="Delete"
                           >
                             <Trash2 size={18} />
@@ -1344,7 +1344,7 @@ try {
                         )}
                         <button
                           onClick={() => setSelectedDemand(null)}
-                          className="flex items-center gap-2 px-4 py-2 bg-gray-500 text-white rounded-lg hover:bg-gray-600 transition-colors"
+                          className="flex items-center gap-2 px-4 py-2 bg-gray-500 text-white rounded-lg hover:bg-gray-600 transition-colors cursor-pointer"
                           title="Close"
                         >
                           <X size={18} />
@@ -1683,7 +1683,7 @@ try {
                         {(userRole === "Admin" || userRole === "Recruiter") && (
                           <button
                             onClick={() => handleViewCandidates(formDemand)}
-                            className="flex items-center gap-2 px-8 py-3 bg-blue-600 text-white rounded-full hover:bg-blue-700 shadow-lg"
+                            className="flex items-center gap-2 px-8 py-3 bg-blue-600 text-white rounded-full hover:bg-blue-700 shadow-lg cursor-pointer"
                           >
                             <Search size={18} /> View Candidates
                           </button>
@@ -1692,7 +1692,7 @@ try {
                         {/* View Selected button - Admin, Interviewer, and Recruiter */}
                         <button
                           onClick={() => handleViewSelectedCandidates(formDemand)}
-                          className="flex items-center gap-2 px-8 py-3 bg-green-600 text-white rounded-full hover:bg-green-700 shadow-lg"
+                          className="flex items-center gap-2 px-8 py-3 bg-green-600 text-white rounded-full hover:bg-green-700 shadow-lg cursor-pointer"
                         >
                           <Users size={18} /> View Selected ({selectedCandidates[formDemand.id]?.length || 0})
                         </button>

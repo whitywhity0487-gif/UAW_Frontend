@@ -47,9 +47,10 @@ const Home = () => {
   const [toasts, setToasts] = useState([]);
   const [seenNotificationIds, setSeenNotificationIds] = useState(new Set());
 
-  // Check if user is Admin or Recruiter
-  const isAdmin = currentUser?.role === 'Admin' || JSON.parse(localStorage.getItem("user") || "{}").role === 'Admin';
-  const isRecruiter = currentUser?.role === 'Recruiter' || JSON.parse(localStorage.getItem("user") || "{}").role === 'Recruiter';
+  // Check user roles
+  const currentUserRole = currentUser?.role || JSON.parse(localStorage.getItem("user") || "{}")?.role;
+  const isAdmin = currentUserRole === 'Admin';
+  const isRecruiter = currentUserRole === 'Recruiter';
   const isAdminOrRecruiter = isAdmin || isRecruiter;
 
   // Location configuration based on user role
@@ -85,14 +86,14 @@ const Home = () => {
         const res = await axios.get(`http://localhost:5000/api/notifications/user/${username}`);
         if (res.data.success) {
           const newNotifs = res.data.data;
-          
+
           // Load previously shown toast IDs from sessionStorage
           const storedShownIds = JSON.parse(sessionStorage.getItem(`shownToasts_${username}`) || "[]");
           const shownIdsSet = new Set(storedShownIds);
-          
+
           const added = newNotifs.filter(n => !shownIdsSet.has(n.id) && !n.isRead);
-          
-          if (added.length > 0) { 
+
+          if (added.length > 0) {
             // Mark these as shown
             added.forEach(n => shownIdsSet.add(n.id));
             sessionStorage.setItem(`shownToasts_${username}`, JSON.stringify(Array.from(shownIdsSet)));
@@ -290,12 +291,13 @@ const Home = () => {
     }
   };
 
-  const isEmployee = currentUser?.role === 'Employee';
+  const isEmployee = ['Employee', 'HR'].includes(currentUserRole);
   const showPolicies = isAdmin || (isEmployee && profileStatus === 'APPROVED');
+  const activeLocation = locations.find(loc => loc.active)?.name;
+  const isIndia = activeLocation === "India";
 
   const allCards = [
     { icon: <User />, title: "My Personal Details", requiresProfile: false, alwaysAllow: true, badge: isAdmin ? pendingCount : 0 },
-    { icon: <ClipboardList />, title: "Code of Conduct", requiresProfile: true },
     { icon: <Calendar />, title: "Holiday Calendar", requiresProfile: true },
     { icon: <Shield />, title: "Insurance", requiresProfile: true },
     { icon: <CalendarClock />, title: "Leave Application", requiresProfile: true },
@@ -308,6 +310,7 @@ const Home = () => {
     { icon: <Users />, title: "Recruitment", requiresProfile: true },
     { icon: <Receipt />, title: "Reimbursements", requiresProfile: true },
     { icon: <DollarSign />, title: "Salary Advance", requiresProfile: true },
+    { icon: <ClipboardList />, title: "Time Sheet", requiresProfile: true },
     { icon: <BookOpen />, title: "Training", requiresProfile: true },
     { icon: <Plane />, title: "Travel", requiresProfile: true },
     { icon: <Award />, title: "UANDWE Awards", requiresProfile: true },
@@ -327,7 +330,7 @@ const Home = () => {
     const userRole = user?.role;
 
     // Check if Recruitment is disabled for Employee
-    const isRecruitmentDisabled = title === "Recruitment" && userRole === "Employee";
+    const isRecruitmentDisabled = title === "Recruitment" && ['Employee', 'HR'].includes(userRole);
     if (isRecruitmentDisabled) {
       return; // Completely disable interaction
     }
@@ -457,6 +460,20 @@ const Home = () => {
         navigate("/admin/payroll");
       } else {
         navigate("/payroll");
+      }
+    }
+    else if (title === "My Client") {
+      if (userRole === "Admin") {
+        navigate("/admin/myclient");
+      } else {
+        navigate("/myclient");
+      }
+    }
+    else if (title === "Time Sheet") {
+      if (userRole === "Admin") {
+        navigate("/admintimesheet");
+      } else {
+        navigate("/timesheet");
       }
     }
     else {
@@ -696,6 +713,7 @@ const Home = () => {
                 badge={card.badge}
                 isAdmin={isAdmin}
                 isRecruiter={isRecruiter}
+                isEmployee={isEmployee}
                 isPolicies={card.isPoliciesCard}
               />
             ))}
@@ -786,9 +804,9 @@ const Home = () => {
   );
 };
 
-const ProfessionalCard = ({ icon, title, index, onClick, isLocked, profileStatus, badge, isAdmin, isRecruiter, isPolicies }) => {
+const ProfessionalCard = ({ icon, title, index, onClick, isLocked, profileStatus, badge, isAdmin, isRecruiter, isEmployee, isPolicies }) => {
   const isRecruitment = title === "Recruitment";
-  const isRecruitmentDisabled = isRecruitment && !isAdmin && !isRecruiter && (profileStatus === "PENDING" || profileStatus === "APPROVED");
+  const isRecruitmentDisabled = isRecruitment && isEmployee;
 
   return (
     <div

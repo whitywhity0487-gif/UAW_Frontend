@@ -2,8 +2,10 @@
 import React, { useState, useEffect } from "react";
 import axios from "axios";
 import { useNavigate } from "react-router-dom";
-import { ChevronLeft, Plus, X } from 'lucide-react';
+import { Plus, X } from 'lucide-react';
 import Button from "../../components/Button";
+import DashboardLayout, { DashboardContainer } from '../../components/dashboard/DashboardLayout';
+import DashboardHeader from "../../components/dashboard/DashboardHeader";
 
 const API_BASE_URL = "http://localhost:5000/api/employeeassets";
 
@@ -35,6 +37,7 @@ const MyAssets = () => {
   const [submitting, setSubmitting] = useState(false);
   const [employeeName, setEmployeeName] = useState("");
   const [employeeNumber, setEmployeeNumber] = useState("");
+  const [userId, setUserId] = useState("");
   const [nextId, setNextId] = useState(2);
   const [showSuccess, setShowSuccess] = useState(false);
 
@@ -48,6 +51,7 @@ const MyAssets = () => {
         const user = JSON.parse(storedUser);
         const identifier = user.userId || user.username || user.id;
         if (identifier) {
+          setUserId(identifier);
           fetchPersonalDetailsAndAssets(identifier);
         }
       } catch (err) {
@@ -229,38 +233,18 @@ const fetchPersonalDetailsAndAssets = async (username) => {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 font-['DM_Sans','Inter',sans-serif]">
-      {/* Header */}
-      <div className="bg-white border-b border-gray-200 sticky top-0 z-30">
-        <div className="flex items-center justify-between px-6 py-4">
-          <div className="flex items-center gap-4">
-            <Button
-              variant="secondary"
-              size="sm"
-              icon={ChevronLeft}
-              onClick={() => navigate('/home')}
-            >
-              Back to Home
-            </Button>
-            <div className="flex items-center gap-2">
-              <div className="w-8 h-8 bg-gradient-to-r from-green-500 to-emerald-600 rounded-lg flex items-center justify-center">
-                <svg className="w-4 h-4 text-white" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
-                  <rect x="4" y="4" width="16" height="16" rx="2" ry="2" />
-                  <line x1="9" y1="9" x2="15" y2="15" />
-                  <line x1="15" y1="9" x2="9" y2="15" />
-                </svg>
-              </div>
-              <h1 className="text-xl font-bold text-gray-800">My Assets</h1>
-            </div>
+    <DashboardLayout>
+      <DashboardHeader 
+        title="My Assets"
+        actions={
+          <div className="text-sm text-white/90 font-medium">
+            Welcome, <span className="font-bold text-white">{userId}</span>
           </div>
-          <div className="text-sm text-gray-500">
-            Welcome, <span className="font-semibold text-gray-700">{employeeName}</span>
-          </div>
-        </div>
-      </div>
+        }
+      />
 
-      {/* Main Content */}
-      <div className="max-w-4xl mx-auto px-6 py-8">
+      <DashboardContainer>
+        <div className="max-w-4xl mx-auto">
         {/* Success Message */}
         {showSuccess && (
           <div className="mb-6 p-4 bg-green-50 border border-green-200 rounded-xl animate-slideInDown">
@@ -328,11 +312,11 @@ const fetchPersonalDetailsAndAssets = async (username) => {
                           <select
                             value={asset.asset_name}
                             onChange={(e) => updateAsset(asset.id, "asset_name", e.target.value)}
-                            className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
+                            className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500 cursor-pointer"
                           >
-                            <option value="">Select Asset</option>
+                            <option value="" className="cursor-pointer">Select Asset</option>
                             {assetOptions.map(opt => (
-                              <option key={opt.value} value={opt.value}>{opt.label}</option>
+                              <option key={opt.value} value={opt.value} className="cursor-pointer">{opt.label}</option>
                             ))}
                           </select>
                           {asset.asset_name === "Other" && (
@@ -470,7 +454,8 @@ const fetchPersonalDetailsAndAssets = async (username) => {
           }
         `}
       </style>
-    </div>
+      </DashboardContainer>
+    </DashboardLayout>
   );
 };
 

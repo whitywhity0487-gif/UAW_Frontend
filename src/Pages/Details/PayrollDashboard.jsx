@@ -2,6 +2,8 @@ import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
 import { DollarSign, Calendar, FileText, Download, AlertCircle, Info, ChevronLeft } from 'lucide-react';
+import DashboardLayout,{DashboardContainer} from '../../components/dashboard/DashboardLayout';
+import DashboardHeader from '../../components/dashboard/DashboardHeader';
 
 const API_BASE_URL = 'http://localhost:5000/api/payroll';
 
@@ -51,41 +53,29 @@ export default function PayrollDashboard({ user }) {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 flex flex-col">
-     
-      <div className="flex-1 max-w-5xl w-full mx-auto px-4 py-8 sm:px-6 lg:px-8 animate-fade-in">
-        
-        {/* Header */}
-        <div className="mb-8 flex flex-col sm:flex-row sm:items-end justify-between gap-4">
-          <div>
-            <button
-              onClick={() => navigate('/home')}
-              className="mb-4 inline-flex items-center gap-1.5 text-sm font-medium text-gray-500 hover:text-gray-800 transition-colors cursor-pointer"
-            >
-              <ChevronLeft size={16} /> Back to Home
-            </button>
-            <h1 className="text-3xl font-bold text-gray-900 flex items-center gap-3">
-              <div className="p-2 bg-blue-100 text-blue-600 rounded-xl"><DollarSign size={28} /></div>
-              My Payroll
-            </h1>
-            <p className="text-gray-500 mt-2">View your salary details, leave deductions, and payroll history.</p>
-          </div>
-          
-          {payrolls.length > 0 && (
+    <DashboardLayout>
+      <DashboardHeader 
+        title="My Payroll"
+        subtitle="View your salary details, leave deductions, and payroll history."
+        actions={
+          payrolls.length > 0 && (
             <div className="relative">
               <select 
                 value={selectedPayroll?.id || ''} 
                 onChange={handleMonthChange}
-                className="pl-10 pr-10 py-3 bg-white border border-gray-300 rounded-xl text-gray-700 font-medium focus:ring-2 focus:ring-blue-500 outline-none shadow-sm appearance-none cursor-pointer"
+                className="pl-10 pr-10 py-2.5 bg-white border border-gray-300 rounded-xl text-gray-700 font-medium focus:ring-2 focus:ring-blue-500 outline-none shadow-sm appearance-none cursor-pointer"
               >
                 {payrolls.map(p => (
                   <option key={p.id} value={p.id}>{p.month} {p.year}</option>
                 ))}
               </select>
-              <Calendar className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-400 pointer-events-none" />
+              <Calendar className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400 pointer-events-none" />
             </div>
-          )}
-        </div>
+          )
+        }
+      />
+      <DashboardContainer>
+        <div className="max-w-5xl mx-auto animate-fade-in">
 
         {error && (
           <div className="mb-6 p-4 bg-red-50 border border-red-200 text-red-700 rounded-xl flex items-center gap-3">
@@ -139,6 +129,18 @@ export default function PayrollDashboard({ user }) {
                   <h3 className="text-sm font-bold text-gray-400 uppercase tracking-wider mb-4">Earnings</h3>
                   <div className="space-y-4 mb-8">
                     <div className="flex justify-between items-center p-3 rounded-lg hover:bg-gray-50">
+                      <span className="text-gray-600 font-medium">Payroll Days</span>
+                      <span className="text-gray-900 font-bold">{selectedPayroll.totalDaysInMonth} Days</span>
+                    </div>
+                    <div className="flex justify-between items-center p-3 rounded-lg hover:bg-gray-50">
+                      <span className="text-gray-600 font-medium">Daily Salary</span>
+                      <span className="text-gray-900 font-bold">₹{selectedPayroll.dailySalary?.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}</span>
+                    </div>
+                    <div className="flex justify-between items-center p-3 rounded-lg hover:bg-gray-50">
+                      <span className="text-gray-600 font-medium">Worked Days</span>
+                      <span className="text-gray-900 font-bold">{selectedPayroll.workedDays} Days</span>
+                    </div>
+                    <div className="flex justify-between items-center p-3 rounded-lg hover:bg-gray-50">
                       <span className="text-gray-600 font-medium">Base Salary</span>
                       <span className="text-gray-900 font-bold">₹{selectedPayroll.baseSalary?.toLocaleString()}</span>
                     </div>
@@ -163,10 +165,10 @@ export default function PayrollDashboard({ user }) {
                         <div>
                           <span className="text-gray-800 font-medium flex items-center gap-2">
                             Loss of Pay (LOP)
-                            <span className="px-2 py-0.5 bg-red-100 text-red-600 rounded text-xs font-bold">{selectedPayroll.lopDeductionPercentage}%</span>
+                            <span className="px-2 py-0.5 bg-red-100 text-red-600 rounded text-xs font-bold">{selectedPayroll.lopDays} Days</span>
                           </span>
                         </div>
-                        <span className="text-red-600 font-bold">-₹{selectedPayroll.lopDeductionAmount?.toLocaleString()}</span>
+                        <span className="text-red-600 font-bold">-₹{selectedPayroll.lopDeductionAmount?.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}</span>
                       </div>
                     )}
                     {selectedPayroll.otherDeductions > 0 && (
@@ -193,43 +195,12 @@ export default function PayrollDashboard({ user }) {
               )}
             </div>
 
-            {/* Leave Summary Sidebar */}
-            <div className="lg:col-span-1 space-y-6">
-              <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-6">
-                <h3 className="text-lg font-bold text-gray-900 mb-5 flex items-center gap-2">
-                  <Calendar size={20} className="text-blue-500" />
-                  Leave Overview
-                </h3>
-                
-                <div className="space-y-6">
-                  <div>
-                    <div className="flex justify-between text-sm mb-1.5">
-                      <span className="text-gray-500 font-medium">Annual Leave Used</span>
-                      <span className="text-gray-900 font-bold">{selectedPayroll.annualLeaveUsed || 0} days</span>
-                    </div>
-                    <div className="w-full bg-gray-100 rounded-full h-2.5">
-                      <div className="bg-emerald-500 h-2.5 rounded-full" style={{ width: `${Math.min(100, ((selectedPayroll.annualLeaveUsed || 0) / 11) * 100)}%` }}></div>
-                    </div>
-                  </div>
-
-                  <div className="pt-4 border-t border-gray-100">
-                    <div className="flex justify-between text-sm mb-2">
-                      <span className="text-gray-500 font-medium">Loss Of Pay (LOP) Days</span>
-                      <span className="text-red-600 font-bold">{selectedPayroll.lopDays || 0} days</span>
-                    </div>
-                    {selectedPayroll.lopDays > 0 && (
-                      <p className="text-xs text-gray-500">
-                        {selectedPayroll.lopDays} days have exceeded your allowed balance and directly impacted your net salary.
-                      </p>
-                    )}
-                  </div>
-                </div>
-              </div>
-            </div>
+          
 
           </div>
         ) : null}
-      </div>
-    </div>
+        </div>
+      </DashboardContainer>
+    </DashboardLayout>
   );
 }

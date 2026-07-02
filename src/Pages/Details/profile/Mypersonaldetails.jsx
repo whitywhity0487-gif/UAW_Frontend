@@ -12,6 +12,8 @@ import { useCompany } from "../../../context/CompanyContext"
 import ProfileStatusCard from "./ProfileStatusCard";
 import ProfileView from "./ProfileView";  // Make sure ProfileView.jsx also exists in the same folder
 import Button from "../../../components/Button";
+import DashboardLayout, { DashboardContainer } from "../../../components/dashboard/DashboardLayout";
+import DashboardHeader from "../../../components/dashboard/DashboardHeader";
 
 // ─── Validation helpers ───────────────────────────────────────────────────────
 const validators = {
@@ -114,7 +116,7 @@ const validators = {
   ssnNumber: (v, nationality) => {
     if (nationality === "USA" && !v) return "SSN is required for USA nationals.";
     if (v && nationality === "USA" && !/^\d{3}-?\d{2}-?\d{4}$/.test(v)) {
-      return "Enter a valid SSN (e.g. 123-45-6789).";
+      return "Enter a valid 9-digit SSN.";
     }
     return "";
   },
@@ -207,10 +209,12 @@ const SectionHeader = ({ icon: Icon, title, subtitle }) => {
 
 // ─── Animated Section card wrapper ─────────────────────────────────────────────
 const SectionCard = ({ icon, title, subtitle, children }) => (
-  <div className="group relative overflow-hidden bg-white/80 backdrop-blur-sm rounded-2xl border border-white/50 shadow-xl hover:shadow-2xl transition-all duration-500 hover:-translate-y-1">
-    <div className="absolute inset-0 bg-gradient-to-br from-indigo-50/0 via-white/0 to-indigo-50/0 group-hover:via-indigo-50/20 transition-all duration-700" />
-    <SectionHeader icon={icon} title={title} subtitle={subtitle} />
-    <div className="px-6 py-6 relative z-10">{children}</div>
+  <div className="group relative bg-white/80 backdrop-blur-sm rounded-2xl border border-white/50 shadow-xl hover:shadow-2xl transition-all duration-500 hover:-translate-y-1">
+    <div className="absolute inset-0 bg-gradient-to-br from-indigo-50/0 via-white/0 to-indigo-50/0 group-hover:via-indigo-50/20 transition-all duration-700 rounded-2xl pointer-events-none" />
+    <div className="relative z-10 rounded-t-2xl overflow-hidden">
+      <SectionHeader icon={icon} title={title} subtitle={subtitle} />
+    </div>
+    <div className="px-6 py-6 relative z-20">{children}</div>
   </div>
 );
 
@@ -437,13 +441,17 @@ const GovernmentIdFields = memo(({ nationality, formData, onChange, onBlur, fiel
               type="text" 
               name="ssnNumber" 
               value={formData.ssnNumber} 
-              onChange={onChange} 
+              onChange={(e) => {
+                const val = e.target.value.replace(/\D/g, '').slice(0, 9);
+                onChange({ target: { name: 'ssnNumber', value: val } });
+              }}
               onBlur={onBlur} 
+              maxLength={9}
               className={`${baseInput} ${fieldErrors.ssnNumber ? errorInput : normalInput}`} 
-              placeholder="Enter SSN (e.g., 123-45-6789)" 
+              placeholder="Enter 9-digit SSN" 
             />
             <FieldError msg={fieldErrors.ssnNumber} />
-            <p className="text-[10px] text-gray-400 mt-1">Format: XXX-XX-XXXX</p>
+            <p className="text-[10px] text-gray-400 mt-1">Format: 9 digits</p>
           </div>
         </div>
       </div>
@@ -801,7 +809,7 @@ const ProfileFormComponent = memo(({
 
         <div id="form-scroll-area" className="flex-1 overflow-y-auto px-8 py-6 space-y-6">
           {/* Identity Section */}
-          <div id="sec-identity" className="scroll-mt-20">
+          <div id="sec-identity" className="scroll-mt-20 relative z-[70]">
             <SectionCard icon={User} title="Identity" subtitle="Your full legal name and personal details">
               <div className="grid grid-cols-3 gap-x-6 gap-y-5">
                 <div className="group/field"><Label required>First name</Label><StableInput name="firstName" value={formData.firstName} onChange={onChange} onBlur={onBlur} className={iCls("firstName")} placeholder="First name" /><FieldError msg={fieldErrors.firstName || serverErrors.firstName} /></div>
@@ -816,7 +824,7 @@ const ProfileFormComponent = memo(({
           </div>
 
           {/* Contact Section */}
-          <div id="sec-contact" className="scroll-mt-20">
+          <div id="sec-contact" className="scroll-mt-20 relative z-[60]">
             <SectionCard icon={Phone} title="Contact Information" subtitle="Phone numbers, email and address">
               <div className="grid grid-cols-3 gap-x-6 gap-y-5">
                 <div className="group/field"><Label required>Mobile number</Label><StableInput type="tel" name="mobileNumber" value={formData.mobileNumber} onChange={onChange} onBlur={onBlur} maxLength={(formData.nationality === "CHINA" || formData.nationality === "USA") ? 11 : 10} className={iCls("mobileNumber")} placeholder={`${(formData.nationality === "CHINA" || formData.nationality === "USA") ? 11 : 10}-digit number`} /><FieldError msg={fieldErrors.mobileNumber || serverErrors.mobileNumber} /></div>
@@ -833,7 +841,7 @@ const ProfileFormComponent = memo(({
           </div>
 
           {/* Government IDs Section - Dynamic based on nationality */}
-          <div id="sec-ids" className="scroll-mt-20">
+          <div id="sec-ids" className="scroll-mt-20 relative z-[50]">
             <SectionCard icon={Shield} title="Government IDs" subtitle="Identity documents for verification">
               <GovernmentIdFields 
                 nationality={formData.nationality}
@@ -856,7 +864,7 @@ const ProfileFormComponent = memo(({
           </div>
 
           {/* Documents Section */}
-          <div id="sec-documents" className="scroll-mt-20">
+          <div id="sec-documents" className="scroll-mt-20 relative z-[40]">
             <SectionCard icon={FileText} title="Educational & Other Documents" subtitle="Certificates and additional documents">
               <div className="grid grid-cols-2 gap-6">
                 <DocumentUpload 
@@ -978,7 +986,7 @@ const ProfileFormComponent = memo(({
           </div>
 
           {/* Employment Section */}
-          <div id="sec-employment" className="scroll-mt-20">
+          <div id="sec-employment" className="scroll-mt-20 relative z-[30]">
             <SectionCard icon={Briefcase} title="Employment & Visa" subtitle="Work details and visa information">
               <div className="grid grid-cols-3 gap-x-6 gap-y-5">
                 <div className="group/field"><Label>Job title</Label><input type="text" name="jobTitle" value={formData.jobTitle} disabled readOnly className={disabledInput} /></div>
@@ -995,7 +1003,7 @@ const ProfileFormComponent = memo(({
           </div>
 
           {/* Bank Details Section */}
-          <div id="sec-bank" className="scroll-mt-20">
+          <div id="sec-bank" className="scroll-mt-20 relative z-[20]">
             <SectionCard icon={Landmark} title="Bank Details" subtitle="Salary account information for payroll">
               <div className="grid grid-cols-2 gap-x-6 gap-y-5">
                 <div className="group/field"><Label required>Bank Name</Label><StableInput name="bankName" value={formData.bankName} onChange={onChange} onBlur={onBlur} className={iCls("bankName")} placeholder="Bank Name" /><FieldError msg={fieldErrors.bankName} /></div>
@@ -1007,7 +1015,7 @@ const ProfileFormComponent = memo(({
           </div>
 
           {/* Skills Section */}
-          <div id="sec-skills" className="scroll-mt-20">
+          <div id="sec-skills" className="scroll-mt-20 relative z-[10]">
             <SectionCard icon={Star} title="Skills & Expertise" subtitle="Add your professional skills">
               <SkillsSection skills={skills} onAddSkill={onAddSkill} onRemoveSkill={onRemoveSkill} onSkillInputChange={onSkillInputChange} skillInput={skillInput} error={fieldErrors.skills} />
             </SectionCard>
@@ -1562,21 +1570,25 @@ const Mypersonaldetails = () => {
   // PENDING or REJECTED - Show ProfileStatusCard
   if (profileCompleted && (profileStatus === "PENDING" || profileStatus === "REJECTED")) {
     return (
-      <>
+      <DashboardLayout>
+        <DashboardHeader 
+          title="Profile Status"
+          subtitle="View the current status of your profile submission"
+        />
         {showResubmitConfirm && (
           <div className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-[300] p-4">
-            <div className="bg-white rounded-2xl p-6 max-w-md w-full">
-              <h3 className="text-lg font-bold mb-2">Resubmit profile?</h3>
+            <div className="bg-white rounded-2xl p-6 max-w-md w-full shadow-2xl">
+              <h3 className="text-lg font-bold mb-2 text-gray-800">Resubmit profile?</h3>
               <p className="text-sm text-gray-500 mb-6">Your existing details will be pre-filled. Review, make corrections, and resubmit for admin approval.</p>
               <div className="flex gap-3">
-                <button onClick={() => setShowResubmitConfirm(false)} className="flex-1 px-4 py-2 border rounded-xl">Cancel</button>
-                <button onClick={confirmResubmit} className="flex-1 px-4 py-2 bg-indigo-600 text-white rounded-xl">Yes, edit & resubmit</button>
+                <button onClick={() => setShowResubmitConfirm(false)} className="flex-1 px-4 py-2 border border-gray-300 rounded-xl hover:bg-gray-50 transition-colors">Cancel</button>
+                <button onClick={confirmResubmit} className="flex-1 px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl transition-colors">Yes, edit & resubmit</button>
               </div>
             </div>
           </div>
         )}
-        <div className="min-h-screen bg-gray-50/50 p-6 md:p-10 w-full overflow-y-auto">
-          <div className="max-w-5xl mx-auto space-y-6">
+        <DashboardContainer>
+          <div className="max-w-3xl">
             <ProfileStatusCard
               status={profileStatus}
               rejectionReason={formData.rejectionReason}
@@ -1584,8 +1596,8 @@ const Mypersonaldetails = () => {
               onContactSupport={handleContactSupport}
             />
           </div>
-        </div>
-      </>
+        </DashboardContainer>
+      </DashboardLayout>
     );
   }
 

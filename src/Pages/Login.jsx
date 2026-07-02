@@ -95,9 +95,9 @@ const Login = () => {
           // Recruiter goes to home page
           navigate("/home");
         }
-        else if (userRole === "Employee") {
-          // ✅ Employee also goes to home page first
-          console.log("🎯 Employee logged in - Redirecting to home page");
+        else if (userRole === "Employee" || userRole === "HR") {
+          // ✅ Employee and HR also goes to home page first
+          console.log(`🎯 ${userRole} logged in - Redirecting to home page`);
           navigate("/home");
         }
         else {

@@ -87,7 +87,7 @@ const Header = () => {
       <button
         key={path}
         onClick={() => navigate(path)}
-        className={`px-3 py-1 text-sm font-semibold transition-colors
+        className={`px-3 py-1 text-sm font-semibold transition-colors cursor-pointer
           ${isActive
             ? "text-blue-600"
             : "text-gray-700 hover:text-blue-500"
@@ -147,7 +147,7 @@ const Header = () => {
                 {navItem("Recruiter", "/recruiter")}
 
 
-                {navItem("Joined", "/joined ")}
+                {navItem("Onboarding", "/joined ")}
 
                 {/* Show User only for Admin */}
                 {isAdmin && navItem("User", "/create-user")}
@@ -162,7 +162,7 @@ const Header = () => {
             <div className="relative">
               <button
                 onClick={() => { setShowNotifications(!showNotifications); setOpen(false); }}
-                className="relative p-2 text-gray-600 hover:text-blue-600 hover:bg-blue-50 rounded-full transition-colors"
+                className="relative p-2 text-gray-600 hover:text-blue-600 hover:bg-blue-50 rounded-full transition-colors cursor-pointer"
               >
                 <Bell size={20} />
                 {unreadCount > 0 && (
@@ -214,7 +214,7 @@ const Header = () => {
             <div className="relative">
               <button
                 onClick={() => { setOpen(!open); setShowNotifications(false); }}
-                className="flex items-center gap-3 px-4 py-2 rounded-xl bg-white/60 hover:bg-white shadow-md transition-all"
+                className="flex items-center gap-3 px-4 py-2 rounded-xl bg-white/60 hover:bg-white shadow-md transition-all cursor-pointer"
               >
                 <div className="h-9 w-9 rounded-full bg-gradient-to-br from-blue-500 via-purple-500 to-pink-500 flex items-center justify-center text-white font-bold">
                   {username.charAt(0).toUpperCase()}

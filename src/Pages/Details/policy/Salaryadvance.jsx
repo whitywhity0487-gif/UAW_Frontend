@@ -101,7 +101,7 @@ const Salaryadvance = () => {
 
       {/* Salary Advance tab — shows form only (no policy content above) */}
       {activeTab === 'request' && (!isAdmin && isIndian) && (
-        <div style={{ maxWidth: 700, margin: '0 auto', padding: '40px 20px' }}>
+        <div style={{ width: '100%', margin: '0 auto', padding: '0px' }}>
           <SalaryAdvanceForm />
         </div>
       )}

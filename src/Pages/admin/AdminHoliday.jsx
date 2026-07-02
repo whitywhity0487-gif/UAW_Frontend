@@ -1,5 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
+import DashboardLayout, { DashboardContainer } from '../../components/dashboard/DashboardLayout';
+import DashboardHeader from '../../components/dashboard/DashboardHeader';
 
 const MONTHS = [
   "January", "February", "March", "April", "May", "June",
@@ -179,44 +181,44 @@ const AdminHoliday = () => {
     });
   };
 
-const handleSubmit = async (e) => {
-  e.preventDefault();
+  const handleSubmit = async (e) => {
+    e.preventDefault();
 
-  // Only Admin can add/edit holidays
-  if (userRole !== "Admin") {
-    alert("Only Admin can add/edit holidays");
-    return;
-  }
-
-  const holidayData = {
-    ...formData,
-    day: formData.day || getDayOfWeek(formData.date),
-    groupName: selectedGroup,
-    type: "holiday" // Add this line - specify the type
-  };
-  
-  try {
-    setLoading(true);
-    const url = modalMode === "add"
-      ? "http://localhost:5000/api/holiday/add"
-      : `http://localhost:5000/api/holiday/${currentHoliday.holiday.id}`;
-    const res = await fetch(url, {
-      method: modalMode === "add" ? "POST" : "PUT",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(holidayData)
-    });
-    const data = await res.json();
-    if (data.success) {
-      setShowModal(false);
-      await fetchHolidays();
+    // Only Admin can add/edit holidays
+    if (userRole !== "Admin") {
+      alert("Only Admin can add/edit holidays");
+      return;
     }
-    else alert("Failed: " + data.message);
-  } catch (err) {
-    alert("Error: " + err.message);
-  } finally {
-    setLoading(false);
-  }
-};
+
+    const holidayData = {
+      ...formData,
+      day: formData.day || getDayOfWeek(formData.date),
+      groupName: selectedGroup,
+      type: "holiday" // Add this line - specify the type
+    };
+
+    try {
+      setLoading(true);
+      const url = modalMode === "add"
+        ? "http://localhost:5000/api/holiday/add"
+        : `http://localhost:5000/api/holiday/${currentHoliday.holiday.id}`;
+      const res = await fetch(url, {
+        method: modalMode === "add" ? "POST" : "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(holidayData)
+      });
+      const data = await res.json();
+      if (data.success) {
+        setShowModal(false);
+        await fetchHolidays();
+      }
+      else alert("Failed: " + data.message);
+    } catch (err) {
+      alert("Error: " + err.message);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const getDateParts = (dateStr) => {
     const d = new Date(dateStr);
@@ -235,25 +237,22 @@ const handleSubmit = async (e) => {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 px-4 py-6 md:px-8 md:py-8">
-      {/* Header Bar */}
-      <div className="max-w-6xl mx-auto flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-8">
-        <button
-          onClick={() => navigate("/home")}
-          className="inline-flex items-center gap-2 text-gray-600 bg-white border border-gray-200 rounded-lg px-4 py-2.5 text-sm font-medium hover:bg-gray-50 hover:border-gray-300 transition"
-        >
-          <span>←</span> Back to Home
-        </button>
-        <h1 className="text-2xl md:text-3xl font-semibold text-gray-900 tracking-tight">📅 Holiday Calendar</h1>
-        {userRole === "Admin" && (
-          <button
-            onClick={handleAddHoliday}
-            className="bg-blue-600 hover:bg-blue-700 text-white rounded-lg px-5 py-2.5 text-sm font-semibold shadow-sm transition flex items-center gap-2"
-          >
-            <span>+</span> Add Holiday
-          </button>
-        )}
-      </div>
+    <DashboardLayout>
+      <DashboardHeader 
+        title="Holiday Calendar"
+        subtitle="Manage company holidays and schedules"
+        actions={
+          userRole === "Admin" && (
+            <button
+              onClick={handleAddHoliday}
+              className="bg-blue-600 hover:bg-blue-700 text-white rounded-lg px-5 py-2.5 text-sm font-semibold shadow-sm transition flex items-center gap-2 cursor-pointer"
+            >
+              <span>+</span> Add Holiday
+            </button>
+          )
+        }
+      />
+      <DashboardContainer>
 
       {/* User Info Banner for Non-Admin */}
       {userRole !== "Admin" && userClient && (
@@ -520,7 +519,8 @@ const handleSubmit = async (e) => {
           </div>
         </div>
       )}
-    </div>
+      </DashboardContainer>
+    </DashboardLayout>
   );
 };
 

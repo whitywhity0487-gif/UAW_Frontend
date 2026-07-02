@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import { FileText, Search, Plus, Calendar, Save, AlertCircle, CheckCircle, RefreshCcw, DollarSign, Upload } from 'lucide-react';
+import DashboardLayout, { DashboardContainer } from '../../components/dashboard/DashboardLayout';
+import DashboardHeader from '../../components/dashboard/DashboardHeader';
 
 const API_BASE_URL = 'http://localhost:5000/api/payroll';
 const DETAILS_API_URL = 'http://localhost:5000/api/personal-details';
@@ -15,7 +17,7 @@ export default function AdminPayroll({ user }) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [success, setSuccess] = useState(null);
-  
+
   // Filters
   const [filterMonth, setFilterMonth] = useState(MONTHS[new Date().getMonth()]);
   const [filterYear, setFilterYear] = useState(CURRENT_YEAR);
@@ -109,7 +111,7 @@ export default function AdminPayroll({ user }) {
       const res = await axios.post(`${API_BASE_URL}/admin/upload`, submitData, {
         headers: { 'Content-Type': 'multipart/form-data' }
       });
-      
+
       if (res.data.success) {
         setSuccess("Payroll record saved successfully.");
         setShowForm(false);
@@ -128,8 +130,8 @@ export default function AdminPayroll({ user }) {
     }
   };
 
-  const filteredPayrolls = payrolls.filter(p => 
-    (p.employeeNumber && p.employeeNumber.toLowerCase().includes(searchTerm.toLowerCase())) || 
+  const filteredPayrolls = payrolls.filter(p =>
+    (p.employeeNumber && p.employeeNumber.toLowerCase().includes(searchTerm.toLowerCase())) ||
     (p.employeeName && p.employeeName.toLowerCase().includes(searchTerm.toLowerCase()))
   );
 
@@ -142,25 +144,21 @@ export default function AdminPayroll({ user }) {
   });
 
   return (
-    <div className="min-h-screen bg-gray-50 flex flex-col">
-      <div className="flex-1 max-w-7xl w-full mx-auto px-4 py-8 sm:px-6 lg:px-8 animate-fade-in">
-        
-        {/* Header */}
-        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8">
-          <div>
-            <h1 className="text-3xl font-bold text-gray-900 flex items-center gap-3">
-              <div className="p-2 bg-blue-100 text-blue-600 rounded-xl"><DollarSign size={28} /></div>
-              Payroll Management
-            </h1>
-            <p className="text-gray-500 mt-2">Manage employee salaries, upload payslips via Google Drive, and process LOP.</p>
-          </div>
-          <button 
+    <DashboardLayout>
+      <DashboardHeader 
+        title="Payroll Management"
+        subtitle="Manage employee salaries, upload payslips and process LOP."
+        actions={
+          <button
             onClick={() => setShowForm(!showForm)}
-            className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-5 py-2.5 rounded-xl font-medium transition-colors shadow-sm"
+            className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-5 py-2.5 rounded-lg font-medium transition-colors shadow-sm cursor-pointer"
           >
             {showForm ? 'Cancel' : <><Plus size={20} /> Add Payroll Record</>}
           </button>
-        </div>
+        }
+      />
+      
+      <DashboardContainer>
 
         {/* Alerts */}
         {error && (
@@ -180,28 +178,28 @@ export default function AdminPayroll({ user }) {
             <h2 className="text-lg font-semibold text-gray-800 mb-4 border-b border-gray-100 pb-2">New Payroll Record</h2>
             <form onSubmit={handleSubmit} className="space-y-6">
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-                
+
                 {/* Employee Selection */}
                 <div className="lg:col-span-2 relative">
                   <label className="block text-sm font-medium text-gray-700 mb-1">Select Employee *</label>
-                  <input 
-                    type="text" 
-                    required 
-                    value={empSearch} 
+                  <input
+                    type="text"
+                    required
+                    value={empSearch}
                     onChange={(e) => {
                       setEmpSearch(e.target.value);
                       setShowEmpDropdown(true);
                     }}
                     onFocus={() => setShowEmpDropdown(true)}
-                    className="w-full border border-gray-300 rounded-xl px-4 py-2 focus:ring-2 focus:ring-blue-500 outline-none" 
-                    placeholder="Search by name, ID or email..." 
+                    className="w-full border border-gray-300 rounded-xl px-4 py-2 focus:ring-2 focus:ring-blue-500 outline-none"
+                    placeholder="Search by name, ID or email..."
                   />
                   {showEmpDropdown && empSearch && (
                     <div className="absolute z-10 w-full mt-1 bg-white border border-gray-200 rounded-xl shadow-lg max-h-60 overflow-y-auto">
                       {filteredEmployees.length > 0 ? (
                         filteredEmployees.map((emp, idx) => (
-                          <div 
-                            key={idx} 
+                          <div
+                            key={idx}
                             onClick={() => selectEmployee(emp)}
                             className="px-4 py-3 hover:bg-gray-50 cursor-pointer border-b border-gray-50 last:border-0"
                           >
@@ -245,15 +243,15 @@ export default function AdminPayroll({ user }) {
                 <div className="lg:col-span-2">
                   <label className="block text-sm font-medium text-gray-700 mb-1">Upload Payslip (PDF)</label>
                   <div className="relative">
-                    <input 
-                      type="file" 
+                    <input
+                      type="file"
                       accept=".pdf"
                       onChange={handleFileChange}
-                      className="hidden" 
+                      className="hidden"
                       id="payslip-upload"
                     />
-                    <label 
-                      htmlFor="payslip-upload" 
+                    <label
+                      htmlFor="payslip-upload"
                       className="w-full flex items-center justify-center gap-2 border-2 border-dashed border-gray-300 rounded-xl px-4 py-3 cursor-pointer hover:bg-gray-50 transition-colors text-gray-600 focus-within:border-blue-500 focus-within:ring-2 focus-within:ring-blue-500"
                     >
                       <Upload size={20} className="text-gray-400" />
@@ -289,7 +287,7 @@ export default function AdminPayroll({ user }) {
                 {YEARS.map(y => <option key={y} value={y}>{y}</option>)}
               </select>
             </div>
-            
+
             <div className="relative w-full sm:w-72">
               <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
               <input type="text" placeholder="Search employee..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none" />
@@ -364,7 +362,7 @@ export default function AdminPayroll({ user }) {
             </div>
           )}
         </div>
-      </div>
-    </div>
+      </DashboardContainer>
+    </DashboardLayout>
   );
 }

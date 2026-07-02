@@ -2,6 +2,8 @@ import React, { useEffect, useState, useRef } from "react";
 import { createPortal } from "react-dom";
 import { useNavigate } from "react-router-dom";
 import { useUser } from "../../context/UserContext";
+import DashboardLayout, { DashboardContainer } from '../../components/dashboard/DashboardLayout';
+import DashboardHeader from '../../components/dashboard/DashboardHeader';
 
 const HolidayTooltip = ({ info, onClose, userRole, handleEdit, handleDelete, monthName }) => {
   const tooltipRef = useRef(null);
@@ -169,8 +171,8 @@ const Holiday = () => {
 
       let client = null;
 
-      // For employee, fetch assignedClient from database
-      if (role === 'Employee' && userId) {
+      // For employee or HR, fetch assignedClient from database
+      if (['Employee', 'HR'].includes(role) && userId) {
         try {
           const profileRes = await fetch(`http://localhost:5000/api/personal-details?userId=${userId}`);
           const profileData = await profileRes.json();
@@ -391,25 +393,22 @@ const Holiday = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 px-4 py-6 md:px-8 md:py-8">
-      {/* Header Bar */}
-      <div className="max-w-7xl mx-auto flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
-        <button
-          onClick={() => navigate("/home")}
-          className="inline-flex items-center gap-2 text-gray-600 bg-white border border-gray-200 rounded-lg px-4 py-2.5 text-sm font-medium hover:bg-gray-50 hover:border-gray-300 transition"
-        >
-          <span>←</span> Back to Home
-        </button>
-        <h1 className="text-2xl md:text-3xl font-semibold text-gray-900 tracking-tight">📅 Holiday Calendar</h1>
-        {userRole === "Admin" && (
-          <button
-            onClick={handleAddHoliday}
-            className="bg-blue-600 hover:bg-blue-700 text-white rounded-lg px-5 py-2.5 text-sm font-semibold shadow-sm transition flex items-center gap-2"
-          >
-            <span>+</span> Add Holiday
-          </button>
-        )}
-      </div>
+    <DashboardLayout>
+      <DashboardHeader 
+        title="Holiday Calendar"
+        subtitle="View and manage company holidays and leaves"
+        actions={
+          userRole === "Admin" && (
+            <button
+              onClick={handleAddHoliday}
+              className="bg-blue-600 hover:bg-blue-700 text-white rounded-lg px-5 py-2.5 text-sm font-semibold shadow-sm transition flex items-center gap-2 cursor-pointer"
+            >
+              <span>+</span> Add Holiday
+            </button>
+          )
+        }
+      />
+      <DashboardContainer>
 
       {/* Controls Row */}
       <div className="max-w-7xl mx-auto flex flex-col sm:flex-row sm:items-center gap-4 mb-6">
@@ -510,10 +509,11 @@ const Holiday = () => {
 
                   const dateKey = `${selectedYear}-${String(monthIndex + 1).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
                   const holidayItem = holidayMap[dateKey];
-                  const approvedLeave = approvedLeaves.find(l => dateKey >= l.startDate && dateKey <= l.endDate);
                   const isToday = day === todayNum;
                   const isSunday = (firstDay + day - 1) % 7 === 0;
                   const isSaturday = (firstDay + day - 1) % 7 === 6;
+                  const isWeekend = isSunday || isSaturday;
+                  const approvedLeave = isWeekend ? null : approvedLeaves.find(l => dateKey >= l.startDate && dateKey <= l.endDate);
 
                   return (
                     <div
@@ -671,7 +671,8 @@ const Holiday = () => {
           </div>
         </div>
       )}
-    </div>
+      </DashboardContainer>
+    </DashboardLayout>
   );
 };
 

@@ -102,7 +102,7 @@ const AddEditPolicyModal = ({ isOpen, onClose, onSave, policy = null }) => {
         ...rest,
       });
     } else {
-      setFormData({ product_name: "", policy_number: "", coverage_type: "", policy_type: "" });
+      setFormData({ product_name: "", policy_number: "", coverage_type: "", policy_type: "", nationality: "" });
     }
     setNewKey("");
     setNewValue("");
@@ -141,7 +141,7 @@ const AddEditPolicyModal = ({ isOpen, onClose, onSave, policy = null }) => {
     }
   };
 
-  const standardKeys = ["product_name", "policy_number", "coverage_type", "policy_type"];
+  const standardKeys = ["product_name", "policy_number", "coverage_type", "policy_type", "nationality"];
   const dynamicKeys = Object.keys(formData).filter((k) => !standardKeys.includes(k));
 
   return (
@@ -179,13 +179,27 @@ const AddEditPolicyModal = ({ isOpen, onClose, onSave, policy = null }) => {
                   <label className="text-[13px] font-semibold text-gray-700">
                     {key.replace(/_/g, " ").replace(/\b\w/g, (l) => l.toUpperCase())}
                   </label>
-                  <input
-                    type="text"
-                    value={formData[key] || ""}
-                    onChange={(e) => setFormData({ ...formData, [key]: e.target.value })}
-                    placeholder={`Enter ${key.replace(/_/g, " ")}`}
-                    className="w-full px-3.5 py-2.5 border border-gray-300 rounded-lg text-sm outline-none focus:border-gray-400 transition-colors"
-                  />
+                  {key === "nationality" ? (
+                    <select
+                      value={formData[key] || ""}
+                      onChange={(e) => setFormData({ ...formData, [key]: e.target.value })}
+                      className="w-full px-3.5 py-2.5 border border-gray-300 rounded-lg text-sm outline-none focus:border-gray-400 transition-colors bg-white"
+                    >
+                      <option value="">Select Nationality</option>
+                      <option value="INDIA">India</option>
+                      <option value="CHINA">China</option>
+                      <option value="USA">USA</option>
+                      <option value="GLOBAL">Global (All)</option>
+                    </select>
+                  ) : (
+                    <input
+                      type="text"
+                      value={formData[key] || ""}
+                      onChange={(e) => setFormData({ ...formData, [key]: e.target.value })}
+                      placeholder={`Enter ${key.replace(/_/g, " ")}`}
+                      className="w-full px-3.5 py-2.5 border border-gray-300 rounded-lg text-sm outline-none focus:border-gray-400 transition-colors"
+                    />
+                  )}
                 </div>
               ))}
             </div>
@@ -617,6 +631,15 @@ const InsurancePolicy = () => {
   const filteredPolicies = policies.filter((policy) => {
     if (isAdmin) return true;
     if (!nationality) return false;
+    
+    // 1. Check direct nationality field if present
+    if (policy.nationality) {
+      const polNat = policy.nationality.toUpperCase();
+      if (polNat === "GLOBAL") return true;
+      return polNat === nationality.toUpperCase();
+    }
+
+    // 2. Fallback to hardcoded logic for old policies
     const pName = (policy.product_name || policy.productName || policy.policy_name || "").toLowerCase();
     if (nationality === "INDIA") return pName.includes("group activ secure") || pName.includes("group activ health");
     if (nationality === "CHINA") return pName.includes("shanghai social insurance");
@@ -656,6 +679,8 @@ const InsurancePolicy = () => {
   };
 
   const filteredEmployees = allEmployees.filter((emp) => {
+    if (emp.nationality && emp.nationality.toUpperCase() !== "INDIA") return false;
+    
     if (!healthCardSearchTerm) return true;
     const term = healthCardSearchTerm.toLowerCase();
     const num = (emp.employeeNumber || "").toLowerCase();
@@ -719,14 +744,15 @@ const InsurancePolicy = () => {
               ))
             )}
 
-            {isAdmin ? (
+            {isAdmin && (
               <button onClick={() => setActiveTabIndex("HEALTH_CARDS")} className={tabClass("HEALTH_CARDS")}>
                 <span>Health Cards</span>
                 <span className={`text-[11px] font-normal ${activeTabIndex === "HEALTH_CARDS" ? "text-[#2563EB]" : "text-gray-400"}`}>
                   Admin Only
                 </span>
               </button>
-            ) : (
+            )}
+            {!isAdmin && nationality === "INDIA" && (
               <button onClick={() => setActiveTabIndex("HEALTH_CARD")} className={tabClass("HEALTH_CARD")}>
                 <span>Health Card</span>
                 <span className={`text-[11px] font-normal ${activeTabIndex === "HEALTH_CARD" ? "text-[#2563EB]" : "text-gray-400"}`}>
@@ -819,7 +845,7 @@ const InsurancePolicy = () => {
         )}
 
         {/* ── Health Card (Employee) ── */}
-        {activeTabIndex === "HEALTH_CARD" && !isAdmin && (
+        {activeTabIndex === "HEALTH_CARD" && !isAdmin && nationality === "INDIA" && (
           <div className="w-full px-10 pt-8 pb-5">
             <div className="bg-white border border-gray-200 rounded-xl overflow-hidden max-w-xl mx-auto">
               <div className="h-[3px] bg-gradient-to-r from-[#1E3A5F] via-[#2563EB] to-[#60A5FA]" />

@@ -1,6 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
+import { FileText, Clock, CheckCircle, XCircle } from 'lucide-react';
+import DashboardLayout, { DashboardContainer } from '../../components/dashboard/DashboardLayout';
+import DashboardHeader from '../../components/dashboard/DashboardHeader';
+import StatCard from '../../components/dashboard/StatCard';
 
 const API_BASE_URL = 'http://localhost:5000/api/reimbursements';
 
@@ -12,7 +16,7 @@ const AdminReimbursement = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('All');
   const [adminName, setAdminName] = useState('Admin');
-  
+
   const [stats, setStats] = useState({
     total: 0,
     pending: 0,
@@ -83,7 +87,7 @@ const AdminReimbursement = () => {
 
     if (searchTerm.trim() !== '') {
       const term = searchTerm.toLowerCase();
-      filtered = filtered.filter(r => 
+      filtered = filtered.filter(r =>
         (r.employeeNumber || '').toLowerCase().includes(term) ||
         (r.employeeName || '').toLowerCase().includes(term)
       );
@@ -109,7 +113,7 @@ const AdminReimbursement = () => {
 
       if (response.data.success) {
         // Update local state
-        const updatedData = reimbursements.map(r => 
+        const updatedData = reimbursements.map(r =>
           r.id === id ? { ...r, status: newStatus, actionDate: new Date().toISOString(), approvedBy: adminName, reason: reason.trim() } : r
         );
         setReimbursements(updatedData);
@@ -130,62 +134,61 @@ const AdminReimbursement = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 py-8 px-6 font-sans">
-      <div className="max-w-7xl mx-auto space-y-6">
-        
-        {/* Header */}
-        <div className="flex flex-col md:flex-row md:items-center justify-start gap-4 bg-white p-6 rounded-xl shadow-sm border border-gray-200">
-          <button 
-            onClick={() => navigate('/home')} 
-            className="flex items-center gap-2 px-4 py-2 border border-gray-300 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors self-start md:self-auto mr-4"
-          >
-            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth="2">
-              <path strokeLinecap="round" strokeLinejoin="round" d="M10 19l-7-7m0 0l7-7m-7 7h18" />
-            </svg>
-            Back to Dashboard
-          </button>
-          <div className="border-l border-gray-200 pl-6">
-            <h1 className="text-2xl font-bold text-gray-800">Reimbursement Management</h1>
-            <p className="text-sm text-gray-500 mt-1">Review and manage employee reimbursement requests</p>
-          </div>
-        </div>
+    <DashboardLayout>
+      <DashboardHeader 
+        title="Reimbursement Management"
+        subtitle="Review and manage employee reimbursement requests"
+      />
 
+      <DashboardContainer>
         {/* Dashboard Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-          <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-200 border-l-4 border-l-blue-500">
-            <p className="text-sm font-medium text-gray-500 mb-1">Total Requests</p>
-            <h3 className="text-3xl font-bold text-gray-800">{stats.total}</h3>
-          </div>
-          <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-200 border-l-4 border-l-yellow-500">
-            <p className="text-sm font-medium text-gray-500 mb-1">Pending Requests</p>
-            <h3 className="text-3xl font-bold text-gray-800">{stats.pending}</h3>
-          </div>
-          <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-200 border-l-4 border-l-green-500">
-            <p className="text-sm font-medium text-gray-500 mb-1">Approved Requests</p>
-            <h3 className="text-3xl font-bold text-gray-800">{stats.approved}</h3>
-          </div>
-          <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-200 border-l-4 border-l-red-500">
-            <p className="text-sm font-medium text-gray-500 mb-1">Rejected Requests</p>
-            <h3 className="text-3xl font-bold text-gray-800">{stats.rejected}</h3>
-          </div>
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-6">
+          {[
+            {
+              icon: FileText,
+              title: "Total Requests",
+              value: stats.total,
+              colorClass: "text-blue-600 bg-blue-50"
+            },
+            {
+              icon: Clock,
+              title: "Pending Requests",
+              value: stats.pending,
+              colorClass: "text-yellow-600 bg-yellow-50"
+            },
+            {
+              icon: CheckCircle,
+              title: "Approved Requests",
+              value: stats.approved,
+              colorClass: "text-green-600 bg-green-50"
+            },
+            {
+              icon: XCircle,
+              title: "Rejected Requests",
+              value: stats.rejected,
+              colorClass: "text-red-600 bg-red-50"
+            }
+          ].map((stat, idx) => (
+            <StatCard key={idx} {...stat} />
+          ))}
         </div>
 
         {/* Filters and Search */}
         <div className="bg-white p-4 rounded-xl shadow-sm border border-gray-200 flex flex-col md:flex-row gap-4 items-center justify-between">
           <div className="relative w-full md:w-96">
             <svg className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
-            <input 
-              type="text" 
-              placeholder="Search by Employee No. or Name..." 
+            <input
+              type="text"
+              placeholder="Search by Employee No. or Name..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
             />
           </div>
-          
+
           <div className="flex items-center gap-2 w-full md:w-auto">
             <label className="text-sm font-medium text-gray-600 whitespace-nowrap">Filter By:</label>
-            <select 
+            <select
               value={statusFilter}
               onChange={(e) => setStatusFilter(e.target.value)}
               className="w-full md:w-40 border border-gray-300 rounded-lg py-2 px-3 focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white text-sm"
@@ -268,13 +271,13 @@ const AdminReimbursement = () => {
                       <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                         {item.status === 'PENDING' ? (
                           <div className="flex justify-end gap-2">
-                            <button 
+                            <button
                               onClick={() => handleAction(item.id, 'APPROVED')}
                               className="inline-flex items-center px-3 py-1.5 border border-transparent text-xs font-medium rounded shadow-sm text-white bg-green-600 hover:bg-green-700 focus:outline-none"
                             >
                               Approve
                             </button>
-                            <button 
+                            <button
                               onClick={() => handleAction(item.id, 'REJECTED')}
                               className="inline-flex items-center px-3 py-1.5 border border-transparent text-xs font-medium rounded shadow-sm text-white bg-red-600 hover:bg-red-700 focus:outline-none"
                             >
@@ -293,8 +296,8 @@ const AdminReimbursement = () => {
           )}
         </div>
 
-      </div>
-    </div>
+      </DashboardContainer>
+    </DashboardLayout>
   );
 };
 

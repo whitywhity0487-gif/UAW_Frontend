@@ -144,6 +144,7 @@ const PolicyContent = ({ description, accentColor }) => {
 const AddEditPolicyModal = ({ isOpen, onClose, onSave, policy = null }) => {
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
+  const [nationalities, setNationalities] = useState([]);
   const [loading, setLoading] = useState(false);
   const isEditing = !!policy;
 
@@ -151,9 +152,17 @@ const AddEditPolicyModal = ({ isOpen, onClose, onSave, policy = null }) => {
     if (policy) {
       setTitle(policy.title || "");
       setDescription(policy.description || "");
+      if (Array.isArray(policy.nationality)) {
+        setNationalities(policy.nationality);
+      } else if (typeof policy.nationality === "string" && policy.nationality.trim() !== "") {
+        setNationalities([policy.nationality]);
+      } else {
+        setNationalities([]);
+      }
     } else {
       setTitle("");
       setDescription("");
+      setNationalities([]);
     }
   }, [policy, isOpen]);
 
@@ -161,13 +170,13 @@ const AddEditPolicyModal = ({ isOpen, onClose, onSave, policy = null }) => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!title.trim() || !description.trim()) {
-      alert("Please fill in all fields");
+    if (!title.trim() || !description.trim() || nationalities.length === 0) {
+      alert("Please fill in all fields including Nationality Target");
       return;
     }
     setLoading(true);
     try {
-      await onSave({ title: title.trim(), description: description.trim() });
+      await onSave({ title: title.trim(), description: description.trim(), nationality: nationalities });
       onClose();
     } catch (error) {
       alert(error.response?.data?.message || "Failed to save policy");
@@ -210,6 +219,55 @@ const AddEditPolicyModal = ({ isOpen, onClose, onSave, policy = null }) => {
                 className="w-full px-3.5 py-3 border border-[#D1D5DB] rounded-lg text-[15px] outline-none"
                 required
               />
+            </div>
+            <div className="mb-6">
+              <label className="block font-semibold mb-2 text-sm">Nationality Target *</label>
+              <div className="flex flex-wrap gap-4 px-1 py-2">
+                <label className="flex items-center gap-2 cursor-pointer text-[15px]">
+                  <input
+                    type="checkbox"
+                    className="w-4 h-4 cursor-pointer"
+                    checked={nationalities.includes("INDIA")}
+                    onChange={(e) => {
+                      if (e.target.checked) setNationalities(prev => [...prev, "INDIA"]);
+                      else setNationalities(prev => prev.filter(n => n !== "INDIA"));
+                    }}
+                  /> India
+                </label>
+                <label className="flex items-center gap-2 cursor-pointer text-[15px]">
+                  <input
+                    type="checkbox"
+                    className="w-4 h-4 cursor-pointer"
+                    checked={nationalities.includes("CHINA")}
+                    onChange={(e) => {
+                      if (e.target.checked) setNationalities(prev => [...prev, "CHINA"]);
+                      else setNationalities(prev => prev.filter(n => n !== "CHINA"));
+                    }}
+                  /> China
+                </label>
+                <label className="flex items-center gap-2 cursor-pointer text-[15px]">
+                  <input
+                    type="checkbox"
+                    className="w-4 h-4 cursor-pointer"
+                    checked={nationalities.includes("USA")}
+                    onChange={(e) => {
+                      if (e.target.checked) setNationalities(prev => [...prev, "USA"]);
+                      else setNationalities(prev => prev.filter(n => n !== "USA"));
+                    }}
+                  /> USA
+                </label>
+                <label className="flex items-center gap-2 cursor-pointer text-[15px]">
+                  <input
+                    type="checkbox"
+                    className="w-4 h-4 cursor-pointer"
+                    checked={nationalities.includes("GLOBAL")}
+                    onChange={(e) => {
+                      if (e.target.checked) setNationalities(prev => [...prev, "GLOBAL"]);
+                      else setNationalities(prev => prev.filter(n => n !== "GLOBAL"));
+                    }}
+                  /> Global (All)
+                </label>
+              </div>
             </div>
             <div>
               <label className="block font-semibold mb-2 text-sm">Policy Description *</label>
@@ -310,6 +368,7 @@ const PolicyTemplate = ({
   const [searchTerm, setSearchTerm] = useState("");
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [isAdmin, setIsAdmin] = useState(false);
+  const [userNationality, setUserNationality] = useState(null);
 
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
@@ -324,7 +383,24 @@ const PolicyTemplate = ({
     if (storedUser) {
       try {
         const user = JSON.parse(storedUser);
-        setIsAdmin(["Admin", "admin", "ADMIN"].includes(user.role));
+        const adminCheck = ["Admin", "admin", "ADMIN"].includes(user.role);
+        setIsAdmin(adminCheck);
+        
+        if (!adminCheck) {
+          let nat = user.nationality || "INDIA";
+          setUserNationality(nat.toUpperCase());
+          
+          const userIdToFetch = user.username || user.employeeId || user.userId;
+          if (userIdToFetch) {
+            axios.get(`http://localhost:5000/api/personal-details?userId=${userIdToFetch}`)
+              .then(res => {
+                if (res.data?.data?.nationality) {
+                  setUserNationality(res.data.data.nationality.toUpperCase());
+                }
+              })
+              .catch(() => {});
+          }
+        }
       } catch (err) {
         console.error("Error parsing user data:", err);
       }
@@ -398,9 +474,24 @@ const PolicyTemplate = ({
   const openEditModal = (policy) => { setPolicyToEdit(policy); setIsEditModalOpen(true); };
   const openDeleteModal = (policy) => { setPolicyToDelete(policy); setIsDeleteModalOpen(true); };
 
-  const filteredPolicies = policies.filter((p) =>
-    p.title.toLowerCase().includes(searchTerm.toLowerCase())
-  );
+  const nationalityPolicies = policies.filter((p) => {
+    if (isAdmin) return true;
+    if (userNationality && p.nationality) {
+      const polNats = Array.isArray(p.nationality) 
+        ? p.nationality.map(n => n.toUpperCase()) 
+        : [p.nationality.toUpperCase()];
+      
+      if (polNats.includes("GLOBAL")) return true;
+      return polNats.includes(userNationality.toUpperCase());
+    }
+    return true; 
+  });
+
+  const filteredPolicies = nationalityPolicies.filter((p) => {
+    return p.title.toLowerCase().includes(searchTerm.toLowerCase());
+  });
+
+  const displayPolicy = selectedPolicy && filteredPolicies.some((p) => p.id === selectedPolicy.id) ? selectedPolicy : null;
 
   return (
     <PolicySecurity isAdmin={isAdmin}>
@@ -423,38 +514,44 @@ const PolicyTemplate = ({
               Back to Home
             </button>
 
-            <div className="flex items-center gap-2.5 mb-4">
-              <div
-                className="w-8 h-8 rounded-lg flex items-center justify-center shrink-0"
-                style={{ background: `linear-gradient(135deg, ${gradientColors[0]} 0%, ${gradientColors[1]} 100%)` }}
-              >
-                {icon}
-              </div>
-              <div>
-                <p className="text-[13px] font-bold text-[#111827] m-0">UANDWE</p>
-                <p className="text-[10.5px] text-[#9CA3AF] m-0 uppercase">{title}</p>
-              </div>
-            </div>
+            {(!loading && !error && nationalityPolicies.length === 0) ? null : (
+              <>
+                <div className="flex items-center gap-2.5 mb-4">
+                  <div
+                    className="w-8 h-8 rounded-lg flex items-center justify-center shrink-0"
+                    style={{ background: `linear-gradient(135deg, ${gradientColors[0]} 0%, ${gradientColors[1]} 100%)` }}
+                  >
+                    {icon}
+                  </div>
+                  <div>
+                    <p className="text-[13px] font-bold text-[#111827] m-0">UANDWE</p>
+                    <p className="text-[10.5px] text-[#9CA3AF] m-0 uppercase">{title}</p>
+                  </div>
+                </div>
 
-            <div className="flex items-center gap-2 border border-[#E5E7EB] rounded-lg px-2.5 py-[7px] bg-[#F9FAFB]">
-              <svg width="13" height="13" fill="none" stroke="#9CA3AF" strokeWidth="2" viewBox="0 0 24 24">
-                <circle cx="11" cy="11" r="8" />
-                <path d="m21 21-4.35-4.35" />
-              </svg>
-              <input
-                type="text"
-                placeholder={`Search ${title.toLowerCase()}…`}
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                className="border-none outline-none bg-transparent text-[13px] w-full"
-              />
-            </div>
+                <div className="flex items-center gap-2 border border-[#E5E7EB] rounded-lg px-2.5 py-[7px] bg-[#F9FAFB]">
+                  <svg width="13" height="13" fill="none" stroke="#9CA3AF" strokeWidth="2" viewBox="0 0 24 24">
+                    <circle cx="11" cy="11" r="8" />
+                    <path d="m21 21-4.35-4.35" />
+                  </svg>
+                  <input
+                    type="text"
+                    placeholder={`Search ${title.toLowerCase()}…`}
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                    className="border-none outline-none bg-transparent text-[13px] w-full"
+                  />
+                </div>
+              </>
+            )}
           </div>
 
           {/* Section label */}
-          <div className="px-5 pt-3.5 pb-2">
-            <p className="text-[10px] font-bold text-[#9CA3AF] uppercase m-0">{title}</p>
-          </div>
+          {(!loading && !error && nationalityPolicies.length === 0) ? null : (
+            <div className="px-5 pt-3.5 pb-2">
+              <p className="text-[10px] font-bold text-[#9CA3AF] uppercase m-0">{title}</p>
+            </div>
+          )}
 
           {/* Policy list */}
           <div className="flex-1 overflow-y-auto px-2 pb-2">
@@ -469,7 +566,7 @@ const PolicyTemplate = ({
               <p className="text-[13px] text-[#EF4444] p-3 text-center">{error}</p>
             ) : filteredPolicies.length === 0 ? (
               <p className="text-[13px] text-[#9CA3AF] p-3 text-center">
-                {searchTerm ? `No matching ${policyType} policies` : `No ${policyType} policies available`}
+                {searchTerm ? `No matching ${policyType} policies` : (!userNationality && !isAdmin ? "Checking nationality..." : "No policies found for your nationality")}
               </p>
             ) : (
               filteredPolicies.map((policy) => {
@@ -494,11 +591,13 @@ const PolicyTemplate = ({
           </div>
 
           {/* Sidebar footer */}
-          <div className="px-5 py-2.5 border-t border-[#F3F4F6]">
-            <p className="text-xs text-[#D1D5DB] m-0">
-              {filteredPolicies.length} polic{filteredPolicies.length === 1 ? "y" : "ies"}
-            </p>
-          </div>
+          {(!loading && !error && nationalityPolicies.length === 0) ? null : (
+            <div className="px-5 py-2.5 border-t border-[#F3F4F6]">
+              <p className="text-xs text-[#D1D5DB] m-0">
+                {filteredPolicies.length} polic{filteredPolicies.length === 1 ? "y" : "ies"}
+              </p>
+            </div>
+          )}
         </aside>
 
         {/* ── MAIN PANEL ── */}
@@ -549,7 +648,7 @@ const PolicyTemplate = ({
 
           {/* Main content */}
           <main className="flex-1 overflow-y-auto px-[72px] py-10">
-            {selectedPolicy ? (
+            {displayPolicy ? (
               <div className="w-full">
 
                 {/* Policy header card */}
@@ -574,14 +673,14 @@ const PolicyTemplate = ({
                           </span>
                         </div>
                         <h1 className="text-[38px] font-bold text-[#111827] m-0 leading-[1.2]">
-                          {selectedPolicy.title}
+                          {displayPolicy.title}
                         </h1>
                       </div>
 
                       {showAddButton && isAdmin && (
                         <div className="flex gap-2 shrink-0 mt-1.5">
                           <button
-                            onClick={() => openEditModal(selectedPolicy)}
+                            onClick={() => openEditModal(displayPolicy)}
                             className="flex items-center gap-1.5 text-[13.5px] font-semibold text-[#374151] bg-[#F9FAFB] border border-[#E5E7EB] rounded-lg px-[18px] py-[9px] cursor-pointer"
                           >
                             <svg width="13" height="13" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
@@ -591,7 +690,7 @@ const PolicyTemplate = ({
                             Edit
                           </button>
                           <button
-                            onClick={() => openDeleteModal(selectedPolicy)}
+                            onClick={() => openDeleteModal(displayPolicy)}
                             className="flex items-center gap-1.5 text-[13.5px] font-semibold text-[#DC2626] bg-[#FEF2F2] border border-[#FECACA] rounded-lg px-[18px] py-[9px] cursor-pointer"
                           >
                             <svg width="13" height="13" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
@@ -622,7 +721,7 @@ const PolicyTemplate = ({
 
                 {/* Policy body card */}
                 <div className="bg-white border border-[#E5E7EB] rounded-xl px-[52px] py-11">
-                  <PolicyContent description={selectedPolicy.description} accentColor={accentColor} />
+                  <PolicyContent description={displayPolicy.description} accentColor={accentColor} />
                 </div>
 
                 {/* Footer notice */}
@@ -650,10 +749,14 @@ const PolicyTemplate = ({
                 </div>
                 <div>
                   <h2 className="text-[17px] font-semibold text-[#374151] m-0 mb-1.5">
-                    No {policyType} policy selected
+                    {filteredPolicies.length === 0 ? `No ${policyType} policies found` : `No ${policyType} policy selected`}
                   </h2>
                   <p className="text-[15px] text-[#9CA3AF] m-0">
-                    Choose a {policyType} policy from the sidebar to view it here.
+                    {filteredPolicies.length === 0 
+                      ? (nationalityPolicies.length === 0 
+                          ? (!userNationality && !isAdmin ? "Checking nationality..." : "There are no policies available for your assigned nationality at this time.")
+                          : "No policies match your search term.")
+                      : `Choose a ${policyType} policy from the sidebar to view it here.`}
                   </p>
                 </div>
               </div>

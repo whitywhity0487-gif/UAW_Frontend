@@ -67,9 +67,6 @@ export const CompanyProvider = ({ children }) => {
     
     try {
       let url = 'http://localhost:5000/api/holiday/companies';
-      if (client && client !== 'undefined' && client !== 'null') {
-        url += `?client=${encodeURIComponent(client)}`;
-      }
       
       const response = await fetch(url);
       
@@ -82,7 +79,15 @@ export const CompanyProvider = ({ children }) => {
       if (data.success && data.data) {
         setAvailableCompanies(data.data);
         
-        if (!currentCompany && data.data.length > 0) {
+        // Check if assigned client matches any company name or client name
+        const client = clientName || assignedClient;
+        const matchedCompany = client 
+          ? data.data.find(c => c.name === client || c.client === client)
+          : null;
+        
+        if (matchedCompany) {
+          setCurrentCompany(matchedCompany.name);
+        } else if (!currentCompany && data.data.length > 0) {
           setCurrentCompany(data.data[0].name);
         }
       } else {

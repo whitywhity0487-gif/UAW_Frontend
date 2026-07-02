@@ -1,6 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
+import DashboardLayout, { DashboardContainer } from '../../components/dashboard/DashboardLayout';
+import DashboardHeader from '../../components/dashboard/DashboardHeader';
+import StatCard from '../../components/dashboard/StatCard';
+import { FileText, Clock, CheckCircle, XCircle } from 'lucide-react';
 
 const AdminSalaryAdvance = () => {
   const navigate = useNavigate();
@@ -18,7 +22,7 @@ const AdminSalaryAdvance = () => {
     dateTo: ''
   });
   const [showFilters, setShowFilters] = useState(false);
-  
+
   const [reasonModal, setReasonModal] = useState({ isOpen: false, reason: '', employeeName: '' });
   const [actionModal, setActionModal] = useState({ isOpen: false, action: '', requestId: '', remarks: '' });
   const [submittingAction, setSubmittingAction] = useState(false);
@@ -38,7 +42,7 @@ const AdminSalaryAdvance = () => {
     setLoading(true);
     try {
       const params = new URLSearchParams();
-      
+
       if (searchTerm && searchTerm.trim()) {
         params.append('search', searchTerm.trim());
       }
@@ -53,10 +57,10 @@ const AdminSalaryAdvance = () => {
         endDate.setHours(23, 59, 59, 999);
         params.append('dateTo', endDate.toISOString());
       }
-      
+
       const url = `http://localhost:5000/api/salary-advance/requests${params.toString() ? `?${params.toString()}` : ''}`;
       const response = await axios.get(url);
-      
+
       if (response.data.success) {
         setRequests(response.data.data);
       } else {
@@ -94,14 +98,14 @@ const AdminSalaryAdvance = () => {
     }
 
     setSubmittingAction(true);
-    
+
     const storedUser = localStorage.getItem('user');
     let adminName = 'Admin';
     if (storedUser) {
       try {
         const user = JSON.parse(storedUser);
         adminName = user.name || user.username || 'Admin';
-      } catch (e) {}
+      } catch (e) { }
     }
 
     try {
@@ -109,7 +113,7 @@ const AdminSalaryAdvance = () => {
         adminRemarks: actionModal.remarks,
         reviewedBy: adminName
       });
-      
+
       if (response.data.success) {
         setSuccessMsg(`Request successfully ${actionModal.action}d!`);
         setActionModal({ isOpen: false, action: '', requestId: '', remarks: '' });
@@ -132,14 +136,14 @@ const AdminSalaryAdvance = () => {
     }
 
     setSubmittingRepay(true);
-    
+
     const storedUser = localStorage.getItem('user');
     let adminName = 'Admin';
     if (storedUser) {
       try {
         const user = JSON.parse(storedUser);
         adminName = user.name || user.username || 'Admin';
-      } catch (e) {}
+      } catch (e) { }
     }
 
     try {
@@ -147,7 +151,7 @@ const AdminSalaryAdvance = () => {
         remarks: repayModal.remarks,
         adminName
       });
-      
+
       if (response.data.success) {
         setSuccessMsg(response.data.message || 'Repayment recorded successfully!');
         setRepayModal({ isOpen: false, employeeNumber: '', remarks: '' });
@@ -199,149 +203,145 @@ const AdminSalaryAdvance = () => {
   const hasActiveFilters = searchTerm.trim() !== '' || filters.status !== 'ALL' || filters.dateFrom || filters.dateTo;
 
   return (
-    <div style={{ maxWidth: 1400, margin: '40px auto', padding: '0 20px' }}>
-      <div style={{
-        background: '#FFFFFF',
-        border: '1px solid #E5E7EB',
-        borderRadius: 16,
-        padding: '32px',
-        boxShadow: '0 4px 6px rgba(0,0,0,0.05)'
-      }}>
-        <div style={{ marginBottom: 24 }}>
-          <button 
-            onClick={() => navigate(-1)} 
-            style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', padding: '6px 12px', background: 'transparent', border: '1px solid #E5E7EB', borderRadius: '8px', cursor: 'pointer', marginBottom: '16px', fontSize: '13px', fontWeight: 600, color: '#4B5563' }}
-          >
-            ← Back
-          </button>
-          <h2 style={{ fontSize: 24, fontWeight: 700, marginBottom: 16, color: '#111827' }}>
-            👥 Manage Salary Advances
-          </h2>
-          
-          <div style={{ display: 'flex', gap: 16, flexWrap: 'wrap', marginBottom: 24 }}>
-            <div style={{ flex: 1, minWidth: 150, background: '#F9FAFB', padding: '16px', borderRadius: 12, border: '1px solid #E5E7EB' }}>
-              <div style={{ fontSize: 12, color: '#6B7280', marginBottom: 4 }}>Total Requests</div>
-              <div style={{ fontSize: 28, fontWeight: 700, color: '#111827' }}>{requests.length}</div>
-            </div>
-            <div style={{ flex: 1, minWidth: 150, background: '#FEF3C7', padding: '16px', borderRadius: 12, border: '1px solid #FDE68A' }}>
-              <div style={{ fontSize: 12, color: '#92400E', marginBottom: 4 }}>Pending Amount</div>
-              <div style={{ fontSize: 28, fontWeight: 700, color: '#92400E' }}>₹{getPendingAmount().toLocaleString()}</div>
-            </div>
-            <div style={{ flex: 1, minWidth: 150, background: '#D1FAE5', padding: '16px', borderRadius: 12, border: '1px solid #A7F3D0' }}>
-              <div style={{ fontSize: 12, color: '#065F46', marginBottom: 4 }}>Approved Amount</div>
-              <div style={{ fontSize: 28, fontWeight: 700, color: '#065F46' }}>₹{getApprovedAmount().toLocaleString()}</div>
-            </div>
-            <div style={{ flex: 1, minWidth: 150, background: '#FEE2E2', padding: '16px', borderRadius: 12, border: '1px solid #FECACA' }}>
-              <div style={{ fontSize: 12, color: '#991B1B', marginBottom: 4 }}>Rejected Amount</div>
-              <div style={{ fontSize: 28, fontWeight: 700, color: '#991B1B' }}>
-                ₹{getRejectedAmount().toLocaleString()}
-              </div>
-            </div>
-          </div>
+    <DashboardLayout>
+      <DashboardHeader
+        title="Manage Salary Advances"
+        subtitle="Review and manage employee salary advance requests"
+      />
+      <DashboardContainer>
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-6">
+          {[
+            {
+              icon: FileText,
+              title: "Total Requests",
+              value: requests.length,
+              colorClass: "text-blue-600 bg-blue-50"
+            },
+            {
+              icon: Clock,
+              title: "Pending Amount",
+              value: `₹${getPendingAmount().toLocaleString()}`,
+              colorClass: "text-yellow-600 bg-yellow-50"
+            },
+            {
+              icon: CheckCircle,
+              title: "Approved Amount",
+              value: `₹${getApprovedAmount().toLocaleString()}`,
+              colorClass: "text-green-600 bg-green-50"
+            },
+            {
+              icon: XCircle,
+              title: "Rejected Amount",
+              value: `₹${getRejectedAmount().toLocaleString()}`,
+              colorClass: "text-red-600 bg-red-50"
+            }
+          ].map((stat, idx) => (
+            <StatCard key={idx} {...stat} />
+          ))}
+        </div>
 
-          <div style={{ marginBottom: 24 }}>
-            <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap', alignItems: 'center' }}>
-              <div style={{ flex: 2, minWidth: 250, position: 'relative' }}>
-                <input
-                  type="text"
-                  placeholder="🔍 Search by employee name, ID, employee number, or amount..."
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                  style={{
-                    width: '100%',
-                    padding: '12px 16px',
-                    border: '2px solid #E5E7EB',
-                    borderRadius: 10,
-                    fontSize: 14,
-                    outline: 'none',
-                    transition: 'border-color 0.2s'
-                  }}
-                  onFocus={(e) => e.target.style.borderColor = '#10B981'}
-                  onBlur={(e) => e.target.style.borderColor = '#E5E7EB'}
-                />
-                {searchLoading && (
-                  <div style={{
-                    position: 'absolute', right: 12, top: '50%', transform: 'translateY(-50%)',
-                    width: 20, height: 20, border: '2px solid #E5E7EB',
-                    borderTopColor: '#10B981', borderRadius: '50%',
-                    animation: 'spin 0.6s linear infinite'
-                  }} />
-                )}
-              </div>
-              
-              <button
-                onClick={() => setShowFilters(!showFilters)}
+        <div style={{ marginBottom: 24 }}>
+          <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap', alignItems: 'center' }}>
+            <div style={{ flex: 2, minWidth: 250, position: 'relative' }}>
+              <input
+                type="text"
+                placeholder="🔍 Search by employee name, ID, employee number, or amount..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
                 style={{
-                  padding: '12px 20px',
-                  background: showFilters ? '#10B981' : '#F3F4F6',
-                  border: `1px solid ${showFilters ? '#10B981' : '#D1D5DB'}`,
+                  width: '100%',
+                  padding: '12px 16px',
+                  border: '2px solid #E5E7EB',
                   borderRadius: 10,
-                  cursor: 'pointer',
                   fontSize: 14,
-                  fontWeight: 500,
-                  color: showFilters ? 'white' : '#374151',
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: 8,
-                  transition: 'all 0.2s'
+                  outline: 'none',
+                  transition: 'border-color 0.2s'
                 }}
-              >
-                🔍 Filters {showFilters ? '▼' : '▲'}
-              </button>
-              
-              {hasActiveFilters && (
-                <button
-                  onClick={clearFilters}
-                  style={{
-                    padding: '12px 20px', background: '#EF4444', border: 'none',
-                    borderRadius: 10, cursor: 'pointer', fontSize: 14,
-                    fontWeight: 500, color: 'white', transition: 'background 0.2s'
-                  }}
-                >
-                  ✕ Clear All
-                </button>
+                onFocus={(e) => e.target.style.borderColor = '#10B981'}
+                onBlur={(e) => e.target.style.borderColor = '#E5E7EB'}
+              />
+              {searchLoading && (
+                <div style={{
+                  position: 'absolute', right: 12, top: '50%', transform: 'translateY(-50%)',
+                  width: 20, height: 20, border: '2px solid #E5E7EB',
+                  borderTopColor: '#10B981', borderRadius: '50%',
+                  animation: 'spin 0.6s linear infinite'
+                }} />
               )}
             </div>
 
-            {showFilters && (
-              <div style={{
-                marginTop: 16, padding: 16, background: '#F9FAFB', borderRadius: 10,
-                border: '1px solid #E5E7EB', display: 'flex', gap: 16, flexWrap: 'wrap'
-              }}>
-                <div style={{ flex: 1, minWidth: 150 }}>
-                  <label style={{ display: 'block', marginBottom: 6, fontSize: 12, fontWeight: 600, color: '#374151' }}>Status</label>
-                  <select
-                    value={filters.status}
-                    onChange={(e) => setFilters({ ...filters, status: e.target.value })}
-                    style={{ width: '100%', padding: '8px 12px', border: '1px solid #D1D5DB', borderRadius: 8, fontSize: 14 }}
-                  >
-                    <option value="ALL">All Status</option>
-                    <option value="PENDING">Pending</option>
-                    <option value="APPROVED">Approved</option>
-                    <option value="REJECTED">Rejected</option>
-                  </select>
-                </div>
-                <div style={{ flex: 1, minWidth: 150 }}>
-                  <label style={{ display: 'block', marginBottom: 6, fontSize: 12, fontWeight: 600, color: '#374151' }}>Date From</label>
-                  <input
-                    type="date"
-                    value={filters.dateFrom}
-                    onChange={(e) => setFilters({ ...filters, dateFrom: e.target.value })}
-                    style={{ width: '100%', padding: '8px 12px', border: '1px solid #D1D5DB', borderRadius: 8, fontSize: 14 }}
-                  />
-                </div>
-                <div style={{ flex: 1, minWidth: 150 }}>
-                  <label style={{ display: 'block', marginBottom: 6, fontSize: 12, fontWeight: 600, color: '#374151' }}>Date To</label>
-                  <input
-                    type="date"
-                    value={filters.dateTo}
-                    onChange={(e) => setFilters({ ...filters, dateTo: e.target.value })}
-                    style={{ width: '100%', padding: '8px 12px', border: '1px solid #D1D5DB', borderRadius: 8, fontSize: 14 }}
-                  />
-                </div>
-              </div>
+            <button
+              onClick={() => setShowFilters(!showFilters)}
+              style={{
+                padding: '12px 20px',
+                background: showFilters ? '#10B981' : '#F3F4F6',
+                border: `1px solid ${showFilters ? '#10B981' : '#D1D5DB'}`,
+                borderRadius: 10,
+                cursor: 'pointer',
+                fontSize: 14,
+                fontWeight: 500,
+                color: showFilters ? 'white' : '#374151',
+                display: 'flex',
+                alignItems: 'center',
+                gap: 8,
+                transition: 'all 0.2s'
+              }}
+            >
+              🔍 Filters {showFilters ? '▼' : '▲'}
+            </button>
+
+            {hasActiveFilters && (
+              <button
+                onClick={clearFilters}
+                style={{
+                  padding: '12px 20px', background: '#EF4444', border: 'none',
+                  borderRadius: 10, cursor: 'pointer', fontSize: 14,
+                  fontWeight: 500, color: 'white', transition: 'background 0.2s'
+                }}
+              >
+                ✕ Clear All
+              </button>
             )}
           </div>
+
+          {showFilters && (
+            <div style={{
+              marginTop: 16, padding: 16, background: '#F9FAFB', borderRadius: 10,
+              border: '1px solid #E5E7EB', display: 'flex', gap: 16, flexWrap: 'wrap'
+            }}>
+              <div style={{ flex: 1, minWidth: 150 }}>
+                <label style={{ display: 'block', marginBottom: 6, fontSize: 12, fontWeight: 600, color: '#374151' }}>Status</label>
+                <select
+                  value={filters.status}
+                  onChange={(e) => setFilters({ ...filters, status: e.target.value })}
+                  style={{ width: '100%', padding: '8px 12px', border: '1px solid #D1D5DB', borderRadius: 8, fontSize: 14 }}
+                >
+                  <option value="ALL">All Status</option>
+                  <option value="PENDING">Pending</option>
+                  <option value="APPROVED">Approved</option>
+                  <option value="REJECTED">Rejected</option>
+                </select>
+              </div>
+              <div style={{ flex: 1, minWidth: 150 }}>
+                <label style={{ display: 'block', marginBottom: 6, fontSize: 12, fontWeight: 600, color: '#374151' }}>Date From</label>
+                <input
+                  type="date"
+                  value={filters.dateFrom}
+                  onChange={(e) => setFilters({ ...filters, dateFrom: e.target.value })}
+                  style={{ width: '100%', padding: '8px 12px', border: '1px solid #D1D5DB', borderRadius: 8, fontSize: 14 }}
+                />
+              </div>
+              <div style={{ flex: 1, minWidth: 150 }}>
+                <label style={{ display: 'block', marginBottom: 6, fontSize: 12, fontWeight: 600, color: '#374151' }}>Date To</label>
+                <input
+                  type="date"
+                  value={filters.dateTo}
+                  onChange={(e) => setFilters({ ...filters, dateTo: e.target.value })}
+                  style={{ width: '100%', padding: '8px 12px', border: '1px solid #D1D5DB', borderRadius: 8, fontSize: 14 }}
+                />
+              </div>
+            </div>
+          )}
         </div>
 
         {error && (
@@ -349,7 +349,7 @@ const AdminSalaryAdvance = () => {
             ❌ {error}
           </div>
         )}
-        
+
         {successMsg && (
           <div style={{ padding: '12px 16px', background: '#D1FAE5', borderRadius: 10, marginBottom: 20, color: '#065F46', fontSize: 14 }}>
             ✅ {successMsg}
@@ -402,7 +402,7 @@ const AdminSalaryAdvance = () => {
                     <tr key={req.requestId} style={{ borderBottom: '1px solid #E5E7EB', transition: 'background 0.2s' }}>
                       <td style={{ padding: '16px' }}>
                         <div style={{ fontWeight: 600, color: '#111827', cursor: 'pointer' }}
-                             onClick={() => fetchEmployeeDetails(req.employeeId || req.employeeNumber)}>
+                          onClick={() => fetchEmployeeDetails(req.employeeId || req.employeeNumber)}>
                           {req.employeeName} 🔍
                         </div>
                         {req.employeeNumber && (
@@ -413,7 +413,7 @@ const AdminSalaryAdvance = () => {
                       </td>
                       <td style={{ padding: '16px', fontWeight: 500, color: '#111827' }}>
                         {sym}{req.amount?.toLocaleString() || 0} {req.currency}
-                       </td>
+                      </td>
                       <td style={{ padding: '16px' }}>
                         <button
                           onClick={() => setReasonModal({ isOpen: true, reason: req.reason, employeeName: req.employeeName })}
@@ -425,12 +425,12 @@ const AdminSalaryAdvance = () => {
                         >
                           👁 View Reason
                         </button>
-                       </td>
+                      </td>
                       <td style={{ padding: '16px', color: '#4B5563', fontSize: 14 }}>
                         {formattedDate}
-                       </td>
+                      </td>
                       <td style={{ padding: '16px' }}>
-                        <span style={{ 
+                        <span style={{
                           background: statusColors.bg, color: statusColors.text,
                           padding: '4px 10px', borderRadius: 9999, fontSize: 12,
                           fontWeight: 600, display: 'inline-flex', alignItems: 'center', gap: 4
@@ -442,7 +442,7 @@ const AdminSalaryAdvance = () => {
                             <strong>Remarks:</strong> {req.adminRemarks}
                           </div>
                         )}
-                       </td>
+                      </td>
                       <td style={{ padding: '16px', textAlign: 'center' }}>
                         {req.status === 'PENDING' ? (
                           <div style={{ display: 'flex', gap: 8, justifyContent: 'center' }}>
@@ -466,15 +466,15 @@ const AdminSalaryAdvance = () => {
                         ) : (
                           <span style={{ fontSize: 13, color: '#9CA3AF' }}>Processed</span>
                         )}
-                       </td>
-                     </tr>
+                      </td>
+                    </tr>
                   );
                 })}
               </tbody>
             </table>
           </div>
         )}
-      </div>
+      </DashboardContainer>
 
       {/* Employee Analytics Modal */}
       {showEmployeeModal && selectedEmployee && (
@@ -501,7 +501,7 @@ const AdminSalaryAdvance = () => {
                 <h3 style={{ margin: 0, fontSize: 20, fontWeight: 700 }}>Employee Analytics</h3>
                 <p style={{ margin: '4px 0 0', opacity: 0.9, fontSize: 13 }}>Salary Advance History & Eligibility</p>
               </div>
-              <button 
+              <button
                 onClick={() => setShowEmployeeModal(false)}
                 style={{ background: 'rgba(255,255,255,0.2)', border: 'none', fontSize: 24, cursor: 'pointer', color: 'white', width: 32, height: 32, borderRadius: 8 }}
               >×</button>
@@ -549,7 +549,7 @@ const AdminSalaryAdvance = () => {
                     ₹{(selectedEmployee.salaryAdvanceRemaining || 0).toLocaleString()}
                   </div>
                 </div>
-                
+
                 <div style={{ padding: 16, background: selectedEmployee.salaryAdvanceEligible ? '#D1FAE5' : '#FEE2E2', borderRadius: 12, border: `1px solid ${selectedEmployee.salaryAdvanceEligible ? '#34D399' : '#F87171'}` }}>
                   <div style={{ fontSize: 12, color: selectedEmployee.salaryAdvanceEligible ? '#065F46' : '#991B1B', marginBottom: 4 }}>Current Eligibility</div>
                   <div style={{ fontSize: 20, fontWeight: 700, color: selectedEmployee.salaryAdvanceEligible ? '#065F46' : '#991B1B' }}>
@@ -614,7 +614,7 @@ const AdminSalaryAdvance = () => {
               <h3 style={{ margin: 0, fontSize: 18, fontWeight: 700, color: '#111827' }}>
                 💳 Mark as Repaid
               </h3>
-              <button 
+              <button
                 onClick={() => setRepayModal({ isOpen: false, employeeNumber: '', remarks: '' })}
                 style={{ background: 'none', border: 'none', fontSize: 20, cursor: 'pointer', color: '#9CA3AF' }}
               >×</button>
@@ -637,12 +637,12 @@ const AdminSalaryAdvance = () => {
                 />
               </div>
               <div style={{ padding: '16px 24px', borderTop: '1px solid #E5E7EB', display: 'flex', gap: 12, justifyContent: 'flex-end' }}>
-                <button 
+                <button
                   type="button"
                   onClick={() => setRepayModal({ isOpen: false, employeeNumber: '', remarks: '' })}
                   style={{ background: '#F3F4F6', border: '1px solid #D1D5DB', padding: '10px 20px', borderRadius: 8, cursor: 'pointer', fontWeight: 500, color: '#374151' }}
                 >Cancel</button>
-                <button 
+                <button
                   type="submit"
                   disabled={submittingRepay || !repayModal.remarks.trim()}
                   style={{ background: '#3B82F6', border: 'none', padding: '10px 20px', color: 'white', borderRadius: 8, cursor: 'pointer', fontWeight: 600 }}
@@ -674,7 +674,7 @@ const AdminSalaryAdvance = () => {
               <h3 style={{ margin: 0, fontSize: 18, fontWeight: 700, color: '#111827' }}>
                 📝 Reason for Salary Advance
               </h3>
-              <button 
+              <button
                 onClick={() => setReasonModal({ isOpen: false, reason: '', employeeName: '' })}
                 style={{ background: 'none', border: 'none', fontSize: 20, cursor: 'pointer', color: '#9CA3AF' }}
               >×</button>
@@ -710,7 +710,7 @@ const AdminSalaryAdvance = () => {
               <h3 style={{ margin: 0, fontSize: 18, fontWeight: 700, color: '#111827' }}>
                 {actionModal.action === 'approve' ? '✅ Approve Salary Advance' : '❌ Reject Salary Advance'}
               </h3>
-              <button 
+              <button
                 onClick={() => setActionModal({ isOpen: false, action: '', requestId: '', remarks: '' })}
                 style={{ background: 'none', border: 'none', fontSize: 20, cursor: 'pointer', color: '#9CA3AF' }}
               >×</button>
@@ -729,12 +729,12 @@ const AdminSalaryAdvance = () => {
                 />
               </div>
               <div style={{ padding: '16px 24px', borderTop: '1px solid #E5E7EB', display: 'flex', gap: 12, justifyContent: 'flex-end' }}>
-                <button 
+                <button
                   type="button"
                   onClick={() => setActionModal({ isOpen: false, action: '', requestId: '', remarks: '' })}
                   style={{ background: '#F3F4F6', border: '1px solid #D1D5DB', padding: '10px 20px', borderRadius: 8, cursor: 'pointer', fontWeight: 500, color: '#374151' }}
                 >Cancel</button>
-                <button 
+                <button
                   type="submit"
                   disabled={submittingAction || !actionModal.remarks.trim()}
                   style={{
@@ -754,7 +754,7 @@ const AdminSalaryAdvance = () => {
       <style>{`
         @keyframes spin { to { transform: rotate(360deg); } }
       `}</style>
-    </div>
+    </DashboardLayout>
   );
 };
 

@@ -345,6 +345,8 @@ const CreateUser = () => {
       return "bg-orange-100 text-orange-700";
     } else if (role === "Employee") {
       return "bg-gray-100 text-gray-700";
+    } else if (role === "HR") {
+      return "bg-pink-100 text-pink-700";
     } else {
       return "bg-gray-100 text-gray-700";
     }
@@ -384,7 +386,7 @@ const CreateUser = () => {
               <p className="text-sm text-gray-500">Please make sure your backend server is running</p>
               <button
                 onClick={() => window.location.reload()}
-                className="mt-4 px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+                className="mt-4 px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 cursor-pointer"
               >
                 Retry Connection
               </button>
@@ -488,6 +490,7 @@ const CreateUser = () => {
                     <option value="Client Interviewer">Client Interviewer (Client-side interviewer)</option>
                     <option value="Admin">Admin (Full access)</option>
                     <option value="Employee">Employee (View-only access)</option>
+                    <option value="HR">HR (Human Resources Manager)</option>
                   </select>
                   <p className="text-xs text-gray-500 mt-1">
                     Admin can edit/delete demands and manage users. Recruiter can view and manage candidates. 
@@ -562,7 +565,7 @@ const CreateUser = () => {
                       loading || 
                       ((formData.role === "Interviewer" || formData.role === "Client Interviewer") && !formData.assignedClient)
                     }
-                    className={`flex items-center gap-2 px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors ${
+                    className={`flex items-center gap-2 px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors cursor-pointer ${
                       (loading || 
                        ((formData.role === "Interviewer" || formData.role === "Client Interviewer") && !formData.assignedClient)) 
                         ? "opacity-50 cursor-not-allowed" 
@@ -604,7 +607,7 @@ const CreateUser = () => {
                     <button
                       type="button"
                       onClick={handleCancelEdit}
-                      className="flex items-center gap-2 px-6 py-2 bg-gray-500 text-white rounded-lg hover:bg-gray-600 transition-colors"
+                      className="flex items-center gap-2 px-6 py-2 bg-gray-500 text-white rounded-lg hover:bg-gray-600 transition-colors cursor-pointer"
                     >
                       <X size={18} />
                       Cancel
@@ -662,14 +665,14 @@ const CreateUser = () => {
                         <td className="px-4 py-3 text-sm text-right">
                           <button
                             onClick={() => handleEdit(user)}
-                            className="text-blue-600 hover:text-blue-800 mr-3"
+                            className="text-blue-600 hover:text-blue-800 mr-3 cursor-pointer"
                             title="Edit"
                           >
                             <Edit2 size={16} />
                           </button>
                           <button
                             onClick={() => handleDelete(user.username)}
-                            className="text-red-600 hover:text-red-800"
+                            className="text-red-600 hover:text-red-800 cursor-pointer"
                             title="Delete"
                           >
                             <Trash2 size={16} />
@@ -685,17 +688,7 @@ const CreateUser = () => {
                     No users found
                   </div>
                 )}
-              </div>
-              
-              {/* Legend for PID status */}
-              <div className="mt-4 pt-4 border-t border-gray-200">
-                <p className="text-xs text-gray-500">
-                  <span className="inline-block w-3 h-3 rounded-full bg-green-100 mr-1"></span> 
-                  PID assigned: User has completed personal details
-                  <span className="inline-block w-3 h-3 rounded-full bg-gray-100 ml-3 mr-1"></span> 
-                  Not assigned: User needs to complete personal details
-                </p>
-              </div>
+              </div>        
             </div>
           </div>
         </div>

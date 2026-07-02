@@ -1,8 +1,8 @@
 @import "tailwindcss";
 
-
-
-
+body {
+  font-family: 'DM Sans', 'Inter', sans-serif;
+}
 /* Disable smooth scroll behavior */
 * {
   scroll-behavior: auto !important;

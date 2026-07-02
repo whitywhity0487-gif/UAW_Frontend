@@ -32,7 +32,7 @@ const SkillsSidebar = ({
         <div className="space-y-2 mb-4 max-h-[400px] overflow-y-auto">
           <button
             onClick={() => handleSkillSelect("All")}
-            className={`w-full text-left px-3 py-2 rounded-lg transition-colors flex justify-between items-center ${
+            className={`w-full text-left px-3 py-2 rounded-lg transition-colors flex justify-between items-center cursor-pointer ${
               selectedSkill === "All"
                 ? "bg-blue-100 text-blue-700 border border-blue-300"
                 : "hover:bg-gray-100"
@@ -54,7 +54,7 @@ const SkillsSidebar = ({
                     <button
                       onClick={() => handleSkillSelect(skill.name)}
                       disabled={filterLoading}
-                      className={`flex-1 text-left px-3 py-2 rounded-lg transition-colors flex justify-between items-center ${
+                      className={`flex-1 text-left px-3 py-2 rounded-lg transition-colors flex justify-between items-center cursor-pointer ${
                         selectedSkill === skill.name
                           ? "bg-blue-100 text-blue-700 border border-blue-300"
                           : "hover:bg-gray-100"
@@ -70,7 +70,7 @@ const SkillsSidebar = ({
                     {userRole && userRole.toLowerCase() === "admin" && (
                       <button
                         onClick={(e) => handleDeleteSkill(skill.name, e)}
-                        className="p-2 text-red-600 hover:text-red-800 hover:bg-red-50 rounded-lg transition-colors"
+                        className="p-2 text-red-600 hover:text-red-800 hover:bg-red-50 rounded-lg transition-colors cursor-pointer"
                         title="Delete skill"
                         disabled={skillsLoading}
                       >
@@ -103,7 +103,7 @@ const SkillsSidebar = ({
                         <button
                           onClick={handleAddSkillToDatabase}
                           disabled={!newSkillName.trim() || skillsLoading}
-                          className="flex-1 px-3 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition disabled:opacity-50 flex items-center justify-center gap-1"
+                          className="flex-1 px-3 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition disabled:opacity-50 flex items-center justify-center gap-1 cursor-pointer"
                         >
                           <Save size={16} />
                           Save
@@ -113,7 +113,7 @@ const SkillsSidebar = ({
                             setShowAddSkillInput(false);
                             setNewSkillName("");
                           }}
-                          className="px-3 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition"
+                          className="px-3 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition cursor-pointer"
                         >
                           Cancel
                         </button>
@@ -122,7 +122,7 @@ const SkillsSidebar = ({
                   ) : (
                     <button
                       onClick={() => setShowAddSkillInput(true)}
-                      className="w-full flex items-center justify-center gap-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition"
+                      className="w-full flex items-center justify-center gap-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition cursor-pointer"
                     >
                       <Plus size={16} />
                       Add New Skill

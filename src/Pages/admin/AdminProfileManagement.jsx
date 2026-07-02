@@ -9,6 +9,9 @@ import {
 } from 'lucide-react';
 import { useUser } from '../../context/UserContext';
 import { useCompany } from '../../context/CompanyContext';
+import DashboardLayout, { DashboardContainer } from '../../components/dashboard/DashboardLayout';
+import DashboardHeader from '../../components/dashboard/DashboardHeader';
+import StatCard from '../../components/dashboard/StatCard';
 
 // ─── Extract Google Drive file ID from any Drive URL format ──────────────────
 const extractDriveId = (url) => {
@@ -400,9 +403,9 @@ const AdminProfileManagement = () => {
 
   const getStatusBadge = (status) => {
     const config = {
-      PENDING:  { color: 'bg-yellow-100 text-yellow-800', icon: Clock,         text: 'Pending'  },
-      APPROVED: { color: 'bg-green-100 text-green-800',   icon: CheckCircle,   text: 'Approved' },
-      REJECTED: { color: 'bg-red-100 text-red-800',       icon: XCircle,       text: 'Rejected' }
+      PENDING: { color: 'bg-yellow-100 text-yellow-800', icon: Clock, text: 'Pending' },
+      APPROVED: { color: 'bg-green-100 text-green-800', icon: CheckCircle, text: 'Approved' },
+      REJECTED: { color: 'bg-red-100 text-red-800', icon: XCircle, text: 'Rejected' }
     };
     const c = config[status] || config.PENDING;
     const Icon = c.icon;
@@ -412,20 +415,6 @@ const AdminProfileManagement = () => {
       </span>
     );
   };
-
-  const StatCard = ({ title, value, icon: Icon, color }) => (
-    <div className="bg-white rounded-xl shadow-sm p-4 border border-gray-100">
-      <div className="flex items-center justify-between">
-        <div>
-          <p className="text-sm text-gray-500">{title}</p>
-          <p className="text-2xl font-bold text-gray-800">{value}</p>
-        </div>
-        <div className={`p-3 rounded-xl ${color}`}>
-          <Icon size={20} className="text-white" />
-        </div>
-      </div>
-    </div>
-  );
 
   if (loading) {
     return (
@@ -439,41 +428,49 @@ const AdminProfileManagement = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      {/* Header */}
-      <div className="bg-white border-b border-gray-200 sticky top-0 z-40">
-        <div className="max-w-7xl mx-auto px-6 py-4 flex items-center justify-between">
-          <div className="flex items-center gap-4">
-            <button onClick={() => navigate('/home')}
-              className="flex items-center gap-2 text-gray-500 hover:text-gray-800 text-sm px-3 py-1.5 rounded-lg hover:bg-gray-100 transition-all border border-gray-200">
-              ← Back to Home
-            </button>
-            <div>
-              <h1 className="text-2xl font-bold text-gray-800 flex items-center gap-2">
-                Profile Management
-                {stats.pending > 0 && (
-                  <span className="inline-flex items-center justify-center px-2 py-0.5 rounded-full bg-yellow-100 text-yellow-800 text-xs font-semibold border border-yellow-200">
-                    {stats.pending} pending
-                  </span>
-                )}
-              </h1>
-              <p className="text-sm text-gray-500 mt-0.5">Review and manage employee profile submissions</p>
-            </div>
+    <DashboardLayout>
+      <DashboardHeader 
+        title={
+          <div className="flex items-center gap-2">
+            Profile Management
+          
           </div>
-          <button onClick={() => { fetchProfiles(); fetchStats(); }}
-            className="flex items-center gap-2 px-3 py-2 text-sm text-gray-600 hover:text-gray-800 hover:bg-gray-100 rounded-lg transition-all border border-gray-200">
-            <RefreshCw size={15} /> Refresh
-          </button>
-        </div>
-      </div>
+        }
+        subtitle="Review and manage employee profile submissions"
+       
+      />
 
-      <div className="max-w-7xl mx-auto px-6 py-6">
+      <DashboardContainer>
         {/* Stats */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
-          <StatCard title="Total Profiles" value={stats.total || (stats.pending + stats.approved + stats.rejected)} icon={Users} color="bg-blue-600" />
-          <StatCard title="Pending"  value={stats.pending}  icon={Clock}        color="bg-yellow-500" />
-          <StatCard title="Approved" value={stats.approved} icon={CheckCircle}  color="bg-green-500"  />
-          <StatCard title="Rejected" value={stats.rejected} icon={XCircle}      color="bg-red-500"    />
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-6">
+          {[
+            {
+              icon: Users,
+              title: "Total Profiles",
+              value: stats.total || (stats.pending + stats.approved + stats.rejected),
+              colorClass: "text-blue-600 bg-blue-50"
+            },
+            {
+              icon: Clock,
+              title: "Pending",
+              value: stats.pending,
+              colorClass: "text-yellow-600 bg-yellow-50"
+            },
+            {
+              icon: CheckCircle,
+              title: "Approved",
+              value: stats.approved,
+              colorClass: "text-green-600 bg-green-50"
+            },
+            {
+              icon: XCircle,
+              title: "Rejected",
+              value: stats.rejected,
+              colorClass: "text-red-600 bg-red-50"
+            }
+          ].map((stat, idx) => (
+            <StatCard key={idx} {...stat} />
+          ))}
         </div>
 
         {/* Search & Filter */}
@@ -550,18 +547,20 @@ const AdminProfileManagement = () => {
                       <button onClick={() => viewProfile(profile.userId)} className="text-blue-600 hover:text-blue-800 mr-3" title="View Details">
                         <Eye size={18} />
                       </button>
-                      {profile.approvalStatus === 'PENDING' && (<>
+                      {profile.approvalStatus === 'PENDING' && (
                         <button onClick={() => openApproveModal(profile.userId)}
                           disabled={computeCompletion(profile) < 100}
                           className={`mr-3 ${computeCompletion(profile) < 100 ? 'text-gray-300 cursor-not-allowed opacity-50' : 'text-green-600 hover:text-green-800'}`}
                           title={computeCompletion(profile) < 100 ? "Profile incomplete" : "Approve"}>
                           <CheckCircle size={18} />
                         </button>
+                      )}
+                      {(profile.approvalStatus === 'PENDING' || profile.approvalStatus === 'APPROVED') && (
                         <button onClick={() => { setSelectedUserId(profile.userId); setShowRejectModal(true); }}
                           className="text-red-600 hover:text-red-800" title="Reject">
                           <XCircle size={18} />
                         </button>
-                      </>)}
+                      )}
                     </td>
                   </tr>
                 ))}
@@ -575,7 +574,7 @@ const AdminProfileManagement = () => {
             </div>
           )}
         </div>
-      </div>
+      </DashboardContainer>
 
       {/* ── Profile Details Modal ── */}
       {showProfileModal && selectedProfile && (
@@ -762,9 +761,9 @@ const AdminProfileManagement = () => {
               </div>
 
               {/* Approve / Reject */}
-              {selectedProfile.approvalStatus === 'PENDING' && !isEditing && (
+              {(selectedProfile.approvalStatus === 'PENDING' || selectedProfile.approvalStatus === 'APPROVED') && !isEditing && (
                 <div className="flex flex-col gap-2 pt-4 border-t border-gray-200">
-                  {computeCompletion(selectedProfile) < 100 && (
+                  {selectedProfile.approvalStatus === 'PENDING' && computeCompletion(selectedProfile) < 100 && (
                     <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-xl text-sm flex flex-col gap-2 mb-4 shadow-sm">
                       <div className="flex items-center gap-2 font-semibold">
                         <AlertCircle size={16} className="text-red-500 shrink-0" /> Profile Cannot Be Approved
@@ -776,11 +775,13 @@ const AdminProfileManagement = () => {
                     </div>
                   )}
                   <div className="flex gap-3">
-                    <button onClick={() => { setShowProfileModal(false); openApproveModal(selectedProfile.userId); }}
-                      disabled={computeCompletion(selectedProfile) < 100}
-                      className="flex-1 px-4 py-2 bg-green-600 hover:bg-green-700 disabled:bg-green-600/50 disabled:cursor-not-allowed text-white rounded-lg font-medium flex items-center justify-center gap-2 transition-all">
-                      <CheckCircle size={18} /> Approve Profile
-                    </button>
+                    {selectedProfile.approvalStatus === 'PENDING' && (
+                      <button onClick={() => { setShowProfileModal(false); openApproveModal(selectedProfile.userId); }}
+                        disabled={computeCompletion(selectedProfile) < 100}
+                        className="flex-1 px-4 py-2 bg-green-600 hover:bg-green-700 disabled:bg-green-600/50 disabled:cursor-not-allowed text-white rounded-lg font-medium flex items-center justify-center gap-2 transition-all">
+                        <CheckCircle size={18} /> Approve Profile
+                      </button>
+                    )}
                     <button onClick={() => { setSelectedUserId(selectedProfile.userId); setShowProfileModal(false); setShowRejectModal(true); }}
                       className="flex-1 px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg font-medium flex items-center justify-center gap-2 transition-all">
                       <XCircle size={18} /> Reject Profile
@@ -835,7 +836,7 @@ const AdminProfileManagement = () => {
           </div>
         </div>
       )}
-    </div>
+    </DashboardLayout>
   );
 };
 

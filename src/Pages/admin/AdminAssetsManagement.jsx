@@ -1,7 +1,10 @@
-// AdminAssets.jsx
 import React, { useState, useEffect } from "react";
 import axios from "axios";
 import { useNavigate } from "react-router-dom";
+import { Users, FileText, Package } from 'lucide-react';
+import DashboardLayout, { DashboardContainer } from "../../components/dashboard/DashboardLayout";
+import DashboardHeader from "../../components/dashboard/DashboardHeader";
+import StatCard from "../../components/dashboard/StatCard";
 
 const API_BASE_URL = "http://localhost:5000/api/employeeassets";
 
@@ -46,11 +49,11 @@ const AdminAssetsManagement = () => {
       if (response.data.success) {
         setAssets(response.data.data);
         setFilteredAssets(response.data.data);
-        
+
         // Calculate stats
         const uniqueEmployees = new Set(response.data.data.map(a => a.employee_number));
         const totalAssetsCount = response.data.data.reduce((sum, asset) => sum + (asset.assets?.length || 0), 0);
-        
+
         setStats({
           totalEmployees: uniqueEmployees.size,
           totalSubmissions: response.data.data.length,
@@ -68,12 +71,12 @@ const AdminAssetsManagement = () => {
   const handleSearch = async (e) => {
     const term = e.target.value;
     setSearchTerm(term);
-    
+
     if (term.trim() === "") {
       setFilteredAssets(assets);
       return;
     }
-    
+
     setLoading(true);
     try {
       const response = await axios.get(`${API_BASE_URL}/search?q=${encodeURIComponent(term)}`);
@@ -82,7 +85,7 @@ const AdminAssetsManagement = () => {
       }
     } catch (err) {
       console.error("Search error:", err);
-      const filtered = assets.filter(asset => 
+      const filtered = assets.filter(asset =>
         asset.employee_name?.toLowerCase().includes(term.toLowerCase()) ||
         asset.employee_number?.toLowerCase().includes(term.toLowerCase()) ||
         asset.assets?.some(a => a.asset_name?.toLowerCase().includes(term.toLowerCase()))
@@ -104,7 +107,7 @@ const AdminAssetsManagement = () => {
   };
 
   const getConditionColor = (condition) => {
-    switch(condition) {
+    switch (condition) {
       case "Good": return "bg-green-100 text-green-700";
       case "Fair": return "bg-yellow-100 text-yellow-700";
       case "Poor": return "bg-red-100 text-red-700";
@@ -113,7 +116,7 @@ const AdminAssetsManagement = () => {
   };
 
   const getStatusColor = (status) => {
-    switch(status?.toLowerCase()) {
+    switch (status?.toLowerCase()) {
       case "approved": return "bg-green-100 text-green-700";
       case "rejected": return "bg-red-100 text-red-700";
       default: return "bg-blue-100 text-blue-700";
@@ -121,53 +124,36 @@ const AdminAssetsManagement = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 font-['DM_Sans','Inter',sans-serif]">
-      {/* Header */}
-      <div className="bg-white border-b border-gray-200 sticky top-0 z-30">
-        <div className="flex items-center justify-between px-6 py-4">
-          <div className="flex items-center gap-4">
-            <button
-              onClick={() => navigate('/home')}
-              className="flex items-center gap-2 px-3 py-2 rounded-lg border border-gray-200 text-gray-600 text-sm font-medium hover:bg-gray-50 transition"
-            >
-              <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
-                <path d="M15 18l-6-6 6-6" strokeLinecap="round" strokeLinejoin="round" />
-              </svg>
-              Back to Home
-            </button>
-            <div className="flex items-center gap-2">
-              <div className="w-8 h-8 bg-gradient-to-r from-purple-500 to-indigo-600 rounded-lg flex items-center justify-center">
-                <svg className="w-4 h-4 text-white" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
-                  <rect x="4" y="4" width="16" height="16" rx="2" ry="2" />
-                  <line x1="9" y1="9" x2="15" y2="15" />
-                  <line x1="15" y1="9" x2="9" y2="15" />
-                </svg>
-              </div>
-              <h1 className="text-xl font-bold text-gray-800">Employee Assets Management</h1>
-            </div>
-          </div>
-          <div className="text-sm text-gray-500">
-            Admin Panel
-          </div>
-        </div>
-      </div>
+    <DashboardLayout>
+      <DashboardHeader 
+        title="Employee Assets Management" 
+      />
 
-      {/* Main Content */}
-      <div className="max-w-7xl mx-auto px-6 py-8">
+      <DashboardContainer>
         {/* Stats Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-          <div className="bg-gradient-to-r from-blue-500 to-blue-600 rounded-xl p-4 text-white">
-            <div className="text-2xl font-bold">{stats.totalEmployees}</div>
-            <div className="text-sm opacity-90">Employees</div>
-          </div>
-          <div className="bg-gradient-to-r from-green-500 to-green-600 rounded-xl p-4 text-white">
-            <div className="text-2xl font-bold">{stats.totalSubmissions}</div>
-            <div className="text-sm opacity-90">Submissions</div>
-          </div>
-          <div className="bg-gradient-to-r from-purple-500 to-purple-600 rounded-xl p-4 text-white">
-            <div className="text-2xl font-bold">{stats.totalAssets}</div>
-            <div className="text-sm opacity-90">Total Assets</div>
-          </div>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
+          {[
+            {
+              icon: Users,
+              title: "Employees",
+              value: stats.totalEmployees,
+              colorClass: "text-blue-600 bg-blue-50"
+            },
+            {
+              icon: FileText,
+              title: "Submissions",
+              value: stats.totalSubmissions,
+              colorClass: "text-emerald-600 bg-emerald-50"
+            },
+            {
+              icon: Package,
+              title: "Total Assets",
+              value: stats.totalAssets,
+              colorClass: "text-purple-600 bg-purple-50"
+            }
+          ].map((stat, idx) => (
+            <StatCard key={idx} {...stat} />
+          ))}
         </div>
 
         {/* Search Bar */}
@@ -266,7 +252,7 @@ const AdminAssetsManagement = () => {
             </div>
           </div>
         )}
-      </div>
+      </DashboardContainer>
 
       {/* Modal - View Employee Assets Details */}
       {isModalOpen && selectedAsset && (
@@ -281,7 +267,7 @@ const AdminAssetsManagement = () => {
               </div>
               <button onClick={closeModal} className="text-gray-400 hover:text-gray-600 text-2xl">×</button>
             </div>
-            
+
             <div className="p-6">
               <div className="mb-6">
                 <div className="flex items-center justify-between mb-4 pb-2 border-b border-gray-200">
@@ -292,7 +278,7 @@ const AdminAssetsManagement = () => {
                     {selectedAsset.status || "Submitted"}
                   </span>
                 </div>
-                
+
                 <div className="overflow-x-auto">
                   <table className="w-full">
                     <thead className="bg-gray-50">
@@ -325,7 +311,7 @@ const AdminAssetsManagement = () => {
                     </tbody>
                   </table>
                 </div>
-                
+
                 {selectedAsset.remarks && (
                   <div className="mt-4 p-3 bg-gray-50 rounded-lg">
                     <p className="text-sm text-gray-500">
@@ -345,7 +331,7 @@ const AdminAssetsManagement = () => {
           .animate-spin { animation: spin 1s linear infinite; }
         `}
       </style>
-    </div>
+    </DashboardLayout>
   );
 };
 
