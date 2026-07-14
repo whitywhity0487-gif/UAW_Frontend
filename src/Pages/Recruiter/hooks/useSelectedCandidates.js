@@ -1,6 +1,8 @@
 import { useState } from 'react';
 import axios from 'axios';
 import { useNavigate, useSearchParams } from 'react-router-dom';
+import toast from 'react-hot-toast';
+import { API_BASE_URL } from '../../../config/constants.js';
 
 export const useSelectedCandidates = (setCandidateInProgress, setSuccessMessage, setError) => {
   const [selectedCandidates, setSelectedCandidates] = useState([]);
@@ -24,7 +26,7 @@ export const useSelectedCandidates = (setCandidateInProgress, setSuccessMessage,
           const selectedByName = user.username || user.name || 'Unknown';
 
           await axios.put(
-            `http://localhost:5000/api/candidates/${candidate.id}/progress`,
+            `${API_BASE_URL}/api/candidates/${candidate.id}/progress`,
             { isInProgress: true }
           );
 
@@ -39,7 +41,7 @@ export const useSelectedCandidates = (setCandidateInProgress, setSuccessMessage,
           }]);
 
           const response = await axios.post(
-            `http://localhost:5000/api/selected-candidates/${demandId}`,
+            `${API_BASE_URL}/api/selected-candidates/${demandId}`,
             {
               candidates: [{
                 canId: candidate.canId || candidate.actualId || candidate.id,
@@ -84,12 +86,12 @@ export const useSelectedCandidates = (setCandidateInProgress, setSuccessMessage,
       const demandId = searchParams.get('demandId');
 
       if (!demandId) {
-        alert("Demand ID not found");
+        toast.error("Demand ID not found");
         return;
       }
 
       await axios.put(
-        `http://localhost:5000/api/candidates/${candidateId}/progress`,
+        `${API_BASE_URL}/api/candidates/${candidateId}/progress`,
         { isInProgress: false }
       );
 
@@ -102,7 +104,7 @@ export const useSelectedCandidates = (setCandidateInProgress, setSuccessMessage,
 
       setSuccessMessage(`Removing ${candidate?.name || 'candidate'}...`);
 
-      await axios.delete(`http://localhost:5000/api/selected-candidates/${demandId}/${candidateId}`);
+      await axios.delete(`${API_BASE_URL}/api/selected-candidates/${demandId}/${candidateId}`);
 
       setSuccessMessage(`✅ ${candidate?.name || 'Candidate'} removed from demand`);
       setTimeout(() => setSuccessMessage(""), 2000);
@@ -116,7 +118,7 @@ export const useSelectedCandidates = (setCandidateInProgress, setSuccessMessage,
 
   const handleSubmitSelectedCandidates = async () => {
     if (selectedCandidates.length === 0) {
-      alert("Please select at least one candidate");
+      toast.error("Please select at least one candidate");
       return;
     }
 
@@ -126,7 +128,7 @@ export const useSelectedCandidates = (setCandidateInProgress, setSuccessMessage,
       const demandId = searchParams.get('demandId');
 
       if (!demandId) {
-        alert("Demand ID not found");
+        toast.error("Demand ID not found");
         return;
       }
 
@@ -164,7 +166,7 @@ export const useSelectedCandidates = (setCandidateInProgress, setSuccessMessage,
       console.log("Selected data being sent:", selectedData);
 
       const response = await axios.post(
-        `http://localhost:5000/api/selected-candidates/${demandId}`,
+        `${API_BASE_URL}/api/selected-candidates/${demandId}`,
         selectedData
       );
 

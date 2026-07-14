@@ -2,6 +2,8 @@ import React, { useState, useEffect } from "react";
 import Header from "../components/Header";
 import bgImage from "../assets/Images/back.png";
 import { UserPlus, Save, X, Trash2, Edit2, Search, Building2 } from "lucide-react";
+import { API_BASE_URL } from '../config/constants.js';
+import { confirmAction } from '../utils/toastUtils.jsx';
 
 const CreateUser = () => {
   const [formData, setFormData] = useState({
@@ -16,7 +18,7 @@ const CreateUser = () => {
   const [editingUser, setEditingUser] = useState(null);
   const [searchTerm, setSearchTerm] = useState("");
   const [apiStatus, setApiStatus] = useState({ checking: true, online: false });
-  
+
   // State for clients list from demands
   const [clients, setClients] = useState([]);
   const [clientsLoading, setClientsLoading] = useState(false);
@@ -31,7 +33,7 @@ const CreateUser = () => {
 
   const checkBackendStatus = async () => {
     try {
-      const response = await fetch("http://localhost:5000/api/users", {
+      const response = await fetch(`${API_BASE_URL}/api/users`, {
         method: "HEAD",
       });
       setApiStatus({ checking: false, online: response.ok });
@@ -51,7 +53,7 @@ const CreateUser = () => {
   // Filter clients based on search term
   useEffect(() => {
     if (clientSearchTerm.trim()) {
-      const filtered = clients.filter(client => 
+      const filtered = clients.filter(client =>
         client.name.toLowerCase().includes(clientSearchTerm.toLowerCase())
       );
       setFilteredClients(filtered);
@@ -62,21 +64,21 @@ const CreateUser = () => {
 
   const fetchUsers = async () => {
     try {
-      const response = await fetch("http://localhost:5000/api/users");
+      const response = await fetch(`${API_BASE_URL}/api/users`);
       console.log("📡 Response status:", response.status);
-      
+
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`);
       }
-      
+
       const contentType = response.headers.get("content-type");
       if (!contentType || !contentType.includes("application/json")) {
         const text = await response.text();
         throw new Error("Server returned HTML instead of JSON. Backend might not be running.");
       }
-      
+
       const data = await response.json();
-      
+
       if (data.success) {
         setUsers(data.users);
         setMessage({ type: "success", text: `Loaded ${data.users.length} users` });
@@ -94,14 +96,14 @@ const CreateUser = () => {
   const fetchClients = async () => {
     try {
       setClientsLoading(true);
-      const response = await fetch("http://localhost:5000/api/demand/clients/list");
-      
+      const response = await fetch(`${API_BASE_URL}/api/demand/clients/list`);
+
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`);
       }
-      
+
       const data = await response.json();
-      
+
       if (data.success) {
         setClients(data.clients);
         setFilteredClients(data.clients);
@@ -121,7 +123,7 @@ const CreateUser = () => {
       ...formData,
       [name]: value
     });
-    
+
     if (name === "role") {
       if (value !== "Interviewer" && value !== "Client Interviewer") {
         setFormData(prev => ({ ...prev, assignedClient: "" }));
@@ -136,86 +138,86 @@ const CreateUser = () => {
     setShowClientDropdown(false);
   };
 
- const handleSubmit = async (e) => {
-  e.preventDefault();
-  setLoading(true);
-  setMessage({ type: "", text: "" });
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    setLoading(true);
+    setMessage({ type: "", text: "" });
 
-  try {
-    const submitData = {
-      username: formData.username,
-      password: formData.password,
-      role: formData.role
-    };
-    
-    if ((formData.role === "Interviewer" || formData.role === "Client Interviewer") && formData.assignedClient) {
-      submitData.assignedClient = formData.assignedClient;
-    }
+    try {
+      const submitData = {
+        username: formData.username,
+        password: formData.password,
+        role: formData.role
+      };
 
-
-    const response = await fetch("http://localhost:5000/api/users", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify(submitData),
-    });
+      if ((formData.role === "Interviewer" || formData.role === "Client Interviewer") && formData.assignedClient) {
+        submitData.assignedClient = formData.assignedClient;
+      }
 
 
-    // First check if response is ok
-    if (!response.ok) {
-      const errorText = await response.text();
-      console.error("❌ Error response:", errorText);
-      throw new Error(`Server responded with status ${response.status}`);
-    }
-
-    const contentType = response.headers.get("content-type");
-    if (!contentType || !contentType.includes("application/json")) {
-      const text = await response.text();
-      console.error("❌ Non-JSON response:", text);
-      throw new Error("Server returned non-JSON response");
-    }
-
-    const data = await response.json();
-    console.log("📥 Response data:", data);
-
-    if (data.success) {
-      setMessage({ type: "success", text: "User created successfully!" });
-      
-      // Reset form
-      setFormData({
-        username: "",
-        password: "",
-        role: "Recruiter",
-        assignedClient: ""
+      const response = await fetch(`${API_BASE_URL}/api/users`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(submitData),
       });
-      setClientSearchTerm("");
-      
-      // Small delay before refreshing users
-      setTimeout(() => {
-        fetchUsers();
-      }, 500);
-      
-      // Clear success message after 3 seconds
+
+
+      // First check if response is ok
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error("❌ Error response:", errorText);
+        throw new Error(`Server responded with status ${response.status}`);
+      }
+
+      const contentType = response.headers.get("content-type");
+      if (!contentType || !contentType.includes("application/json")) {
+        const text = await response.text();
+        console.error("❌ Non-JSON response:", text);
+        throw new Error("Server returned non-JSON response");
+      }
+
+      const data = await response.json();
+      console.log("📥 Response data:", data);
+
+      if (data.success) {
+        setMessage({ type: "success", text: "User created successfully!" });
+
+        // Reset form
+        setFormData({
+          username: "",
+          password: "",
+          role: "Recruiter",
+          assignedClient: ""
+        });
+        setClientSearchTerm("");
+
+        // Small delay before refreshing users
+        setTimeout(() => {
+          fetchUsers();
+        }, 500);
+
+        // Clear success message after 3 seconds
+        setTimeout(() => {
+          setMessage({ type: "", text: "" });
+        }, 3000);
+      } else {
+        throw new Error(data.message || "Failed to create user");
+      }
+
+    } catch (err) {
+      console.error("❌ Error creating user:", err);
+      setMessage({ type: "error", text: err.message });
+
+      // Clear error message after 3 seconds
       setTimeout(() => {
         setMessage({ type: "", text: "" });
       }, 3000);
-    } else {
-      throw new Error(data.message || "Failed to create user");
+    } finally {
+      setLoading(false);
     }
-
-  } catch (err) {
-    console.error("❌ Error creating user:", err);
-    setMessage({ type: "error", text: err.message });
-    
-    // Clear error message after 3 seconds
-    setTimeout(() => {
-      setMessage({ type: "", text: "" });
-    }, 3000);
-  } finally {
-    setLoading(false);
-  }
-};
+  };
 
   const handleEdit = (user) => {
     setEditingUser(user);
@@ -237,7 +239,7 @@ const CreateUser = () => {
 
     try {
       const updateData = { role: formData.role };
-      
+
       if (formData.role === "Interviewer" || formData.role === "Client Interviewer") {
         if (!formData.assignedClient) {
           throw new Error(`${formData.role} role requires an assigned client. Please select a client.`);
@@ -245,7 +247,7 @@ const CreateUser = () => {
         updateData.assignedClient = formData.assignedClient;
       }
 
-      const response = await fetch(`http://localhost:5000/api/users/${encodeURIComponent(editingUser.username)}`, {
+      const response = await fetch(`${API_BASE_URL}/api/users/${encodeURIComponent(editingUser.username)}`, {
         method: "PUT",
         headers: {
           "Content-Type": "application/json",
@@ -274,9 +276,9 @@ const CreateUser = () => {
         assignedClient: ""
       });
       setClientSearchTerm("");
-      
+
       await fetchUsers();
-      
+
     } catch (err) {
       console.error("Error updating user:", err);
       setMessage({ type: "error", text: err.message });
@@ -286,33 +288,31 @@ const CreateUser = () => {
   };
 
   const handleDelete = async (username) => {
-    if (!window.confirm(`Are you sure you want to delete user "${username}"?`)) {
-      return;
-    }
+    confirmAction(`Are you sure you want to delete user "${username}"?`, async () => {
+      try {
+        const response = await fetch(`${API_BASE_URL}/api/users/${encodeURIComponent(username)}`, {
+          method: "DELETE",
+        });
 
-    try {
-      const response = await fetch(`http://localhost:5000/api/users/${encodeURIComponent(username)}`, {
-        method: "DELETE",
-      });
+        const contentType = response.headers.get("content-type");
+        if (!contentType || !contentType.includes("application/json")) {
+          const text = await response.text();
+          throw new Error("Server returned HTML. Backend might not be running.");
+        }
 
-      const contentType = response.headers.get("content-type");
-      if (!contentType || !contentType.includes("application/json")) {
-        const text = await response.text();
-        throw new Error("Server returned HTML. Backend might not be running.");
+        const data = await response.json();
+
+        if (!response.ok) {
+          throw new Error(data.message || "Failed to delete user");
+        }
+
+        setMessage({ type: "success", text: "User deleted successfully!" });
+
+        await fetchUsers();
+      } catch (err) {
+        setMessage({ type: "error", text: err.message });
       }
-
-      const data = await response.json();
-
-      if (!response.ok) {
-        throw new Error(data.message || "Failed to delete user");
-      }
-
-      setMessage({ type: "success", text: "User deleted successfully!" });
-      
-      await fetchUsers();
-    } catch (err) {
-      setMessage({ type: "error", text: err.message });
-    }
+    });
   };
 
   const handleCancelEdit = () => {
@@ -327,7 +327,7 @@ const CreateUser = () => {
   };
 
   // Filter users based on search
-  const filteredUsers = users.filter(user => 
+  const filteredUsers = users.filter(user =>
     user.username.toLowerCase().includes(searchTerm.toLowerCase()) ||
     user.role.toLowerCase().includes(searchTerm.toLowerCase()) ||
     (user.assignedClient && user.assignedClient.toLowerCase().includes(searchTerm.toLowerCase())) ||
@@ -382,7 +382,7 @@ const CreateUser = () => {
             <div className="text-center bg-white p-8 rounded-2xl shadow-xl">
               <div className="text-red-500 text-6xl mb-4">🔌</div>
               <h2 className="text-2xl font-bold text-gray-800 mb-2">Backend Not Reachable</h2>
-              <p className="text-gray-600 mb-4">Cannot connect to http://localhost:5000/</p>
+              <p className="text-gray-600 mb-4">Cannot connect to backend</p>
               <p className="text-sm text-gray-500">Please make sure your backend server is running</p>
               <button
                 onClick={() => window.location.reload()}
@@ -426,11 +426,10 @@ const CreateUser = () => {
 
               {message.text && (
                 <div
-                  className={`mb-6 p-4 rounded-xl ${
-                    message.type === "success"
+                  className={`mb-6 p-4 rounded-xl ${message.type === "success"
                       ? "bg-green-100 text-green-700 border border-green-200"
                       : "bg-red-100 text-red-700 border border-red-200"
-                  }`}
+                    }`}
                 >
                   {message.text}
                 </div>
@@ -449,9 +448,8 @@ const CreateUser = () => {
                     onChange={handleChange}
                     required
                     disabled={editingUser}
-                    className={`w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-200 focus:border-blue-500 outline-none ${
-                      editingUser ? "bg-gray-100 cursor-not-allowed" : ""
-                    }`}
+                    className={`w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-200 focus:border-blue-500 outline-none ${editingUser ? "bg-gray-100 cursor-not-allowed" : ""
+                      }`}
                     placeholder="Enter username"
                   />
                 </div>
@@ -493,11 +491,11 @@ const CreateUser = () => {
                     <option value="HR">HR (Human Resources Manager)</option>
                   </select>
                   <p className="text-xs text-gray-500 mt-1">
-                    Admin can edit/delete demands and manage users. Recruiter can view and manage candidates. 
-                    UANDWE Interviewer can conduct interviews for assigned clients. 
+                    Admin can edit/delete demands and manage users. Recruiter can view and manage candidates.
+                    UANDWE Interviewer can conduct interviews for assigned clients.
                     Client Interviewer can conduct client-side interviews for assigned clients.
                     Employee has view-only access to demands and candidates.
-                  </p> 
+                  </p>
                 </div>
 
                 {/* Assigned Client - Only show when role is Interviewer or Client Interviewer */}
@@ -523,7 +521,7 @@ const CreateUser = () => {
                         className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-200 focus:border-blue-500 outline-none"
                       />
                     </div>
-                    
+
                     {showClientDropdown && (
                       <div className="absolute z-10 w-full mt-1 bg-white border border-gray-300 rounded-lg shadow-lg max-h-48 overflow-y-auto">
                         {clientsLoading ? (
@@ -548,7 +546,7 @@ const CreateUser = () => {
                         )}
                       </div>
                     )}
-                    
+
                     {formData.assignedClient && (
                       <p className="text-xs text-green-600 mt-1">
                         Selected client: {formData.assignedClient}
@@ -562,15 +560,14 @@ const CreateUser = () => {
                   <button
                     type="submit"
                     disabled={
-                      loading || 
+                      loading ||
                       ((formData.role === "Interviewer" || formData.role === "Client Interviewer") && !formData.assignedClient)
                     }
-                    className={`flex items-center gap-2 px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors cursor-pointer ${
-                      (loading || 
-                       ((formData.role === "Interviewer" || formData.role === "Client Interviewer") && !formData.assignedClient)) 
-                        ? "opacity-50 cursor-not-allowed" 
+                    className={`flex items-center gap-2 px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors cursor-pointer ${(loading ||
+                        ((formData.role === "Interviewer" || formData.role === "Client Interviewer") && !formData.assignedClient))
+                        ? "opacity-50 cursor-not-allowed"
                         : ""
-                    }`}
+                      }`}
                   >
                     {loading ? (
                       <>
@@ -602,7 +599,7 @@ const CreateUser = () => {
                       </>
                     )}
                   </button>
-                  
+
                   {editingUser && (
                     <button
                       type="button"
@@ -655,7 +652,7 @@ const CreateUser = () => {
                             {user.role}
                           </span>
                         </td>
-                     
+
                         <td className="px-4 py-3 text-sm text-gray-500">
                           {user.assignedClient || "-"}
                         </td>
@@ -688,7 +685,7 @@ const CreateUser = () => {
                     No users found
                   </div>
                 )}
-              </div>        
+              </div>
             </div>
           </div>
         </div>

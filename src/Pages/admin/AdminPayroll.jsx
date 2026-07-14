@@ -3,9 +3,10 @@ import axios from 'axios';
 import { FileText, Search, Plus, Calendar, Save, AlertCircle, CheckCircle, RefreshCcw, DollarSign, Upload } from 'lucide-react';
 import DashboardLayout, { DashboardContainer } from '../../components/dashboard/DashboardLayout';
 import DashboardHeader from '../../components/dashboard/DashboardHeader';
+import { API_BASE_URL as GLOBAL_API_BASE_URL } from '../../config/constants.js';
 
-const API_BASE_URL = 'http://localhost:5000/api/payroll';
-const DETAILS_API_URL = 'http://localhost:5000/api/personal-details';
+const API_BASE_URL = `${GLOBAL_API_BASE_URL}/api/payroll`;
+const DETAILS_API_URL = `${GLOBAL_API_BASE_URL}/api/personal-details`;
 
 const MONTHS = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
 const CURRENT_YEAR = new Date().getFullYear();
@@ -145,7 +146,7 @@ export default function AdminPayroll({ user }) {
 
   return (
     <DashboardLayout>
-      <DashboardHeader 
+      <DashboardHeader
         title="Payroll Management"
         subtitle="Manage employee salaries, upload payslips and process LOP."
         actions={
@@ -157,7 +158,7 @@ export default function AdminPayroll({ user }) {
           </button>
         }
       />
-      
+
       <DashboardContainer>
 
         {/* Alerts */}

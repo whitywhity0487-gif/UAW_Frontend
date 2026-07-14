@@ -12,15 +12,16 @@ export const useCandidates = (setError) => {
   // Pagination states
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage] = useState(4);
+  const [totalBackendRecords, setTotalBackendRecords] = useState(null);
 
-  const fetchAllCandidates = useCallback(async () => {
+  const fetchAllCandidates = useCallback(async (page = 1, limit = 4) => {
     try {
       setLoading(true);
       if (setError) setError(null);
 
       // First fetch joined candidate IDs
       const joinedIds = await candidateService.getJoinedCandidateIds();
-      const response = await candidateService.getAllCandidates();
+      const response = await candidateService.getAllCandidates(page, limit);
 
       if (response.success) {
         let processedCandidates = response.data
@@ -39,7 +40,13 @@ export const useCandidates = (setError) => {
         // Filter out rejected candidates for initial display
         const filteredCandidates = filterOutRejectedCandidates(activeCandidates);
         setDisplayedCandidates(filteredCandidates);
-        setCurrentPage(1);
+        
+        // Update pagination records
+        if (response.totalRecords !== undefined) {
+          setTotalBackendRecords(response.totalRecords);
+        } else {
+          setTotalBackendRecords(null);
+        }
 
         // Initialize candidateInProgress state
         const initialProgressMap = {};
@@ -75,6 +82,8 @@ export const useCandidates = (setError) => {
     currentPage,
     setCurrentPage,
     itemsPerPage,
+    totalBackendRecords,
+    setTotalBackendRecords,
     fetchAllCandidates
   };
 };

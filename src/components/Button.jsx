@@ -51,7 +51,7 @@ const Button = ({
       ) : Icon ? (
         <Icon className={size === 'sm' ? 'w-4 h-4' : size === 'lg' ? 'w-5 h-5' : 'w-[18px] h-[18px]'} />
       ) : null}
-      
+
       {children}
     </button>
   );

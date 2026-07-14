@@ -5,6 +5,8 @@ import {
   Building, Lock, Eye, CheckCircle, ArrowLeft, ChevronRight
 } from "lucide-react";
 import Button from "../../../components/Button";
+import DashboardLayout, { DashboardContainer } from "../../../components/dashboard/DashboardLayout";
+import DashboardHeader from "../../../components/dashboard/DashboardHeader";
 
 /* ─── Sub-components ──────────────────────────────────────────────────── */
 const InfoRow = ({ label, value }) => (
@@ -108,27 +110,22 @@ const ProfileView = memo(({ data, onBackToHome }) => {
   const currentTab = TABS.find(t => t.id === activeTab);
 
   return (
-    <>
-      <div className="min-h-screen bg-[#f5f0e8] flex flex-col">
-
-        {/* ── Top Bar ── */}
-        <div className="bg-[#111827] text-[#e8e0d0] h-14 flex items-center justify-between px-8 sticky top-0 z-30">
-          <Button
-            variant="unstyled"
-            onClick={onBackToHome}
-            className="relative z-10 flex items-center gap-2 bg-transparent border-none text-[#c8bfaf] text-[13px] font-medium cursor-pointer px-3 py-1.5 rounded-md hover:bg-white/[0.08] hover:text-[#f5f0e8] transition-all duration-200 tracking-wide"
-          >
-            <ArrowLeft size={15} /> Back to Home
-          </Button>
-          <div className="relative z-10 flex items-center gap-1.5 text-[11px] font-semibold text-[#7dd4a0] bg-[rgba(125,212,160,0.12)] border border-[rgba(125,212,160,0.3)] px-3.5 py-1.5 rounded-full tracking-[0.08em] uppercase">
+    <DashboardLayout>
+      <DashboardHeader 
+        title="My Profile" 
+        subtitle="View your approved details" 
+        backPath="/home" 
+        actions={
+          <div className="relative z-10 flex items-center gap-1.5 text-[11px] font-semibold text-emerald-400 bg-emerald-400/10 border border-emerald-400/30 px-3.5 py-1.5 rounded-full tracking-[0.08em] uppercase">
             <CheckCircle size={12} /> Profile Approved
           </div>
-        </div>
-
-        <div className="flex flex-1 min-h-0">
+        }
+      />
+      <DashboardContainer fullWidth>
+        <div className="flex flex-col lg:flex-row gap-8 items-start">
 
           {/* ── Sidebar ── */}
-          <aside className="w-[260px] min-w-[260px] bg-[#111827] flex flex-col py-8 pb-6 sticky top-14 h-[calc(100vh-56px)] z-20">
+          <aside className="w-full lg:w-80 shrink-0 bg-[#111827] flex flex-col py-8 pb-6 rounded-2xl shadow-lg sticky top-24 z-20">
             
             <div className="flex flex-col h-full">
               {/* Avatar block */}
@@ -313,8 +310,8 @@ const ProfileView = memo(({ data, onBackToHome }) => {
             )}
           </main>
         </div>
-      </div>
-    </>
+      </DashboardContainer>
+    </DashboardLayout>
   );
 });
 

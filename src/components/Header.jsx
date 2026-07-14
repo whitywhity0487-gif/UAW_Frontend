@@ -3,6 +3,7 @@ import { useNavigate, useLocation } from "react-router-dom";
 import axios from "axios";
 import logo from "../assets/Images/logo.png";
 import { Bell, Check, X } from "lucide-react";
+import { API_BASE_URL } from "../config/constants.js";
 
 const Header = () => {
   const [open, setOpen] = useState(false);
@@ -38,7 +39,7 @@ const Header = () => {
 
   const fetchNotifications = async () => {
     try {
-      const res = await axios.get(`http://localhost:5000/api/notifications/user/${username}`);
+      const res = await axios.get(`${API_BASE_URL}/api/notifications/user/${username}`);
       if (res.data.success) {
         const newNotifs = res.data.data;
 
@@ -68,7 +69,7 @@ const Header = () => {
 
   const markAsRead = async (id) => {
     try {
-      await axios.put(`http://localhost:5000/api/notifications/read/${id}`);
+      await axios.put(`${API_BASE_URL}/api/notifications/read/${id}`);
       fetchNotifications();
     } catch (error) {
       console.error("Failed to mark as read", error);

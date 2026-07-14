@@ -5,6 +5,8 @@ import bgImage from "../assets/Images/back.png";
 import { useSearchParams } from "react-router-dom";
 import { useNavigate } from "react-router-dom";
 import * as XLSX from 'xlsx';
+import toast from 'react-hot-toast';
+import { API_BASE_URL } from '../config/constants.js';
 import {
   Search,
   Mail,
@@ -45,7 +47,7 @@ const Recruiter = ({ user }) => {
 
   // Add this with other states
   const [candidateInProgress, setCandidateInProgress] = useState({});
-  const [searchParams] = useSearchParams(); // Add this hook
+  const [searchParams, setSearchParams] = useSearchParams(); // Add this hook
 
 
 
@@ -80,7 +82,11 @@ const Recruiter = ({ user }) => {
   // Pagination state
   const [currentPage, setCurrentPage] = useState(1);
 
-  const [itemsPerPage] = useState(4);
+  const itemsPerPage = 4;
+  const backendLimit = 40;
+  const uiPagesPerBatch = backendLimit / itemsPerPage;
+  const [currentBackendPage, setCurrentBackendPage] = useState(1);
+  const [totalBackendRecords, setTotalBackendRecords] = useState(null);
 
   // State for API data
   const [candidates, setCandidates] = useState([]);
@@ -138,7 +144,7 @@ const Recruiter = ({ user }) => {
     formErrors, setFormErrors,
     submitLoading: formSubmitLoading,
     handleInputChange, handleAddProfile,
-    
+
     skillInput, setSkillInput,
     showAddSkillSuggestions, setShowAddSkillSuggestions,
     filteredAddSkillSuggestions, setFilteredAddSkillSuggestions,
@@ -167,7 +173,7 @@ const Recruiter = ({ user }) => {
   const fetchCandidateStatusForClient = async (candidateId, clientName) => {
     try {
       const response = await axios.get(
-        `http://localhost:5000/api/candidates/${candidateId}/status-for-client/${encodeURIComponent(clientName)}`
+        `${API_BASE_URL}/api/candidates/${candidateId}/status-for-client/${encodeURIComponent(clientName)}`
       );
       return response.data.data;
     } catch (err) {
@@ -179,7 +185,7 @@ const Recruiter = ({ user }) => {
   // Fetch candidate IDs to exclude them (Joined, Pending Offer, Pending Joinee, Offer Decline)
   const fetchJoinedCandidateIds = async () => {
     try {
-      const response = await axios.get('http://localhost:5000/api/candidates/hidden-ids');
+      const response = await axios.get(`${API_BASE_URL}/api/candidates/hidden-ids`);
       if (response.data.success) {
         // response.data.data is already an array of IDs
         const ids = new Set(response.data.data);
@@ -282,17 +288,17 @@ const Recruiter = ({ user }) => {
     try {
       setLoading(true);
 
-      const response = await axios.get('http://localhost:5000/api/candidates/all');
+      const response = await axios.get(`${API_BASE_URL}/api/candidates/all`);
 
       if (!response.data.success) {
-        alert("Failed to fetch candidates");
+        toast.error("Failed to fetch candidates");
         return;
       }
 
       const allCandidates = response.data.data;
 
       if (allCandidates.length === 0) {
-        alert("No data to export");
+        toast.error("No data to export");
         return;
       }
 
@@ -459,7 +465,7 @@ const Recruiter = ({ user }) => {
 
           // console.log("Auto-applying filters from demand:", apiParams.toString());
 
-          const response = await axios.get(`http://localhost:5000/api/shortcandidates/filter?${apiParams.toString()}`);
+          const response = await axios.get(`${API_BASE_URL}/api/shortcandidates/filter?${apiParams.toString()}`);
 
           if (response.data.success) {
             const processedCandidates = response.data.data
@@ -538,7 +544,7 @@ const Recruiter = ({ user }) => {
 
           // console.log("Calling filter API with:", params.toString());
 
-          const response = await axios.get(`http://localhost:5000/api/shortcandidates/filter?${params.toString()}`);
+          const response = await axios.get(`${API_BASE_URL}/api/shortcandidates/filter?${params.toString()}`);
 
           if (response.data.success) {
             // console.log(`✅ API response: Excluded ${response.data.excludedZoneCount || 0} candidates from Zone`);
@@ -559,7 +565,7 @@ const Recruiter = ({ user }) => {
 
             const candidateIds = processedCandidates.map(c => c.id).filter(id => id);
             if (candidateIds.length > 0) {
-              const progressResponse = await axios.post('http://localhost:5000/api/candidates/progress/batch', {
+              const progressResponse = await axios.post(`${API_BASE_URL}/api/candidates/progress/batch`, {
                 candidateIds: candidateIds,
                 demandId: demandId
               });
@@ -593,39 +599,37 @@ const Recruiter = ({ user }) => {
     }
   }, [searchParams, candidates.length]);
 
-  const fetchAllCandidates = async () => {
+  const fetchAllCandidates = async (page = 1, limit = backendLimit) => {
     try {
       setLoading(true);
       setError(null);
 
-      const joinedIds = await fetchJoinedCandidateIds();
-
-      const response = await axios.get('http://localhost:5000/api/candidates/all');
+      const response = await axios.get(`${API_BASE_URL}/api/candidates/all?page=${page}&limit=${limit}`);
 
       if (response.data.success) {
         let processedCandidates = response.data.data
           .map(processCandidate)
           .filter(c => c !== null);
 
-        const activeCandidates = processedCandidates.filter(
-          candidate => !joinedIds.has(candidate.id)
-        );
-
-        activeCandidates.sort((a, b) => {
+        processedCandidates.sort((a, b) => {
           const idA = a.id || 0;
           const idB = b.id || 0;
           return idB - idA;
         });
 
+        setCandidates(processedCandidates);
 
-        setCandidates(activeCandidates);
-
-        const filteredCandidates = filterOutRejectedCandidates(activeCandidates);
+        const filteredCandidates = filterOutRejectedCandidates(processedCandidates);
         setDisplayedCandidates(filteredCandidates);
-        setCurrentPage(1);
+        
+        if (response.data.totalRecords !== undefined) {
+          setTotalBackendRecords(response.data.totalRecords);
+        } else {
+          setTotalBackendRecords(null);
+        }
 
         const initialProgressMap = {};
-        activeCandidates.forEach(candidate => {
+        processedCandidates.forEach(candidate => {
           if (candidate.isInProgress === true) {
             initialProgressMap[candidate.id] = true;
           }
@@ -633,7 +637,7 @@ const Recruiter = ({ user }) => {
         setCandidateInProgress(initialProgressMap);
 
         if (skills.length > 0) {
-          updateSkillCounts(activeCandidates);
+          updateSkillCounts(processedCandidates);
         }
       } else {
         setError("Failed to fetch candidates: " + (response.data.message || "Unknown error"));
@@ -648,7 +652,7 @@ const Recruiter = ({ user }) => {
 
   const checkEmailExists = async (email, excludeId = null) => {
     try {
-      const url = `http://localhost:5000/api/candidates/check-email/${encodeURIComponent(email)}${excludeId ? `?excludeId=${excludeId}` : ''}`;
+      const url = `${API_BASE_URL}/api/candidates/check-email/${encodeURIComponent(email)}${excludeId ? `?excludeId=${excludeId}` : ''}`;
       const response = await axios.get(url);
       return response.data.exists;
     } catch (err) {
@@ -660,7 +664,7 @@ const Recruiter = ({ user }) => {
   const checkMobileExists = async (mobile, excludeId = null) => {
     try {
       const cleanMobile = mobile.replace(/\D/g, '');
-      const url = `http://localhost:5000/api/candidates/check-mobile/${encodeURIComponent(cleanMobile)}${excludeId ? `?excludeId=${excludeId}` : ''}`;
+      const url = `${API_BASE_URL}/api/candidates/check-mobile/${encodeURIComponent(cleanMobile)}${excludeId ? `?excludeId=${excludeId}` : ''}`;
       const response = await axios.get(url);
       return response.data.exists;
     } catch (err) {
@@ -691,14 +695,14 @@ const Recruiter = ({ user }) => {
     else if (candidate.resumePath) {
       const resumeUrl = candidate.resumePath.startsWith('http')
         ? candidate.resumePath
-        : `http://localhost:5000${candidate.resumePath}`;
+        : `${API_BASE_URL}${candidate.resumePath}`;
 
       console.log("Opening local resume:", resumeUrl);
       setSelectedResumeUrl(resumeUrl);
       setShowResumeModal(true);
     }
     else {
-      alert('No resume uploaded for this candidate');
+      toast.error('No resume uploaded for this candidate');
     }
   };
 
@@ -708,7 +712,7 @@ const Recruiter = ({ user }) => {
     e.stopPropagation();
     if (!candidate || !candidate.id) {
       console.error("Invalid candidate for deletion:", candidate);
-      alert("Cannot delete: Invalid candidate data");
+      toast.error("Cannot delete: Invalid candidate data");
       return;
     }
     setDeletingCandidateId(candidate.id);
@@ -719,7 +723,7 @@ const Recruiter = ({ user }) => {
   const handleConfirmDelete = async () => {
     if (!deletingCandidateId) {
       console.error("No candidate ID for deletion");
-      alert("Cannot delete: No candidate selected");
+      toast.error("Cannot delete: No candidate selected");
       setShowDeleteConfirm(false);
       return;
     }
@@ -727,12 +731,14 @@ const Recruiter = ({ user }) => {
     try {
       setDeleteLoading(true);
 
-      const response = await axios.delete(`http://localhost:5000/api/candidates/${deletingCandidateId}`);
+      const response = await axios.delete(`${API_BASE_URL}/api/candidates/${deletingCandidateId}`);
 
       if (response.data.success) {
         setSuccessMessage("Profile deleted successfully!");
+        toast.success("Profile deleted successfully!");
 
-        await fetchAllCandidates();
+        await fetchAllCandidates(1, backendLimit);
+        setCurrentBackendPage(1);
 
         setSelectedCandidates(prev => prev.filter(c => c.id !== deletingCandidateId));
 
@@ -745,7 +751,9 @@ const Recruiter = ({ user }) => {
       }
     } catch (err) {
       console.error('Error deleting profile:', err);
-      setError(err.response?.data?.message || "Failed to delete profile. Please try again.");
+      const errorMsg = err.response?.data?.message || "Failed to delete profile. Please try again.";
+      toast.error(errorMsg);
+      setError(errorMsg);
       setTimeout(() => {
         setError(null);
         setShowDeleteConfirm(false);
@@ -839,7 +847,7 @@ const Recruiter = ({ user }) => {
 
       console.log("Query params:", params.toString());
 
-      const response = await axios.get(`http://localhost:5000/api/shortcandidates/filter?${params.toString()}`);
+      const response = await axios.get(`${API_BASE_URL}/api/shortcandidates/filter?${params.toString()}`);
 
       if (response.data.success) {
         let processedCandidates = response.data.data
@@ -857,6 +865,7 @@ const Recruiter = ({ user }) => {
         setShowSearchPopup(false);
         setSelectedSkill("All");
         setSearchTerm("");
+        setTotalBackendRecords(null);
       } else {
         setError("Failed to filter candidates: " + (response.data.message || "Unknown error"));
       }
@@ -872,9 +881,9 @@ const Recruiter = ({ user }) => {
     setPrimarySkillInput("");
     setSecondarySkillInput("");
 
-    let allCandidates = [...candidates];
-    allCandidates = filterOutRejectedCandidates(allCandidates);
-    setDisplayedCandidates(allCandidates);
+    setSearchParams({});
+    fetchAllCandidates(1, backendLimit);
+    setCurrentBackendPage(1);
 
     setCurrentPage(1);
     setShowSearchPopup(false);
@@ -913,7 +922,7 @@ const Recruiter = ({ user }) => {
   };
 
   // Helper function to check if status is active (should be shown in recruiter)
- 
+
 
   // Auto-set profile submission date to today when Add Profile modal opens
   useEffect(() => {
@@ -948,18 +957,18 @@ const Recruiter = ({ user }) => {
     const demandId = searchParams.get('demandId');
     if (demandId && candidates.length > 0) {
       try {
-        const response = await axios.get(`http://localhost:5000/api/selected-candidates/${demandId}`);
+        const response = await axios.get(`${API_BASE_URL}/api/selected-candidates/${demandId}`);
         if (response.data.success) {
           const existingCandidates = response.data.data
             .map(selected => {
               const matchingCandidate = candidates.find(c => c.id === selected.id);
               return {
-                ...matchingCandidate,
+                ...selected, // Use candidate details provided by the backend fallback
+                ...(matchingCandidate || {}), // Override with full details if found locally
                 status: selected.status,
                 history: selected.history
               };
-            })
-            .filter(c => c !== undefined);
+            });
           setSelectedCandidates(existingCandidates);
           // console.log("Loaded selected candidates with statuses:", existingCandidates.map(c => ({ name: c.name, status: c.status })));
         }
@@ -991,12 +1000,32 @@ const Recruiter = ({ user }) => {
   }, [searchParams, candidates]);
 
   // Load data on component mount
-  // Load data on component mount
   useEffect(() => {
-    fetchAllCandidates();
+    fetchAllCandidates(1, backendLimit);
+    setCurrentBackendPage(1);
     fetchSkillsData();
     fetchVisaTypes(); // Add this line
   }, []);
+
+  const isBackendPaginated = totalBackendRecords !== null && 
+    searchTerm === "" && 
+    selectedSkill === "All" && 
+    searchFilters.primarySkills.length === 0 && 
+    searchFilters.secondarySkills.length === 0 && 
+    !searchFilters.experienceMin && 
+    !searchFilters.experienceMax && 
+    !searchParams.get('autoFilter');
+
+  useEffect(() => {
+    if (isBackendPaginated) {
+      const targetBackendPage = Math.ceil(currentPage / uiPagesPerBatch);
+      if (targetBackendPage !== currentBackendPage || displayedCandidates.length === 0) {
+        fetchAllCandidates(targetBackendPage, backendLimit);
+        setCurrentBackendPage(targetBackendPage);
+      }
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [currentPage]);
 
   // Update skill counts whenever candidates change
   useEffect(() => {
@@ -1006,13 +1035,27 @@ const Recruiter = ({ user }) => {
   }, [candidates, skills]);
 
   // Get filtered candidates based on search term
-  const filteredCandidates = filterCandidatesBySearch(displayedCandidates);
+  const filteredCandidates = React.useMemo(() => {
+    return filterCandidatesBySearch(displayedCandidates);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [displayedCandidates, searchTerm]);
 
   // Pagination logic for main view
-  const totalPages = Math.ceil(filteredCandidates.length / itemsPerPage);
+  const totalPages = isBackendPaginated 
+    ? Math.ceil(totalBackendRecords / itemsPerPage) 
+    : Math.ceil(filteredCandidates.length / itemsPerPage);
+
   const indexOfLastItem = currentPage * itemsPerPage;
   const indexOfFirstItem = indexOfLastItem - itemsPerPage;
-  const currentItems = filteredCandidates.slice(indexOfFirstItem, indexOfLastItem);
+  
+  const currentItems = React.useMemo(() => {
+    if (isBackendPaginated) {
+      const localStartIndex = ((currentPage - 1) % uiPagesPerBatch) * itemsPerPage;
+      const localEndIndex = localStartIndex + itemsPerPage;
+      return filteredCandidates.slice(localStartIndex, localEndIndex);
+    }
+    return filteredCandidates.slice(indexOfFirstItem, indexOfLastItem);
+  }, [filteredCandidates, isBackendPaginated, currentPage, uiPagesPerBatch, itemsPerPage, indexOfFirstItem, indexOfLastItem]);
 
   // Pagination logic for selected candidates view
   const selectedTotalPages = Math.ceil(selectedCandidates.length / itemsPerPage);
@@ -1056,7 +1099,7 @@ const Recruiter = ({ user }) => {
       if (candidateIds.length === 0) return;
 
       try {
-        const response = await axios.post('http://localhost:5000/api/candidates/progress/batch', {
+        const response = await axios.post(`${API_BASE_URL}/api/candidates/progress/batch`, {
           candidateIds: candidateIds
         });
 
@@ -1073,7 +1116,7 @@ const Recruiter = ({ user }) => {
         // Fallback: Check each candidate individually
         for (const candidateId of candidateIds) {
           try {
-            const singleResponse = await axios.get(`http://localhost:5000/api/candidates/debug/check-progress/${candidateId}`);
+            const singleResponse = await axios.get(`${API_BASE_URL}/api/candidates/debug/check-progress/${candidateId}`);
             if (singleResponse.data.success) {
               setCandidateInProgress(prev => ({
                 ...prev,
@@ -1096,9 +1139,8 @@ const Recruiter = ({ user }) => {
   // Skill selection handlers
   const filterCandidatesBySkill = async (skill) => {
     if (skill === "All") {
-      let allCandidates = [...candidates];
-      allCandidates = filterOutRejectedCandidates(allCandidates);
-      setDisplayedCandidates(allCandidates);
+      fetchAllCandidates(1, backendLimit);
+      setCurrentBackendPage(1);
       setSelectedSkill("All");
       setCurrentPage(1);
       setSearchTerm("");
@@ -1109,7 +1151,7 @@ const Recruiter = ({ user }) => {
       setFilterLoading(true);
       setError(null);
 
-      const response = await axios.get(`http://localhost:5000/api/skillsmatch?skill=${encodeURIComponent(skill)}`);
+      const response = await axios.get(`${API_BASE_URL}/api/skillsmatch?skill=${encodeURIComponent(skill)}`);
 
       if (response.data.success) {
         const apiCandidates = response.data.data || [];
@@ -1126,6 +1168,7 @@ const Recruiter = ({ user }) => {
         });
 
         setDisplayedCandidates(parsedCandidates);
+        setTotalBackendRecords(null);
         setCurrentPage(1);
         setSelectedSkill(skill);
         setSearchTerm("");
@@ -1347,7 +1390,7 @@ const Recruiter = ({ user }) => {
               <h2 className="text-3xl font-bold">Recruiter Dashboard</h2>
               <p className="text-gray-500">
                 <span className="font-semibold">{totalSkills}</span> total skills •
-                <span className="font-semibold ml-1">{candidates.length}</span> total candidates
+                <span className="font-semibold ml-1">{totalBackendRecords !== null ? totalBackendRecords : candidates.length}</span> total candidates
               </p>
             </div>
 
@@ -1442,7 +1485,7 @@ const Recruiter = ({ user }) => {
             {/* LEFT SIDEBAR - SKILLS WIDGET */}
             <div className="lg:col-span-1">
               <div className="bg-white rounded-2xl shadow-xl p-4 sticky top-6">
-                <SkillsSidebar 
+                <SkillsSidebar
                   skillsLoading={skillsLoading}
                   handleSkillSelect={handleSkillSelect}
                   selectedSkill={selectedSkill}
@@ -1459,7 +1502,7 @@ const Recruiter = ({ user }) => {
                   setShowAddSkillInput={setShowAddSkillInput}
                 />
 
-                <SelectedCandidatesPanel 
+                <SelectedCandidatesPanel
                   selectedCandidates={selectedCandidates}
                   candidateInProgress={candidateInProgress}
                   handleSelectCandidate={handleSelectCandidate}
@@ -1496,8 +1539,8 @@ const Recruiter = ({ user }) => {
                           "No candidates selected"
                         )
                       ) : (
-                        filteredCandidates.length > 0 ? (
-                          `Showing ${indexOfFirstItem + 1} to ${Math.min(indexOfLastItem, filteredCandidates.length)} of ${filteredCandidates.length} candidates`
+                        (isBackendPaginated ? totalBackendRecords : filteredCandidates.length) > 0 ? (
+                          `Showing ${indexOfFirstItem + 1} to ${Math.min(indexOfLastItem, isBackendPaginated ? totalBackendRecords : filteredCandidates.length)} of ${isBackendPaginated ? totalBackendRecords : filteredCandidates.length} candidates`
                         ) : (
                           "No candidates found"
                         )
@@ -1653,7 +1696,7 @@ const Recruiter = ({ user }) => {
                       </div>
 
                       {/* Pagination for selected view */}
-                      <Pagination 
+                      <Pagination
                         currentPage={selectedViewPage}
                         totalPages={selectedTotalPages}
                         setCurrentPage={setSelectedViewPage}
@@ -1717,7 +1760,7 @@ const Recruiter = ({ user }) => {
                       </div>
 
                       {/* Pagination */}
-                      <Pagination 
+                      <Pagination
                         currentPage={currentPage}
                         totalPages={totalPages}
                         setCurrentPage={setCurrentPage}

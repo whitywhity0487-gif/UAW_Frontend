@@ -1,10 +1,10 @@
 import React, { useState, useEffect, useRef, useCallback, useMemo, memo } from "react";
 import { useNavigate } from "react-router-dom";
 import {
-  ArrowLeft, Save, CheckCircle, User, Phone, 
- Briefcase, Shield, 
-   AlertCircle,  Upload, FileText, X,  Camera,
-   ChevronRight, Sparkles, Star, Plus,  Landmark
+  ArrowLeft, Save, CheckCircle, User, Phone,
+  Briefcase, Shield,
+  AlertCircle, Upload, FileText, X, Camera,
+  ChevronRight, Sparkles, Star, Plus, Landmark
 } from "lucide-react";
 import { useUser } from "../../../context/UserContext"
 import { useCompany } from "../../../context/CompanyContext"
@@ -14,6 +14,8 @@ import ProfileView from "./ProfileView";  // Make sure ProfileView.jsx also exis
 import Button from "../../../components/Button";
 import DashboardLayout, { DashboardContainer } from "../../../components/dashboard/DashboardLayout";
 import DashboardHeader from "../../../components/dashboard/DashboardHeader";
+import { API_BASE_URL as GLOBAL_API_BASE_URL } from '../../../config/constants.js';
+import toast from 'react-hot-toast';
 
 // ─── Validation helpers ───────────────────────────────────────────────────────
 const validators = {
@@ -24,8 +26,7 @@ const validators = {
     return "";
   },
   lastName: (v) => {
-    if (!v) return "Last name is required.";
-    if (v.trim().length < 2) return "Last name must be at least 2 characters.";
+    if (!v || v.trim().length === 0) return "Last name is required.";
     if (!/^[a-zA-Z\s\-']+$/.test(v)) return "Last name can only contain letters, spaces, hyphens, and apostrophes.";
     return "";
   },
@@ -225,14 +226,14 @@ const DocumentUpload = memo(({ label, document, existingLink, onUpload, onRemove
   const handleFileChange = (e) => {
     const file = e.target.files[0];
     if (!file) return;
-    
+
     if (file.size > 1048576) {
-      alert(`${label} file size must be less than 1MB`);
+      toast.error(`${label} file size must be less than 1MB`);
       return;
     }
-    
+
     if (file.type !== "application/pdf" && !file.type.startsWith("image/")) {
-      alert(`${label} must be a PDF or image file`);
+      toast.error(`${label} must be a PDF or image file`);
       return;
     }
     onUpload(file);
@@ -289,12 +290,12 @@ const DocumentUpload = memo(({ label, document, existingLink, onUpload, onRemove
 });
 
 // ─── Government ID Fields Component (Dynamic based on nationality) ────────────
-const GovernmentIdFields = memo(({ nationality, formData, onChange, onBlur, fieldErrors, 
-  aadharDocument, panDocument,
-  onAadharUpload, onPanUpload,
-  onAadharRemove, onPanRemove,
+const GovernmentIdFields = memo(({ nationality, formData, onChange, onBlur, fieldErrors,
+  aadharDocument, panDocument, nationalIdDocument,
+  onAadharUpload, onPanUpload, onNationalIdUpload,
+  onAadharRemove, onPanRemove, onNationalIdRemove,
   documentErrors }) => {
-  
+
   if (nationality === "INDIA") {
     return (
       <div className="space-y-6">
@@ -302,23 +303,23 @@ const GovernmentIdFields = memo(({ nationality, formData, onChange, onBlur, fiel
           <h3 className="text-sm font-semibold text-indigo-700 mb-4 flex items-center gap-2">
             <Shield size={16} /> Indian Government IDs
           </h3>
-          
+
           {/* Aadhar Card Number Field */}
           <div className="group/field mb-4">
             <Label required>Aadhar Number</Label>
-            <StableInput 
-              type="text" 
-              name="aadharNumber" 
-              value={formData.aadharNumber} 
-              onChange={onChange} 
-              onBlur={onBlur} 
+            <StableInput
+              type="text"
+              name="aadharNumber"
+              value={formData.aadharNumber}
+              onChange={onChange}
+              onBlur={onBlur}
               maxLength={12}
-              className={`${baseInput} ${fieldErrors.aadharNumber ? errorInput : normalInput}`} 
-              placeholder="Enter 12-digit Aadhar number" 
+              className={`${baseInput} ${fieldErrors.aadharNumber ? errorInput : normalInput}`}
+              placeholder="Enter 12-digit Aadhar number"
             />
             <FieldError msg={fieldErrors.aadharNumber} />
           </div>
-          
+
           {/* Aadhar Card Upload */}
           <div className="group/field mb-4">
             <Label required>Aadhar Card Document (PDF only)</Label>
@@ -362,23 +363,23 @@ const GovernmentIdFields = memo(({ nationality, formData, onChange, onBlur, fiel
             </div>
             {documentErrors?.aadhar && <FieldError msg={documentErrors.aadhar} />}
           </div>
-          
+
           {/* PAN Card Number Field */}
           <div className="group/field mb-4">
             <Label required>PAN Number</Label>
-            <StableInput 
-              type="text" 
-              name="panNumber" 
-              value={formData.panNumber} 
-              onChange={onChange} 
-              onBlur={onBlur} 
+            <StableInput
+              type="text"
+              name="panNumber"
+              value={formData.panNumber}
+              onChange={onChange}
+              onBlur={onBlur}
               maxLength={10}
-              className={`${baseInput} ${fieldErrors.panNumber ? errorInput : normalInput} uppercase`} 
-              placeholder="Enter PAN number (e.g., ABCDE1234F)" 
+              className={`${baseInput} ${fieldErrors.panNumber ? errorInput : normalInput} uppercase`}
+              placeholder="Enter PAN number (e.g., ABCDE1234F)"
             />
             <FieldError msg={fieldErrors.panNumber} />
           </div>
-          
+
           {/* PAN Card Upload */}
           <div className="group/field">
             <Label required>PAN Card Document (PDF/Image)</Label>
@@ -426,7 +427,7 @@ const GovernmentIdFields = memo(({ nationality, formData, onChange, onBlur, fiel
       </div>
     );
   }
-  
+
   if (nationality === "USA") {
     return (
       <div className="space-y-6">
@@ -434,21 +435,21 @@ const GovernmentIdFields = memo(({ nationality, formData, onChange, onBlur, fiel
           <h3 className="text-sm font-semibold text-blue-700 mb-4 flex items-center gap-2">
             <Shield size={16} /> USA Government ID
           </h3>
-          
+
           <div className="group/field">
             <Label required>Social Security Number (SSN)</Label>
-            <StableInput 
-              type="text" 
-              name="ssnNumber" 
-              value={formData.ssnNumber} 
+            <StableInput
+              type="text"
+              name="ssnNumber"
+              value={formData.ssnNumber}
               onChange={(e) => {
                 const val = e.target.value.replace(/\D/g, '').slice(0, 9);
                 onChange({ target: { name: 'ssnNumber', value: val } });
               }}
-              onBlur={onBlur} 
+              onBlur={onBlur}
               maxLength={9}
-              className={`${baseInput} ${fieldErrors.ssnNumber ? errorInput : normalInput}`} 
-              placeholder="Enter 9-digit SSN" 
+              className={`${baseInput} ${fieldErrors.ssnNumber ? errorInput : normalInput}`}
+              placeholder="Enter 9-digit SSN"
             />
             <FieldError msg={fieldErrors.ssnNumber} />
             <p className="text-[10px] text-gray-400 mt-1">Format: 9 digits</p>
@@ -457,7 +458,7 @@ const GovernmentIdFields = memo(({ nationality, formData, onChange, onBlur, fiel
       </div>
     );
   }
-  
+
   if (nationality === "CHINA") {
     return (
       <div className="space-y-6">
@@ -465,26 +466,69 @@ const GovernmentIdFields = memo(({ nationality, formData, onChange, onBlur, fiel
           <h3 className="text-sm font-semibold text-red-700 mb-4 flex items-center gap-2">
             <Shield size={16} /> China Government ID
           </h3>
-          
-          <div className="group/field">
+
+          <div className="group/field mb-4">
             <Label required>National ID</Label>
-            <StableInput 
-              type="text" 
-              name="nationalId" 
-              value={formData.nationalId} 
-              onChange={onChange} 
-              onBlur={onBlur} 
-              className={`${baseInput} ${fieldErrors.nationalId ? errorInput : normalInput}`} 
-              placeholder="Enter Chinese National ID (18 digits)" 
+            <StableInput
+              type="text"
+              name="nationalId"
+              value={formData.nationalId}
+              onChange={onChange}
+              onBlur={onBlur}
+              className={`${baseInput} ${fieldErrors.nationalId ? errorInput : normalInput}`}
+              placeholder="Enter Chinese National ID (18 digits)"
             />
             <FieldError msg={fieldErrors.nationalId} />
             <p className="text-[10px] text-gray-400 mt-1">Chinese Resident Identity Card number</p>
+          </div>
+
+          <div className="group/field">
+            <Label required>National ID Document (PDF/Image)</Label>
+            <div className="border-2 border-dashed border-gray-200 rounded-xl p-4 hover:border-red-400 transition-all">
+              {nationalIdDocument ? (
+                <div className="flex items-center justify-between bg-red-50 p-3 rounded-lg">
+                  <div className="flex items-center gap-2">
+                    <FileText size={20} className="text-red-500" />
+                    <span className="text-sm text-gray-700">{nationalIdDocument.name}</span>
+                  </div>
+                  <button onClick={onNationalIdRemove} className="text-red-500 hover:text-red-700">
+                    <X size={18} />
+                  </button>
+                </div>
+              ) : formData.nationalIdDocumentLink ? (
+                <div className="flex items-center justify-between bg-green-50 p-3 rounded-lg">
+                  <div className="flex items-center gap-2">
+                    <CheckCircle size={18} className="text-green-500" />
+                    <a href={formData.nationalIdDocumentLink} target="_blank" rel="noopener noreferrer" className="text-sm text-green-600 hover:underline">View uploaded document</a>
+                  </div>
+                  <button onClick={() => document.getElementById('nationalIdUpload')?.click()} className="text-red-500 hover:text-red-700 text-sm">
+                    Replace
+                  </button>
+                </div>
+              ) : (
+                <div onClick={() => document.getElementById('nationalIdUpload')?.click()} className="cursor-pointer text-center py-4">
+                  <Upload className="mx-auto text-gray-400 mb-2" size={24} />
+                  <p className="text-sm text-gray-500">Click to upload National ID (PDF/Image, max 1MB)</p>
+                </div>
+              )}
+              <input
+                id="nationalIdUpload"
+                type="file"
+                accept=".pdf,application/pdf,image/jpeg,image/jpg,image/png"
+                onChange={(e) => {
+                  const file = e.target.files[0];
+                  if (file) onNationalIdUpload(file);
+                }}
+                className="hidden"
+              />
+            </div>
+            {documentErrors?.nationalId && <FieldError msg={documentErrors.nationalId} />}
           </div>
         </div>
       </div>
     );
   }
-  
+
   return null;
 });
 
@@ -680,8 +724,8 @@ const ProfileFormComponent = memo(({
   formData, onChange, onBlur, onSubmit, onCancel, fieldErrors, serverErrors, loading,
   companies, onCompanySelect, onCompanyValueChange,
   aadharDocument, panDocument, ssnDocument, nationalIdDocument,
-  onAadharUpload, onPanUpload,  
-  onAadharRemove, onPanRemove, 
+  onAadharUpload, onPanUpload, onNationalIdUpload,
+  onAadharRemove, onPanRemove, onNationalIdRemove,
   tenthDocument, twelfthDocument, resumeDocument, visaDocument, profilePhotoDocument,
   onTenthUpload, onTwelfthUpload, onResumeUpload, onVisaUpload, onProfilePhotoUpload,
   onTenthRemove, onTwelfthRemove, onResumeRemove, onVisaRemove, onProfilePhotoRemove,
@@ -718,84 +762,12 @@ const ProfileFormComponent = memo(({
   }, []);
 
   return (
-    <div className="flex h-screen bg-gradient-to-br from-slate-50 via-white to-indigo-50/30 overflow-hidden">
-      {/* Floating decorative elements */}
-      <div className="fixed inset-0 pointer-events-none overflow-hidden">
-        <div className="absolute top-20 left-10 w-72 h-72 bg-indigo-200/20 rounded-full blur-3xl animate-float" />
-        <div className="absolute bottom-20 right-10 w-96 h-96 bg-purple-200/20 rounded-full blur-3xl animate-float-delayed" />
-        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[800px] bg-amber-100/10 rounded-full blur-3xl" />
-      </div>
-
-      {/* Sidebar */}
-      <aside className="w-80 shrink-0 bg-white/70 backdrop-blur-xl border-r border-white/50 flex flex-col h-full overflow-y-auto shadow-2xl z-10">
-        <div className="px-6 py-6 border-b border-white/50">
-          <div className="flex items-center gap-3">
-            <div className="relative group">
-              <div className="absolute inset-0 bg-gradient-to-r from-indigo-400 to-purple-400 rounded-xl blur-xl opacity-60 group-hover:opacity-100 transition-opacity duration-500"></div>
-              <div className="relative w-12 h-12 rounded-xl bg-gradient-to-br from-indigo-600 to-indigo-500 flex items-center justify-center shadow-lg animate-pulse-slow">
-                <Sparkles size={20} className="text-white" />
-              </div>
-            </div>
-            <div>
-              <p className="text-base font-bold bg-gradient-to-r from-gray-800 to-gray-600 bg-clip-text text-transparent tracking-tight">My Profile</p>
-              <p className="text-[11px] text-gray-400">Complete your details</p>
-            </div>
-          </div>
-        </div>
-
-        <div className="px-6 py-5 border-b border-white/50">
-          <div className="flex justify-between items-center mb-2">
-            <span className="text-[11px] text-gray-500 font-semibold uppercase tracking-wider">Profile completion</span>
-            <span className="text-sm font-bold text-transparent bg-clip-text bg-gradient-to-r from-indigo-600 to-indigo-400">{completion}%</span>
-          </div>
-          <div className="h-2 bg-gray-100 rounded-full overflow-hidden">
-            <div className="h-full bg-gradient-to-r from-indigo-500 to-indigo-400 rounded-full transition-all duration-1000 ease-out relative" style={{ width: `${completion}%` }}>
-              <div className="absolute inset-0 bg-white/30 animate-shimmer" />
-            </div>
-          </div>
-        </div>
-
-        <nav className="px-4 py-6 flex-1">
-          <p className="text-[10px] font-bold uppercase tracking-wider text-gray-400 px-3 mb-3">Sections</p>
-          {NAV_SECTIONS.map(({ id, label, icon: Icon }) => (
-            <button key={id} type="button" onClick={() => scrollTo(id)} onMouseEnter={() => setHoveredSection(id)} onMouseLeave={() => setHoveredSection(null)}
-              className={`w-full flex items-center gap-3 px-3 py-3 rounded-xl text-left mb-1.5 transition-all duration-300 text-sm group ${activeSection === id ? "bg-gradient-to-r from-indigo-50 to-white text-indigo-700 font-medium shadow-md" : "text-gray-500 hover:bg-white/50 hover:text-gray-700"}`}>
-              <div className={`p-1.5 rounded-lg transition-all duration-300 ${activeSection === id ? "bg-indigo-100 text-indigo-600" : "bg-transparent group-hover:bg-indigo-50"}`}>
-                <Icon size={16} className="shrink-0" />
-              </div>
-              <span className="relative">{label}{hoveredSection === id && <span className="absolute -bottom-1 left-0 w-full h-0.5 bg-gradient-to-r from-indigo-500 to-transparent rounded-full animate-slideIn" />}</span>
-              {activeSection === id && <ChevronRight size={12} className="ml-auto text-indigo-400 animate-pulse-slow" />}
-            </button>
-          ))}
-        </nav>
-
-        <div className="px-6 py-5 border-t border-white/50">
-          <div className="bg-gradient-to-r from-amber-50/80 to-transparent rounded-xl p-3 border border-amber-100 backdrop-blur-sm">
-            <p className="text-[11px] text-amber-700 leading-relaxed flex items-start gap-2">
-              <AlertCircle size={12} className="shrink-0 mt-0.5" />
-              Submitted profiles are reviewed by HR within 2 business days.
-            </p>
-          </div>
-        </div>
-      </aside>
-
-      {/* Main area */}
-      <div className="flex-1 flex flex-col min-w-0 h-full z-10">
-        <div className="bg-white/50 backdrop-blur-xl border-b border-white/50 px-8 h-[72px] flex items-center justify-between shrink-0 z-10">
-          <div className="flex items-center gap-4">
-            <Button
-              variant="secondary"
-              icon={ArrowLeft}
-              onClick={onCancel}
-              className="rounded-xl border-gray-200 hover:border-indigo-300 hover:bg-white/50"
-            >
-              Back
-            </Button>
-            <div>
-              <p className="text-[15px] font-bold bg-gradient-to-r from-gray-800 to-gray-600 bg-clip-text text-transparent">Complete your profile</p>
-              <p className="text-[11px] text-gray-400">Fields marked * are required</p>
-            </div>
-          </div>
+    <DashboardLayout>
+      <DashboardHeader
+        title="Complete your profile"
+        subtitle="Fields marked * are required"
+        backPath="/home"
+        actions={
           <Button
             variant="primary"
             icon={Save}
@@ -805,11 +777,69 @@ const ProfileFormComponent = memo(({
           >
             Save details
           </Button>
-        </div>
+        }
+      />
+      <DashboardContainer fullWidth>
+        <div className="flex flex-col lg:flex-row gap-8 items-start">
+          
+          {/* Sidebar */}
+          <aside className="w-full lg:w-80 shrink-0 bg-white rounded-2xl shadow-sm border border-gray-100 flex flex-col overflow-hidden sticky top-24 z-10">
+            <div className="px-6 py-5 border-b border-gray-100">
+              <div className="flex items-center gap-3">
+                <div className="relative group">
+                  <div className="absolute inset-0 bg-gradient-to-r from-indigo-400 to-purple-400 rounded-xl blur-xl opacity-60 group-hover:opacity-100 transition-opacity duration-500"></div>
+                  <div className="relative w-12 h-12 rounded-xl bg-gradient-to-br from-indigo-600 to-indigo-500 flex items-center justify-center shadow-lg animate-pulse-slow">
+                    <Sparkles size={20} className="text-white" />
+                  </div>
+                </div>
+                <div>
+                  <p className="text-base font-bold bg-gradient-to-r from-gray-800 to-gray-600 bg-clip-text text-transparent tracking-tight">My Profile</p>
+                  <p className="text-[11px] text-gray-500">Complete your details</p>
+                </div>
+              </div>
+            </div>
 
-        <div id="form-scroll-area" className="flex-1 overflow-y-auto px-8 py-6 space-y-6">
+            <div className="px-6 py-5 border-b border-gray-100">
+              <div className="flex justify-between items-center mb-2">
+                <span className="text-[11px] text-gray-500 font-semibold uppercase tracking-wider">Profile completion</span>
+                <span className="text-sm font-bold text-transparent bg-clip-text bg-gradient-to-r from-indigo-600 to-indigo-400">{completion}%</span>
+              </div>
+              <div className="h-2 bg-gray-100 rounded-full overflow-hidden">
+                <div className="h-full bg-gradient-to-r from-indigo-500 to-indigo-400 rounded-full transition-all duration-1000 ease-out relative" style={{ width: `${completion}%` }}>
+                  <div className="absolute inset-0 bg-white/30 animate-shimmer" />
+                </div>
+              </div>
+            </div>
+
+            <nav className="px-4 py-6 flex-1">
+              <p className="text-[10px] font-bold uppercase tracking-wider text-gray-400 px-3 mb-3">Sections</p>
+              {NAV_SECTIONS.map(({ id, label, icon: Icon }) => (
+                <button key={id} type="button" onClick={() => scrollTo(id)} onMouseEnter={() => setHoveredSection(id)} onMouseLeave={() => setHoveredSection(null)}
+                  className={`w-full flex items-center gap-3 px-3 py-3 rounded-xl text-left mb-1.5 transition-all duration-300 text-sm group ${activeSection === id ? "bg-indigo-50 text-indigo-700 font-medium" : "text-gray-500 hover:bg-gray-50 hover:text-gray-700"}`}>
+                  <div className={`p-1.5 rounded-lg transition-all duration-300 ${activeSection === id ? "bg-indigo-100 text-indigo-600" : "bg-transparent group-hover:bg-indigo-50"}`}>
+                    <Icon size={16} className="shrink-0" />
+                  </div>
+                  <span className="relative">{label}</span>
+                  {activeSection === id && <ChevronRight size={12} className="ml-auto text-indigo-400 animate-pulse-slow" />}
+                </button>
+              ))}
+            </nav>
+
+            <div className="px-6 py-5 border-t border-gray-100 bg-amber-50/30">
+              <div className="bg-white rounded-xl p-3 border border-amber-100/50 shadow-sm">
+                <p className="text-[11px] text-amber-700 leading-relaxed flex items-start gap-2">
+                  <AlertCircle size={12} className="shrink-0 mt-0.5" />
+                  Submitted profiles are reviewed by HR within 2 business days.
+                </p>
+              </div>
+            </div>
+          </aside>
+
+          {/* Main area */}
+          <div className="flex-1 min-w-0 w-full">
+            <div id="form-scroll-area" className="space-y-6 pb-20">
           {/* Identity Section */}
-          <div id="sec-identity" className="scroll-mt-20 relative z-[70]">
+          <div id="sec-identity" className="scroll-mt-20 relative z-[27]">
             <SectionCard icon={User} title="Identity" subtitle="Your full legal name and personal details">
               <div className="grid grid-cols-3 gap-x-6 gap-y-5">
                 <div className="group/field"><Label required>First name</Label><StableInput name="firstName" value={formData.firstName} onChange={onChange} onBlur={onBlur} className={iCls("firstName")} placeholder="First name" /><FieldError msg={fieldErrors.firstName || serverErrors.firstName} /></div>
@@ -824,7 +854,7 @@ const ProfileFormComponent = memo(({
           </div>
 
           {/* Contact Section */}
-          <div id="sec-contact" className="scroll-mt-20 relative z-[60]">
+          <div id="sec-contact" className="scroll-mt-20 relative z-[26]">
             <SectionCard icon={Phone} title="Contact Information" subtitle="Phone numbers, email and address">
               <div className="grid grid-cols-3 gap-x-6 gap-y-5">
                 <div className="group/field"><Label required>Mobile number</Label><StableInput type="tel" name="mobileNumber" value={formData.mobileNumber} onChange={onChange} onBlur={onBlur} maxLength={(formData.nationality === "CHINA" || formData.nationality === "USA") ? 11 : 10} className={iCls("mobileNumber")} placeholder={`${(formData.nationality === "CHINA" || formData.nationality === "USA") ? 11 : 10}-digit number`} /><FieldError msg={fieldErrors.mobileNumber || serverErrors.mobileNumber} /></div>
@@ -841,9 +871,9 @@ const ProfileFormComponent = memo(({
           </div>
 
           {/* Government IDs Section - Dynamic based on nationality */}
-          <div id="sec-ids" className="scroll-mt-20 relative z-[50]">
+          <div id="sec-ids" className="scroll-mt-20 relative z-[25]">
             <SectionCard icon={Shield} title="Government IDs" subtitle="Identity documents for verification">
-              <GovernmentIdFields 
+              <GovernmentIdFields
                 nationality={formData.nationality}
                 formData={formData}
                 onChange={onChange}
@@ -851,23 +881,26 @@ const ProfileFormComponent = memo(({
                 fieldErrors={fieldErrors}
                 aadharDocument={aadharDocument}
                 panDocument={panDocument}
-              
+                nationalIdDocument={nationalIdDocument}
+
                 onAadharUpload={onAadharUpload}
                 onPanUpload={onPanUpload}
-              
+                onNationalIdUpload={onNationalIdUpload}
+
                 onAadharRemove={onAadharRemove}
                 onPanRemove={onPanRemove}
-              
+                onNationalIdRemove={onNationalIdRemove}
+
                 documentErrors={documentErrors}
               />
             </SectionCard>
           </div>
 
           {/* Documents Section */}
-          <div id="sec-documents" className="scroll-mt-20 relative z-[40]">
+          <div id="sec-documents" className="scroll-mt-20 relative z-[24]">
             <SectionCard icon={FileText} title="Educational & Other Documents" subtitle="Certificates and additional documents">
               <div className="grid grid-cols-2 gap-6">
-                <DocumentUpload 
+                <DocumentUpload
                   label="10th Certificate"
                   document={tenthDocument}
                   existingLink={formData.tenthCertificateLink}
@@ -876,7 +909,7 @@ const ProfileFormComponent = memo(({
                   error={documentErrors?.tenth}
                   required={true}
                 />
-                <DocumentUpload 
+                <DocumentUpload
                   label="12th/PUC Certificate"
                   document={twelfthDocument}
                   existingLink={formData.twelfthCertificateLink}
@@ -885,7 +918,7 @@ const ProfileFormComponent = memo(({
                   error={documentErrors?.twelfth}
                   required={true}
                 />
-                <DocumentUpload 
+                <DocumentUpload
                   label="Graduation Certificate"
                   document={graduationDocument}
                   existingLink={formData.graduationCertificateLink}
@@ -894,7 +927,7 @@ const ProfileFormComponent = memo(({
                   error={documentErrors?.graduation}
                   required={true}
                 />
-                <DocumentUpload 
+                <DocumentUpload
                   label="Post Graduation Certificate"
                   document={postGraduationDocument}
                   existingLink={formData.postGraduationCertificateLink}
@@ -903,7 +936,7 @@ const ProfileFormComponent = memo(({
                   error={documentErrors?.postGraduation}
                   required={false}
                 />
-                <DocumentUpload 
+                <DocumentUpload
                   label="Resume/CV"
                   document={resumeDocument}
                   existingLink={formData.resumeDocumentLink}
@@ -912,7 +945,7 @@ const ProfileFormComponent = memo(({
                   error={documentErrors?.resume}
                   required={true}
                 />
-                <DocumentUpload 
+                <DocumentUpload
                   label="Visa Document"
                   document={visaDocument}
                   existingLink={formData.visaDocumentLink}
@@ -920,73 +953,73 @@ const ProfileFormComponent = memo(({
                   onRemove={onVisaRemove}
                   error={documentErrors?.visa}
                 />
-             <div className="group/upload">
-  <Label required>Profile Photo</Label>
+                <div className="group/upload">
+                  <Label required>Profile Photo</Label>
 
-  {profilePhotoDocument ? (
-    <div className="relative w-40 h-40 rounded-2xl overflow-hidden border border-gray-200 shadow-md">
-      <img
-        src={URL.createObjectURL(profilePhotoDocument)}
-        alt="Profile Preview"
-        className="w-full h-full object-cover"
-      />
+                  {profilePhotoDocument ? (
+                    <div className="relative w-40 h-40 rounded-2xl overflow-hidden border border-gray-200 shadow-md">
+                      <img
+                        src={URL.createObjectURL(profilePhotoDocument)}
+                        alt="Profile Preview"
+                        className="w-full h-full object-cover"
+                      />
 
-      <button
-        type="button"
-        onClick={onProfilePhotoRemove}
-        className="absolute top-2 right-2 bg-white p-1 rounded-full shadow hover:bg-red-50"
-      >
-        <X size={14} className="text-red-500" />
-      </button>
-    </div>
-  ) : formData.profilePhotoLink ? (
-    <div className="relative w-40 h-40 rounded-2xl overflow-hidden border border-gray-200 shadow-md">
-      <img
-        src={formData.profilePhotoLink}
-        alt="Profile"
-        className="w-full h-full object-cover"
-      />
+                      <button
+                        type="button"
+                        onClick={onProfilePhotoRemove}
+                        className="absolute top-2 right-2 bg-white p-1 rounded-full shadow hover:bg-red-50"
+                      >
+                        <X size={14} className="text-red-500" />
+                      </button>
+                    </div>
+                  ) : formData.profilePhotoLink ? (
+                    <div className="relative w-40 h-40 rounded-2xl overflow-hidden border border-gray-200 shadow-md">
+                      <img
+                        src={formData.profilePhotoLink}
+                        alt="Profile"
+                        className="w-full h-full object-cover"
+                      />
 
-      <button
-        type="button"
-        onClick={() => document.getElementById("profilePhotoUpload")?.click()}
-        className="absolute bottom-2 right-2 bg-white px-2 py-1 text-xs rounded-md shadow"
-      >
-        Replace
-      </button>
-    </div>
-  ) : (
-    <div
-      onClick={() => document.getElementById("profilePhotoUpload")?.click()}
-      className={`w-40 h-40 border-2 border-dashed ${documentErrors?.profilePhoto ? 'border-red-400 bg-red-50/30' : 'border-gray-300'} rounded-2xl flex flex-col items-center justify-center cursor-pointer hover:border-indigo-400 hover:bg-indigo-50/30 transition-all`}
-    >
-      <Camera size={28} className="text-gray-400 mb-2" />
-      <p className="text-xs text-gray-500">Upload Photo</p>
-      <p className="text-[10px] text-gray-300 mt-1">JPG, JPEG, PNG · max 1 MB</p>
-    </div>
-  )}
+                      <button
+                        type="button"
+                        onClick={() => document.getElementById("profilePhotoUpload")?.click()}
+                        className="absolute bottom-2 right-2 bg-white px-2 py-1 text-xs rounded-md shadow"
+                      >
+                        Replace
+                      </button>
+                    </div>
+                  ) : (
+                    <div
+                      onClick={() => document.getElementById("profilePhotoUpload")?.click()}
+                      className={`w-40 h-40 border-2 border-dashed ${documentErrors?.profilePhoto ? 'border-red-400 bg-red-50/30' : 'border-gray-300'} rounded-2xl flex flex-col items-center justify-center cursor-pointer hover:border-indigo-400 hover:bg-indigo-50/30 transition-all`}
+                    >
+                      <Camera size={28} className="text-gray-400 mb-2" />
+                      <p className="text-xs text-gray-500">Upload Photo</p>
+                      <p className="text-[10px] text-gray-300 mt-1">JPG, JPEG, PNG · max 1 MB</p>
+                    </div>
+                  )}
 
-  <input
-    id="profilePhotoUpload"
-    type="file"
-    accept="image/png,image/jpeg,image/jpg"
-    onChange={(e) => {
-      const file = e.target.files[0];
-      if (file) onProfilePhotoUpload(file);
-    }}
-    className="hidden"
-  />
+                  <input
+                    id="profilePhotoUpload"
+                    type="file"
+                    accept="image/png,image/jpeg,image/jpg"
+                    onChange={(e) => {
+                      const file = e.target.files[0];
+                      if (file) onProfilePhotoUpload(file);
+                    }}
+                    className="hidden"
+                  />
 
-  {documentErrors?.profilePhoto && (
-    <FieldError msg={documentErrors.profilePhoto} />
-  )}
-</div>
+                  {documentErrors?.profilePhoto && (
+                    <FieldError msg={documentErrors.profilePhoto} />
+                  )}
+                </div>
               </div>
             </SectionCard>
           </div>
 
           {/* Employment Section */}
-          <div id="sec-employment" className="scroll-mt-20 relative z-[30]">
+          <div id="sec-employment" className="scroll-mt-20 relative z-[23]">
             <SectionCard icon={Briefcase} title="Employment & Visa" subtitle="Work details and visa information">
               <div className="grid grid-cols-3 gap-x-6 gap-y-5">
                 <div className="group/field"><Label>Job title</Label><input type="text" name="jobTitle" value={formData.jobTitle} disabled readOnly className={disabledInput} /></div>
@@ -1003,7 +1036,7 @@ const ProfileFormComponent = memo(({
           </div>
 
           {/* Bank Details Section */}
-          <div id="sec-bank" className="scroll-mt-20 relative z-[20]">
+          <div id="sec-bank" className="scroll-mt-20 relative z-[22]">
             <SectionCard icon={Landmark} title="Bank Details" subtitle="Salary account information for payroll">
               <div className="grid grid-cols-2 gap-x-6 gap-y-5">
                 <div className="group/field"><Label required>Bank Name</Label><StableInput name="bankName" value={formData.bankName} onChange={onChange} onBlur={onBlur} className={iCls("bankName")} placeholder="Bank Name" /><FieldError msg={fieldErrors.bankName} /></div>
@@ -1015,7 +1048,7 @@ const ProfileFormComponent = memo(({
           </div>
 
           {/* Skills Section */}
-          <div id="sec-skills" className="scroll-mt-20 relative z-[10]">
+          <div id="sec-skills" className="scroll-mt-20 relative z-[21]">
             <SectionCard icon={Star} title="Skills & Expertise" subtitle="Add your professional skills">
               <SkillsSection skills={skills} onAddSkill={onAddSkill} onRemoveSkill={onRemoveSkill} onSkillInputChange={onSkillInputChange} skillInput={skillInput} error={fieldErrors.skills} />
             </SectionCard>
@@ -1035,7 +1068,7 @@ const ProfileFormComponent = memo(({
               </div>
               <label htmlFor="declaration-checkbox" className="text-sm text-gray-700 leading-relaxed cursor-pointer select-none">
                 <span className="font-semibold text-gray-800">Declaration:</span>{" "}
-                I hereby confirm that all the details provided in this form are true and accurate to the best of my knowledge. 
+                I hereby confirm that all the details provided in this form are true and accurate to the best of my knowledge.
                 <span className="text-red-400 ml-0.5">*</span>
               </label>
             </div>
@@ -1074,6 +1107,8 @@ const ProfileFormComponent = memo(({
         </div>
       </div>
     </div>
+  </DashboardContainer>
+</DashboardLayout>
   );
 });
 
@@ -1096,6 +1131,7 @@ const Mypersonaldetails = () => {
   // Document states
   const [aadharDocument, setAadharDocument] = useState(null);
   const [panDocument, setPanDocument] = useState(null);
+  const [nationalIdDocument, setNationalIdDocument] = useState(null);
   const [tenthDocument, setTenthDocument] = useState(null);
   const [twelfthDocument, setTwelfthDocument] = useState(null);
   const [resumeDocument, setResumeDocument] = useState(null);
@@ -1103,7 +1139,7 @@ const Mypersonaldetails = () => {
   const [profilePhotoDocument, setProfilePhotoDocument] = useState(null);
   const [graduationDocument, setGraduationDocument] = useState(null);
   const [postGraduationDocument, setPostGraduationDocument] = useState(null);
-  
+
   const [skills, setSkills] = useState([]);
   const [skillInput, setSkillInput] = useState("");
   const [documentErrors, setDocumentErrors] = useState({});
@@ -1121,7 +1157,7 @@ const Mypersonaldetails = () => {
     visaDocumentLink: "", profilePhotoLink: "", graduationCertificateLink: "", postGraduationCertificateLink: "", rejectionReason: ""
   });
 
-  const API_BASE_URL = "http://localhost:5000";
+  const API_BASE_URL = GLOBAL_API_BASE_URL;
 
   // Helper to validate a single field
   const validateField = (name, value, allData = formData) => {
@@ -1182,24 +1218,24 @@ const Mypersonaldetails = () => {
   // Handle input change with validation
   const handleChange = (e) => {
     let { name, value } = e.target;
-    
+
     if (name === "mobileNumber" || name === "emergencyNumber") {
       value = value.replace(/\D/g, "");
     }
-    
+
     // Update form data
     setFormData(prev => {
       const newData = { ...prev, [name]: value };
-      
+
       // Also update fullName if first/middle/last name changes
       if (name === "firstName" || name === "middleName" || name === "lastName") {
         newData.fullName = [newData.firstName, newData.middleName, newData.lastName]
           .filter(Boolean).join(" ");
       }
-      
+
       return newData;
     });
-    
+
     // Clear previous errors for this field
     setFieldErrors(prev => ({ ...prev, [name]: "" }));
     setServerErrors(prev => ({ ...prev, [name]: "" }));
@@ -1257,12 +1293,13 @@ const Mypersonaldetails = () => {
   };
 
   // Document upload handlers
-  const handleAadharUpload = (file) => { setAadharDocument(file); setDocumentErrors(prev => ({...prev, aadhar: ""})); };
-  const handlePanUpload = (file) => { setPanDocument(file); setDocumentErrors(prev => ({...prev, pan: ""})); };
-  const handleTenthUpload = (file) => { setTenthDocument(file); setDocumentErrors(prev => ({...prev, tenth: ""})); };
-  const handleTwelfthUpload = (file) => { setTwelfthDocument(file); setDocumentErrors(prev => ({...prev, twelfth: ""})); };
-  const handleResumeUpload = (file) => { setResumeDocument(file); setDocumentErrors(prev => ({...prev, resume: ""})); };
-  const handleVisaUpload = (file) => { setVisaDocument(file); setDocumentErrors(prev => ({...prev, visa: ""})); };
+  const handleAadharUpload = (file) => { setAadharDocument(file); setDocumentErrors(prev => ({ ...prev, aadhar: "" })); };
+  const handlePanUpload = (file) => { setPanDocument(file); setDocumentErrors(prev => ({ ...prev, pan: "" })); };
+  const handleNationalIdUpload = (file) => { setNationalIdDocument(file); setDocumentErrors(prev => ({ ...prev, nationalId: "" })); };
+  const handleTenthUpload = (file) => { setTenthDocument(file); setDocumentErrors(prev => ({ ...prev, tenth: "" })); };
+  const handleTwelfthUpload = (file) => { setTwelfthDocument(file); setDocumentErrors(prev => ({ ...prev, twelfth: "" })); };
+  const handleResumeUpload = (file) => { setResumeDocument(file); setDocumentErrors(prev => ({ ...prev, resume: "" })); };
+  const handleVisaUpload = (file) => { setVisaDocument(file); setDocumentErrors(prev => ({ ...prev, visa: "" })); };
   const handleProfilePhotoUpload = (file) => {
     // Validate file format
     const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png'];
@@ -1278,11 +1315,12 @@ const Mypersonaldetails = () => {
     setProfilePhotoDocument(file);
     setDocumentErrors(prev => ({ ...prev, profilePhoto: "" }));
   };
-  const handleGraduationUpload = (file) => { setGraduationDocument(file); setDocumentErrors(prev => ({...prev, graduation: ""})); };
-  const handlePostGraduationUpload = (file) => { setPostGraduationDocument(file); setDocumentErrors(prev => ({...prev, postGraduation: ""})); };
+  const handleGraduationUpload = (file) => { setGraduationDocument(file); setDocumentErrors(prev => ({ ...prev, graduation: "" })); };
+  const handlePostGraduationUpload = (file) => { setPostGraduationDocument(file); setDocumentErrors(prev => ({ ...prev, postGraduation: "" })); };
 
   const handleAadharRemove = () => setAadharDocument(null);
   const handlePanRemove = () => setPanDocument(null);
+  const handleNationalIdRemove = () => setNationalIdDocument(null);
   const handleTenthRemove = () => setTenthDocument(null);
   const handleTwelfthRemove = () => setTwelfthDocument(null);
   const handleResumeRemove = () => setResumeDocument(null);
@@ -1336,7 +1374,7 @@ const Mypersonaldetails = () => {
         }
       }
       if (!username) { setFetching(false); return; }
-      
+
       await refreshCompanies();
       try {
         const personalDetails = await fetchPersonalDetails(username);
@@ -1393,7 +1431,7 @@ const Mypersonaldetails = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    
+
     // Validate all fields before submitting
     const errors = {};
     const fieldsToValidate = [
@@ -1402,7 +1440,7 @@ const Mypersonaldetails = () => {
       "personalEmailId", "city", "state", "currentResidentialAddress", "permanentResidentialAddress",
       "nationality", "bankName", "bankAccountNumber", "ifscCode", "bankBranch"
     ];
-    
+
     fieldsToValidate.forEach(field => {
       const error = validateField(field, formData[field]);
       if (error) errors[field] = error;
@@ -1412,17 +1450,17 @@ const Mypersonaldetails = () => {
     if (fieldErrors.mobileNumber === "Mobile Number already exists.") errors.mobileNumber = fieldErrors.mobileNumber;
     if (fieldErrors.personalEmailId === "Personal Email already exists.") errors.personalEmailId = fieldErrors.personalEmailId;
     if (fieldErrors.employeeNumber === "Employee Number already exists.") errors.employeeNumber = fieldErrors.employeeNumber;
-    
+
     // Validate skills
     if (skills.length === 0) {
       errors.skills = "At least one skill is required.";
     }
-    
+
     // Validate profile photo (mandatory)
     if (!profilePhotoDocument && !formData.profilePhotoLink) {
       errors.profilePhoto = "Profile photo is required.";
     }
-    
+
     // Validate company selection (must be a valid company from the dropdown)
     if (!formData.assignedCompany || !formData.assignedCompany.trim()) {
       errors.assignedCompany = "Please select a company from the dropdown.";
@@ -1434,12 +1472,12 @@ const Mypersonaldetails = () => {
         errors.assignedCompany = "Please select a valid company from the dropdown.";
       }
     }
-    
+
     // Validate declaration checkbox
     if (!declarationChecked) {
       setDeclarationError("Please confirm the declaration before submitting.");
     }
-    
+
     // Validate conditional fields based on nationality
     if (formData.nationality === "INDIA") {
       if (!formData.aadharNumber) errors.aadharNumber = "Aadhar number is required for Indian nationals.";
@@ -1450,8 +1488,9 @@ const Mypersonaldetails = () => {
       if (!formData.ssnNumber) errors.ssnNumber = "SSN number is required for USA nationals.";
     } else if (formData.nationality === "CHINA") {
       if (!formData.nationalId) errors.nationalId = "National ID is required for China nationals.";
+      if (!nationalIdDocument && !formData.nationalIdDocumentLink) errors.nationalIdDocument = "National ID document is required.";
     }
-    
+
     // Validate education documents (except post-graduation)
     if (!tenthDocument && !formData.tenthCertificateLink) {
       errors.tenth = "10th certificate is required.";
@@ -1465,7 +1504,7 @@ const Mypersonaldetails = () => {
     if (!resumeDocument && !formData.resumeDocumentLink) {
       errors.resume = "Resume/CV is required.";
     }
-    
+
     // Block submission if declaration not checked or validation errors exist
     if (Object.keys(errors).length > 0 || !declarationChecked) {
       setFieldErrors(errors);
@@ -1476,6 +1515,7 @@ const Mypersonaldetails = () => {
         resume: errors.resume,
         aadhar: errors.aadharDocument,
         pan: errors.panDocument,
+        nationalId: errors.nationalIdDocument,
         profilePhoto: errors.profilePhoto
       });
       if (!declarationChecked) {
@@ -1488,29 +1528,30 @@ const Mypersonaldetails = () => {
       }
       return;
     }
-    
+
     setLoading(true);
     try {
       const username = currentUser?.username || JSON.parse(localStorage.getItem("user"))?.username;
-      if (!username) { alert("User not found"); setLoading(false); return; }
-      
+      if (!username) { toast.error("User not found"); setLoading(false); return; }
+
       const formDataToSend = new FormData();
-      
+
       // Add all form fields
       Object.keys(formData).forEach(key => {
         if (key !== 'skills' && formData[key]) {
           formDataToSend.append(key, formData[key]);
         }
       });
-      
+
       // Add skills as JSON string
       formDataToSend.append("skills", JSON.stringify(skills));
       formDataToSend.append("userId", username);
-      
-      // Add government ID documents (ONLY for INDIA - Aadhar and PAN)
+
+      // Add government ID documents (Aadhar, PAN, National ID)
       if (aadharDocument) formDataToSend.append("aadharDocument", aadharDocument);
       if (panDocument) formDataToSend.append("panDocument", panDocument);
-      
+      if (nationalIdDocument) formDataToSend.append("nationalIdDocument", nationalIdDocument);
+
       // Add other documents
       if (tenthDocument) formDataToSend.append("tenthCertificate", tenthDocument);
       if (twelfthDocument) formDataToSend.append("twelfthCertificate", twelfthDocument);
@@ -1519,27 +1560,27 @@ const Mypersonaldetails = () => {
       if (profilePhotoDocument) formDataToSend.append("profilePhoto", profilePhotoDocument);
       if (graduationDocument) formDataToSend.append("graduationCertificate", graduationDocument);
       if (postGraduationDocument) formDataToSend.append("postGraduationCertificate", postGraduationDocument);
-      
+
       // Check if this is a resubmission (profile was previously rejected)
       const isResubmit = profileStatus === "REJECTED";
-      const url = isResubmit 
+      const url = isResubmit
         ? `${API_BASE_URL}/api/personal-details/resubmit/${username}`
         : `${API_BASE_URL}/api/personal-details`;
-      
+
       const res = await fetch(url, { method: isResubmit ? "PUT" : "POST", body: formDataToSend });
       const result = await res.json();
-      
+
       if (result.success) {
         setShowSuccess(true);
         setProfileCompleted(true);
         setTimeout(() => window.location.reload(), 1500);
       } else {
-        alert(result.message || "Failed to save.");
+        toast.error(result.message || "Failed to save.");
         if (result.errors) setServerErrors(result.errors);
       }
     } catch (error) {
       console.error("Error:", error);
-      alert("Error saving details");
+      toast.error("Error saving details");
     } finally {
       setLoading(false);
     }
@@ -1571,7 +1612,7 @@ const Mypersonaldetails = () => {
   if (profileCompleted && (profileStatus === "PENDING" || profileStatus === "REJECTED")) {
     return (
       <DashboardLayout>
-        <DashboardHeader 
+        <DashboardHeader
           title="Profile Status"
           subtitle="View the current status of your profile submission"
         />
@@ -1649,12 +1690,15 @@ const Mypersonaldetails = () => {
         onCompanyValueChange={handleCompanyValueChange}
         aadharDocument={aadharDocument}
         panDocument={panDocument}
+        nationalIdDocument={nationalIdDocument}
         onAadharUpload={handleAadharUpload}
         onPanUpload={handlePanUpload}
-    
+        onNationalIdUpload={handleNationalIdUpload}
+
         onAadharRemove={handleAadharRemove}
         onPanRemove={handlePanRemove}
-      
+        onNationalIdRemove={handleNationalIdRemove}
+
         tenthDocument={tenthDocument}
         twelfthDocument={twelfthDocument}
         resumeDocument={resumeDocument}

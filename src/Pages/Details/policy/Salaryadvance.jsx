@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import PolicyTemplate from './PolicyTemplate';
 import SalaryAdvanceForm from './SalaryAdvanceForm';
 import AdminSalaryAdvance from '../../admin/AdminSalaryAdvance';
+import { API_BASE_URL } from '../../../config/constants.js';
 
 // Main Salaryadvance Component with Tabs
 const Salaryadvance = () => {
@@ -22,7 +23,7 @@ const Salaryadvance = () => {
           // Check nationality for employee
           try {
             const userId = user.username || user.id || user.userId;
-            const res = await fetch(`http://localhost:5000/api/personal-details?userId=${userId}`);
+            const res = await fetch(`${API_BASE_URL}/api/personal-details?userId=${userId}`);
             if (res.ok) {
               const data = await res.json();
               if (data?.data?.nationality) {

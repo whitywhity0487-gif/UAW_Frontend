@@ -1,17 +1,17 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
+import toast from 'react-hot-toast';
 import DashboardLayout, { DashboardContainer } from '../../components/dashboard/DashboardLayout';
 import DashboardHeader from '../../components/dashboard/DashboardHeader';
 import StatCard from '../../components/dashboard/StatCard';
 import { FileText, Clock, CheckCircle, XCircle } from 'lucide-react';
+import { API_BASE_URL } from '../../config/constants.js';
 
 const AdminSalaryAdvance = () => {
   const navigate = useNavigate();
   const [requests, setRequests] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState('');
-  const [successMsg, setSuccessMsg] = useState('');
   const [searchTerm, setSearchTerm] = useState('');
   const [searchLoading, setSearchLoading] = useState(false);
   const [selectedEmployee, setSelectedEmployee] = useState(null);
@@ -58,7 +58,7 @@ const AdminSalaryAdvance = () => {
         params.append('dateTo', endDate.toISOString());
       }
 
-      const url = `http://localhost:5000/api/salary-advance/requests${params.toString() ? `?${params.toString()}` : ''}`;
+      const url = `${API_BASE_URL}/api/salary-advance/requests${params.toString() ? `?${params.toString()}` : ''}`;
       const response = await axios.get(url);
 
       if (response.data.success) {
@@ -68,9 +68,8 @@ const AdminSalaryAdvance = () => {
       }
     } catch (err) {
       console.error('Fetch error:', err);
-      setError(err.response?.data?.message || 'Failed to fetch requests');
+      toast.error(err.response?.data?.message || 'Failed to fetch requests');
       setRequests([]);
-      setTimeout(() => setError(''), 3000);
     } finally {
       setLoading(false);
       setSearchLoading(false);
@@ -79,21 +78,20 @@ const AdminSalaryAdvance = () => {
 
   const fetchEmployeeDetails = async (employeeId) => {
     try {
-      const response = await axios.get(`http://localhost:5000/api/salary-advance/employee-analytics/${employeeId}`);
+      const response = await axios.get(`${API_BASE_URL}/api/salary-advance/employee-analytics/${employeeId}`);
       if (response.data.success) {
         setSelectedEmployee(response.data.data);
         setShowEmployeeModal(true);
       }
     } catch (err) {
-      setError('Failed to fetch employee details');
-      setTimeout(() => setError(''), 3000);
+      toast.error('Failed to fetch employee details');
     }
   };
 
   const submitAction = async (e) => {
     e.preventDefault();
     if (!actionModal.remarks.trim()) {
-      alert("Remarks are mandatory before approval or rejection.");
+      toast.error("Remarks are mandatory before approval or rejection.");
       return;
     }
 
@@ -109,20 +107,18 @@ const AdminSalaryAdvance = () => {
     }
 
     try {
-      const response = await axios.put(`http://localhost:5000/api/salary-advance/request/${actionModal.requestId}/${actionModal.action}`, {
+      const response = await axios.put(`${API_BASE_URL}/api/salary-advance/request/${actionModal.requestId}/${actionModal.action}`, {
         adminRemarks: actionModal.remarks,
         reviewedBy: adminName
       });
 
       if (response.data.success) {
-        setSuccessMsg(`Request successfully ${actionModal.action}d!`);
+        toast.success(`Request successfully ${actionModal.action}d!`);
         setActionModal({ isOpen: false, action: '', requestId: '', remarks: '' });
         fetchRequests();
-        setTimeout(() => setSuccessMsg(''), 3000);
       }
     } catch (err) {
-      setError(err.response?.data?.message || `Failed to ${actionModal.action} request`);
-      setTimeout(() => setError(''), 3000);
+      toast.error(err.response?.data?.message || `Failed to ${actionModal.action} request`);
     } finally {
       setSubmittingAction(false);
     }
@@ -131,7 +127,7 @@ const AdminSalaryAdvance = () => {
   const submitRepay = async (e) => {
     e.preventDefault();
     if (!repayModal.remarks.trim()) {
-      alert("Remarks are mandatory for repayment.");
+      toast.error("Remarks are mandatory for repayment.");
       return;
     }
 
@@ -147,21 +143,19 @@ const AdminSalaryAdvance = () => {
     }
 
     try {
-      const response = await axios.post(`http://localhost:5000/api/salary-advance/admin/repay/${repayModal.employeeNumber}`, {
+      const response = await axios.post(`${API_BASE_URL}/api/salary-advance/admin/repay/${repayModal.employeeNumber}`, {
         remarks: repayModal.remarks,
         adminName
       });
 
       if (response.data.success) {
-        setSuccessMsg(response.data.message || 'Repayment recorded successfully!');
+        toast.success(response.data.message || 'Repayment recorded successfully!');
         setRepayModal({ isOpen: false, employeeNumber: '', remarks: '' });
         setShowEmployeeModal(false);
         fetchRequests();
-        setTimeout(() => setSuccessMsg(''), 3000);
       }
     } catch (err) {
-      setError(err.response?.data?.message || 'Failed to process repayment');
-      setTimeout(() => setError(''), 3000);
+      toast.error(err.response?.data?.message || 'Failed to process repayment');
     } finally {
       setSubmittingRepay(false);
     }
@@ -343,18 +337,6 @@ const AdminSalaryAdvance = () => {
             </div>
           )}
         </div>
-
-        {error && (
-          <div style={{ padding: '12px 16px', background: '#FEE2E2', borderRadius: 10, marginBottom: 20, color: '#991B1B', fontSize: 14 }}>
-            ❌ {error}
-          </div>
-        )}
-
-        {successMsg && (
-          <div style={{ padding: '12px 16px', background: '#D1FAE5', borderRadius: 10, marginBottom: 20, color: '#065F46', fontSize: 14 }}>
-            ✅ {successMsg}
-          </div>
-        )}
 
         {loading ? (
           <div style={{ textAlign: 'center', padding: 40, color: '#6B7280' }}>

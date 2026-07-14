@@ -2,6 +2,7 @@
 
 import React, { createContext, useState, useContext, useEffect } from 'react';
 import { useUser } from './UserContext';
+import { API_BASE_URL } from '../config/constants';
 
 const CompanyContext = createContext();
 
@@ -25,33 +26,33 @@ export const CompanyProvider = ({ children }) => {
   // Fetch assigned client from personal-details API only
   const fetchAssignedClientFromDB = async (userId) => {
     if (!userId) return null;
-    
-    
+
+
     try {
       // Only fetch from personal-details endpoint
-      const response = await fetch(`http://localhost:5000/api/personal-details?userId=${userId}`);
-      
+      const response = await fetch(`${API_BASE_URL}/api/personal-details?userId=${userId}`);
+
       if (!response.ok) {
         console.warn(`⚠️ Personal details API returned ${response.status}`);
         return null;
       }
-      
+
       const data = await response.json();
-      
+
       if (data.success && data.data) {
-        const client = data.data.assignedClient || 
-                       data.data.assignedCompany || 
-                       data.data.clientName;
-        
+        const client = data.data.assignedClient ||
+          data.data.assignedCompany ||
+          data.data.clientName;
+
         if (client) {
           console.log(`✅ Found assigned client: ${client}`);
           setAssignedClient(client);
           return client;
         }
       }
-      
+
       return null;
-      
+
     } catch (error) {
       console.error('❌ Error fetching assigned client:', error);
       return null;
@@ -62,29 +63,29 @@ export const CompanyProvider = ({ children }) => {
   const fetchCompanies = async (clientName = null) => {
     setCompaniesLoading(true);
     setError(null);
-    
+
     const client = clientName || assignedClient;
-    
+
     try {
-      let url = 'http://localhost:5000/api/holiday/companies';
-      
+      let url = `${API_BASE_URL}/api/holiday/companies`;
+
       const response = await fetch(url);
-      
+
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`);
       }
-      
+
       const data = await response.json();
-      
+
       if (data.success && data.data) {
         setAvailableCompanies(data.data);
-        
+
         // Check if assigned client matches any company name or client name
         const client = clientName || assignedClient;
-        const matchedCompany = client 
+        const matchedCompany = client
           ? data.data.find(c => c.name === client || c.client === client)
           : null;
-        
+
         if (matchedCompany) {
           setCurrentCompany(matchedCompany.name);
         } else if (!currentCompany && data.data.length > 0) {
@@ -105,10 +106,10 @@ export const CompanyProvider = ({ children }) => {
   // Initialize - fetch from database on mount
   useEffect(() => {
     const init = async () => {
-      const userId = currentUser?.username || 
-                     currentUser?.userId || 
-                     JSON.parse(localStorage.getItem('user') || '{}')?.username;
-      
+      const userId = currentUser?.username ||
+        currentUser?.userId ||
+        JSON.parse(localStorage.getItem('user') || '{}')?.username;
+
       if (userId) {
         const client = await fetchAssignedClientFromDB(userId);
         await fetchCompanies(client);
@@ -117,7 +118,7 @@ export const CompanyProvider = ({ children }) => {
         await fetchCompanies(null);
       }
     };
-    
+
     if (currentUser) {
       init();
     }
@@ -128,10 +129,10 @@ export const CompanyProvider = ({ children }) => {
   };
 
   const refreshCompanies = async () => {
-    const userId = currentUser?.username || 
-                   currentUser?.userId || 
-                   JSON.parse(localStorage.getItem('user') || '{}')?.username;
-    
+    const userId = currentUser?.username ||
+      currentUser?.userId ||
+      JSON.parse(localStorage.getItem('user') || '{}')?.username;
+
     if (userId) {
       const client = await fetchAssignedClientFromDB(userId);
       await fetchCompanies(client);

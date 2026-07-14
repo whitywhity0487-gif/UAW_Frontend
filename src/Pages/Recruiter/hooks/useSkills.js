@@ -1,5 +1,7 @@
 import { useState, useCallback } from 'react';
 import axios from 'axios';
+import { API_BASE_URL } from '../../../config/constants.js';
+import { confirmAction } from '../../../utils/toastUtils';
 
 export const useSkills = (setSuccessMessage, setError) => {
   const [skills, setSkills] = useState([]);
@@ -14,11 +16,11 @@ export const useSkills = (setSuccessMessage, setError) => {
   const fetchSkillsData = useCallback(async () => {
     try {
       setSkillsLoading(true);
-      const response = await axios.get('http://localhost:5000/api/skillsmatch/skills');
+      const response = await axios.get(`${API_BASE_URL}/api/skillsmatch/skills`);
 
       if (response.data.success && response.data.data) {
         let skillsList = response.data.data;
-        
+
         // Alphabetical order
         skillsList.sort((a, b) => a.name.localeCompare(b.name));
 
@@ -94,7 +96,7 @@ export const useSkills = (setSuccessMessage, setError) => {
 
     try {
       setSkillsLoading(true);
-      const response = await axios.post('http://localhost:5000/api/skills', {
+      const response = await axios.post(`${API_BASE_URL}/api/skills`, {
         name: newSkillName.trim()
       });
 
@@ -122,30 +124,28 @@ export const useSkills = (setSuccessMessage, setError) => {
   const handleDeleteSkill = async (skillName, e) => {
     e.stopPropagation();
 
-    if (!window.confirm(`Are you sure you want to delete the skill "${skillName}"?`)) {
-      return;
-    }
+    confirmAction(`Are you sure you want to delete the skill "${skillName}"?`, async () => {
+      try {
+        setSkillsLoading(true);
+        const response = await axios.delete(`${API_BASE_URL}/api/skills/${encodeURIComponent(skillName)}`);
 
-    try {
-      setSkillsLoading(true);
-      const response = await axios.delete(`http://localhost:5000/api/skills/${encodeURIComponent(skillName)}`);
-
-      if (response.data.success) {
-        await fetchSkillsData();
-        if (setSuccessMessage) {
-          setSuccessMessage(`Skill "${skillName}" deleted successfully!`);
-          setTimeout(() => setSuccessMessage(""), 3000);
+        if (response.data.success) {
+          await fetchSkillsData();
+          if (setSuccessMessage) {
+            setSuccessMessage(`Skill "${skillName}" deleted successfully!`);
+            setTimeout(() => setSuccessMessage(""), 3000);
+          }
         }
+      } catch (err) {
+        console.error('Error deleting skill:', err);
+        if (setError) {
+          setError(err.response?.data?.message || "Failed to delete skill");
+          setTimeout(() => setError(null), 3000);
+        }
+      } finally {
+        setSkillsLoading(false);
       }
-    } catch (err) {
-      console.error('Error deleting skill:', err);
-      if (setError) {
-        setError(err.response?.data?.message || "Failed to delete skill");
-        setTimeout(() => setError(null), 3000);
-      }
-    } finally {
-      setSkillsLoading(false);
-    }
+    });
   };
 
   return {

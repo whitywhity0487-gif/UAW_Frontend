@@ -4,6 +4,8 @@ import React, { useState, useEffect } from "react";
 import Header from "../components/Header";// import bgImage from "../assets/Images/back.png";
 import axios from "axios";
 import * as XLSX from 'xlsx';
+import toast from 'react-hot-toast';
+import { API_BASE_URL } from '../config/constants.js';
 import {
   Search,
   Users,
@@ -35,23 +37,23 @@ import {
 // Convert Google Drive view/share links to embeddable preview links
 const getEmbeddableUrl = (url) => {
   if (!url) return url;
-  
+
   if (url.includes('drive.google.com')) {
     let fileId = null;
-    
+
     const fileMatch = url.match(/\/file\/d\/([a-zA-Z0-9_-]+)/);
     if (fileMatch) fileId = fileMatch[1];
-    
+
     if (!fileId) {
       const idMatch = url.match(/[?&]id=([a-zA-Z0-9_-]+)/);
       if (idMatch) fileId = idMatch[1];
     }
-    
+
     if (fileId) {
       return `https://drive.google.com/file/d/${fileId}/preview`;
     }
   }
-  
+
   return url;
 };
 
@@ -70,7 +72,7 @@ const Joined = () => {
   const [error, setError] = useState(null);
   const [successMessage, setSuccessMessage] = useState("");
   const [selectedDemands, setSelectedDemands] = useState({});
-  
+
 
   // Parse key skills (same as Recruiter)
   const parseKeySkills = (skills) => {
@@ -103,7 +105,7 @@ const Joined = () => {
     if (!candidate) return null;
 
     let actualCanId = candidate.Can_ID || candidate.canId;
-    
+
     if (actualCanId && typeof actualCanId === 'number') {
       actualCanId = Math.floor(actualCanId);
     } else if (actualCanId && typeof actualCanId === 'string') {
@@ -116,11 +118,11 @@ const Joined = () => {
         candidate.keySkills ||
         candidate.skills ||
         [];
-      
+
       if (Array.isArray(skillsSource)) {
         return skillsSource.filter(s => s && s.trim());
       }
-      
+
       if (typeof skillsSource === 'string') {
         try {
           const parsed = JSON.parse(skillsSource);
@@ -138,7 +140,7 @@ const Joined = () => {
         const trimmed = skillsSource.trim();
         return trimmed ? [trimmed] : [];
       }
-      
+
       return [];
     };
 
@@ -193,50 +195,50 @@ const Joined = () => {
   };
 
   // Only change the fetchJoinedCandidates function
-const fetchJoinedCandidates = async (status = statusFilter) => {
-  try {
-    setLoading(true);
-    setError(null);
+  const fetchJoinedCandidates = async (status = statusFilter) => {
+    try {
+      setLoading(true);
+      setError(null);
 
-    const url = `http://localhost:5000/api/candidates/by-status?status=${encodeURIComponent(status)}`;
-    const response = await axios.get(url);
-    
-    if (response.data.success) {
-      const joined = response.data.data.map(candidate => ({
-        id: candidate.id,
-        canId: candidate.canId,
-        name: candidate.name,
-        email: candidate.email,
-        mobile: candidate.mobile,
-        experience: candidate.experience,
-        currentOrg: candidate.currentOrg,
-        currentCTC: candidate.currentCTC,
-        expectedCTC: candidate.expectedCTC,
-        noticePeriod: candidate.noticePeriod,
-        profileSourcedBy: candidate.profileSourcedBy,
-        clientName: candidate.clientName,
-        profileSubmissionDate: candidate.profileSubmissionDate,
-        visaType: candidate.visaType,
-        visaValidityDate: candidate.visaValidityDate,
-        resumePath: candidate.resumePath,
-        googleDriveViewLink: candidate.googleDriveViewLink,
-        keySkills: parseKeySkills(candidate.keySkills),
-        joinedDemand: candidate.joinedDemandRrNumber,
-        joinedAt: candidate.joinedAt
-      }));
-      
-      setJoinedCandidates(joined);
-      setFilteredCandidates(joined);
-      
-      console.log(`✅ Found ${joined.length} joined candidates`);
+      const url = `${API_BASE_URL}/api/candidates/by-status?status=${encodeURIComponent(status)}`;
+      const response = await axios.get(url);
+
+      if (response.data.success) {
+        const joined = response.data.data.map(candidate => ({
+          id: candidate.id,
+          canId: candidate.canId,
+          name: candidate.name,
+          email: candidate.email,
+          mobile: candidate.mobile,
+          experience: candidate.experience,
+          currentOrg: candidate.currentOrg,
+          currentCTC: candidate.currentCTC,
+          expectedCTC: candidate.expectedCTC,
+          noticePeriod: candidate.noticePeriod,
+          profileSourcedBy: candidate.profileSourcedBy,
+          clientName: candidate.clientName,
+          profileSubmissionDate: candidate.profileSubmissionDate,
+          visaType: candidate.visaType,
+          visaValidityDate: candidate.visaValidityDate,
+          resumePath: candidate.resumePath,
+          googleDriveViewLink: candidate.googleDriveViewLink,
+          keySkills: parseKeySkills(candidate.keySkills),
+          joinedDemand: candidate.joinedDemandRrNumber,
+          joinedAt: candidate.joinedAt
+        }));
+
+        setJoinedCandidates(joined);
+        setFilteredCandidates(joined);
+
+        console.log(`✅ Found ${joined.length} joined candidates`);
+      }
+    } catch (err) {
+      console.error("Error fetching joined candidates:", err);
+      setError("Failed to load joined candidates. Please try again.");
+    } finally {
+      setLoading(false);
     }
-  } catch (err) {
-    console.error("Error fetching joined candidates:", err);
-    setError("Failed to load joined candidates. Please try again.");
-  } finally {
-    setLoading(false);
-  }
-};
+  };
 
   useEffect(() => {
     fetchJoinedCandidates(statusFilter);
@@ -248,7 +250,7 @@ const fetchJoinedCandidates = async (status = statusFilter) => {
       setFilteredCandidates(joinedCandidates);
     } else {
       const searchLower = searchTerm.toLowerCase();
-      const filtered = joinedCandidates.filter(candidate => 
+      const filtered = joinedCandidates.filter(candidate =>
         candidate.name?.toLowerCase().includes(searchLower) ||
         candidate.email?.toLowerCase().includes(searchLower) ||
         candidate.mobile?.includes(searchLower) ||
@@ -271,18 +273,18 @@ const fetchJoinedCandidates = async (status = statusFilter) => {
   // Handle view resume
   const handleViewResume = (candidate, e) => {
     e.stopPropagation();
-    
+
     if (candidate.googleDriveViewLink) {
       setSelectedResumeUrl(candidate.googleDriveViewLink);
       setShowResumeModal(true);
     } else if (candidate.resumePath) {
-      const resumeUrl = candidate.resumePath.startsWith('http') 
-        ? candidate.resumePath 
-        : `http://localhost:5000${candidate.resumePath}`;
+      const resumeUrl = candidate.resumePath.startsWith('http')
+        ? candidate.resumePath
+        : `${API_BASE_URL}${candidate.resumePath}`;
       setSelectedResumeUrl(resumeUrl);
       setShowResumeModal(true);
     } else {
-      alert('No resume available for this candidate');
+      toast.error('No resume available for this candidate');
     }
   };
 
@@ -307,18 +309,18 @@ const fetchJoinedCandidates = async (status = statusFilter) => {
     try {
       setLoading(true);
 
-      const url = `http://localhost:5000/api/candidates/by-status?status=${encodeURIComponent(statusFilter)}`;
+      const url = `${API_BASE_URL}/api/candidates/by-status?status=${encodeURIComponent(statusFilter)}`;
       const response = await axios.get(url);
 
       if (!response.data.success) {
-        alert("Failed to fetch candidates");
+        toast.error("Failed to fetch candidates");
         return;
       }
 
       const allJoinedCandidates = response.data.data;
 
       if (allJoinedCandidates.length === 0) {
-        alert("No data to export");
+        toast.error("No data to export");
         return;
       }
 
@@ -376,7 +378,7 @@ const fetchJoinedCandidates = async (status = statusFilter) => {
       });
 
       const worksheet = XLSX.utils.json_to_sheet(excelData);
-      
+
       worksheet['!cols'] = [
         { wch: 5 }, { wch: 10 }, { wch: 25 }, { wch: 10 },
         { wch: 30 }, { wch: 15 }, { wch: 10 }, { wch: 25 },
@@ -390,7 +392,7 @@ const fetchJoinedCandidates = async (status = statusFilter) => {
       XLSX.utils.book_append_sheet(workbook, worksheet, `${statusFilter} Candidates`);
       const filename = `${statusFilter.replace(/\s+/g, '_')}_Candidates_${new Date().toISOString().slice(0, 10)}.xlsx`;
       XLSX.writeFile(workbook, filename);
-      
+
       setSuccessMessage(`✅ Exported ${allJoinedCandidates.length} ${statusFilter.toLowerCase()} candidates to Excel`);
       setTimeout(() => setSuccessMessage(""), 3000);
 
@@ -541,24 +543,22 @@ const fetchJoinedCandidates = async (status = statusFilter) => {
 
                         {/* Visa Type Badge */}
                         {candidate.visaType && candidate.visaType !== "NA" && (
-                          <span className={`ml-2 px-2 py-1 text-xs rounded-full font-medium ${
-                            candidate.visaType === "China" || candidate.visaType === "CHINA"
+                          <span className={`ml-2 px-2 py-1 text-xs rounded-full font-medium ${candidate.visaType === "China" || candidate.visaType === "CHINA"
                               ? "bg-blue-100 text-blue-800"
                               : "bg-red-100 text-red-800"
-                          }`}>
+                            }`}>
                             {candidate.visaType}
                           </span>
                         )}
 
                         {/* Status Badge */}
-                        <span className={`ml-2 px-2 py-1 rounded-full text-xs font-medium flex items-center gap-1 ${
-                          statusFilter === 'Joined' ? 'bg-green-100 text-green-800' :
-                          statusFilter === 'Offer Decline' ? 'bg-red-100 text-red-800' :
-                          'bg-yellow-100 text-yellow-800'
-                        }`}>
-                          {statusFilter === 'Joined' ? <CheckCircle size={12} /> : 
-                           statusFilter === 'Offer Decline' ? <XCircle size={12} /> : 
-                           <Clock size={12} />}
+                        <span className={`ml-2 px-2 py-1 rounded-full text-xs font-medium flex items-center gap-1 ${statusFilter === 'Joined' ? 'bg-green-100 text-green-800' :
+                            statusFilter === 'Offer Decline' ? 'bg-red-100 text-red-800' :
+                              'bg-yellow-100 text-yellow-800'
+                          }`}>
+                          {statusFilter === 'Joined' ? <CheckCircle size={12} /> :
+                            statusFilter === 'Offer Decline' ? <XCircle size={12} /> :
+                              <Clock size={12} />}
                           {statusFilter}
                         </span>
                       </div>
@@ -624,11 +624,10 @@ const fetchJoinedCandidates = async (status = statusFilter) => {
                         </button>
                         <button
                           onClick={(e) => handleViewResume(candidate, e)}
-                          className={`flex-1 px-3 py-2 rounded-lg text-sm font-medium flex items-center justify-center gap-1 cursor-pointer ${
-                            candidate.resumePath || candidate.googleDriveViewLink
+                          className={`flex-1 px-3 py-2 rounded-lg text-sm font-medium flex items-center justify-center gap-1 cursor-pointer ${candidate.resumePath || candidate.googleDriveViewLink
                               ? 'bg-purple-100 text-purple-700 hover:bg-purple-200'
                               : 'bg-gray-100 text-gray-400 cursor-not-allowed'
-                          }`}
+                            }`}
                           title={candidate.resumePath || candidate.googleDriveViewLink ? "View Resume" : "No Resume Available"}
                           disabled={!candidate.resumePath && !candidate.googleDriveViewLink}
                         >
@@ -741,13 +740,12 @@ const fetchJoinedCandidates = async (status = statusFilter) => {
                       </div>
                       <div>
                         <p className="text-xs text-gray-500">Visa Type</p>
-                        <span className={`inline-block px-2 py-0.5 text-xs rounded-full font-medium mt-1 ${
-                          selectedCandidate.visaType === "China" || selectedCandidate.visaType === "CHINA"
+                        <span className={`inline-block px-2 py-0.5 text-xs rounded-full font-medium mt-1 ${selectedCandidate.visaType === "China" || selectedCandidate.visaType === "CHINA"
                             ? "bg-blue-100 text-blue-800"
                             : selectedCandidate.visaType === "NA"
                               ? "bg-gray-100 text-gray-800"
                               : "bg-red-100 text-red-800"
-                        }`}>
+                          }`}>
                           {selectedCandidate.visaType || "NA"}
                         </span>
                       </div>
@@ -817,7 +815,7 @@ const fetchJoinedCandidates = async (status = statusFilter) => {
                   {(selectedCandidate.resumePath || selectedCandidate.googleDriveViewLink) && (
                     <div className="flex justify-end">
                       <button
-                        onClick={() => handleViewResume(selectedCandidate, { stopPropagation: () => {} })}
+                        onClick={() => handleViewResume(selectedCandidate, { stopPropagation: () => { } })}
                         className="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition flex items-center gap-2 cursor-pointer"
                       >
                         <FileText size={16} />

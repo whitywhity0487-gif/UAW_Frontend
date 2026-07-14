@@ -3,6 +3,8 @@ import loginImage from "../assets/Images/company.png";
 import logo from "../assets/Images/logo.png";
 import back from "../assets/Images/back.png";
 import { useNavigate } from "react-router-dom";
+import { API_BASE_URL } from '../config/constants.js';
+import toast from 'react-hot-toast';
 
 const Login = () => {
   const [email, setEmail] = useState("");
@@ -59,7 +61,7 @@ const Login = () => {
     setIsSubmitting(true);
 
     try {
-      const res = await fetch("http://localhost:5000/api/login", {
+      const res = await fetch(`${API_BASE_URL}/api/login`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ username: email, password }),
@@ -70,7 +72,7 @@ const Login = () => {
       if (res.ok) {
         // Save user to localStorage
         localStorage.setItem("user", JSON.stringify(data.user));
-        
+
         // Log the assigned client if exists
         if (data.user.clientName) {
           console.log(`✅ User logged in - Assigned Client: ${data.user.clientName}`);
@@ -105,16 +107,16 @@ const Login = () => {
           navigate("/home");
         }
       } else {
-        alert(data.message);
+        toast.error(data.message);
       }
     } catch (err) {
       console.error("Login error:", err);
-      alert("Server error. Please try again later.");
+      toast.error("Server error. Please try again later.");
     } finally {
       setIsSubmitting(false);
     }
   };
-  
+
   return (
     <div
       className="h-screen w-full flex items-center justify-center bg-cover bg-center bg-no-repeat font-sans"

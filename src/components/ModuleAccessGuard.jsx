@@ -7,30 +7,30 @@ import { useNavigate } from 'react-router-dom';
 
 
 const ModuleAccessGuard = ({ children, moduleName }) => {
-  
+
   const { hasModuleAccess, profileStatus, currentUser, checkProfileAccess, isHydrated } = useUser();
   const navigate = useNavigate();
   const [checking, setChecking] = useState(true);
-const [accessChecked, setAccessChecked] = useState(false);
+  const [accessChecked, setAccessChecked] = useState(false);
 
-useEffect(() => {
+  useEffect(() => {
 
-  const verifyAccess = async () => {
-    if (!isHydrated) return;
+    const verifyAccess = async () => {
+      if (!isHydrated) return;
 
-    const storedUser = JSON.parse(localStorage.getItem("user"));
-    const username = currentUser?.username || storedUser?.username;
+      const storedUser = JSON.parse(localStorage.getItem("user"));
+      const username = currentUser?.username || storedUser?.username;
 
-    if (username) {
-      await checkProfileAccess(username);
-    }
+      if (username) {
+        await checkProfileAccess(username);
+      }
 
-    setAccessChecked(true);
-    setChecking(false);
-  };
+      setAccessChecked(true);
+      setChecking(false);
+    };
 
-  verifyAccess();
-}, [isHydrated]);
+    verifyAccess();
+  }, [isHydrated]);
 
   // Show loading while checking
   if (checking || !isHydrated || !accessChecked) {
@@ -100,9 +100,9 @@ useEffect(() => {
       </div>
     );
   }
-if (profileStatus === null) {
-  return null;
-}
+  if (profileStatus === null) {
+    return null;
+  }
 
   // Default - No profile or NOT_SUBMITTED
   return (

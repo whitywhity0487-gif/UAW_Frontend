@@ -6,7 +6,7 @@ const DashboardHeader = ({ title, subtitle, backPath = '/home', actions }) => {
   const navigate = useNavigate();
 
   return (
-    <div className="relative sticky top-0 z-30 shadow-sm min-h-[76px] flex items-center bg-gradient-to-r from-gray-900 via-gray-900 to-blue-900 overflow-hidden border-b border-gray-800">
+    <div className="sticky top-0 z-30 shadow-sm min-h-[76px] flex items-center bg-gradient-to-r from-gray-900 via-gray-900 to-blue-900 overflow-hidden border-b border-gray-800">
       <div className="w-full px-6 py-4 flex items-center justify-between relative z-10">
         
         {/* Left Side - Back Button */}

@@ -6,7 +6,9 @@ import DashboardLayout, { DashboardContainer } from "../../components/dashboard/
 import DashboardHeader from "../../components/dashboard/DashboardHeader";
 import StatCard from "../../components/dashboard/StatCard";
 
-const API_BASE_URL = "http://localhost:5000/api/employeeassets";
+import { API_BASE_URL as GLOBAL_API_BASE_URL } from "../../config/constants.js";
+
+const API_BASE_URL = `${GLOBAL_API_BASE_URL}/api/employeeassets`;
 
 const AdminAssetsManagement = () => {
   const [assets, setAssets] = useState([]);
@@ -125,8 +127,8 @@ const AdminAssetsManagement = () => {
 
   return (
     <DashboardLayout>
-      <DashboardHeader 
-        title="Employee Assets Management" 
+      <DashboardHeader
+        title="Employee Assets Management"
       />
 
       <DashboardContainer>

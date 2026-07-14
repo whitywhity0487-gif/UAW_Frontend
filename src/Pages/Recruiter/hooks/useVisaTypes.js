@@ -1,5 +1,6 @@
 import { useState, useCallback } from 'react';
 import axios from 'axios';
+import { API_BASE_URL } from '../../../config/constants.js';
 
 export const useVisaTypes = () => {
   const [visaTypes, setVisaTypes] = useState([]);
@@ -8,7 +9,7 @@ export const useVisaTypes = () => {
   const fetchVisaTypes = useCallback(async () => {
     try {
       setVisaTypesLoading(true);
-      const response = await axios.get('http://localhost:5000/api/visa');
+      const response = await axios.get(`${API_BASE_URL}/api/visa`);
 
       if (response.data && Array.isArray(response.data)) {
         const visaTypeNames = response.data.map(item => item.VisaType);

@@ -2,17 +2,20 @@ import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
 import { Search, Calendar, Briefcase, FileText, ChevronLeft, X, Eye, Users, Home } from 'lucide-react';
+import toast from 'react-hot-toast';
 import DashboardLayout, { DashboardContainer } from '../../components/dashboard/DashboardLayout';
 import DashboardHeader from '../../components/dashboard/DashboardHeader';
 import StatCard from '../../components/dashboard/StatCard';
+import { API_BASE_URL as GLOBAL_API_BASE_URL } from '../../config/constants.js';
 
-const API_BASE_URL = 'http://localhost:5000/api/leave';
+const API_BASE_URL = `${GLOBAL_API_BASE_URL}/api/leave`;
 
 const AdminLeaveManagement = () => {
   const [employeeStats, setEmployeeStats] = useState([]);
   const [filteredStats, setFilteredStats] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+
   const [searchTerm, setSearchTerm] = useState('');
 
   const [totals, setTotals] = useState({
@@ -59,7 +62,7 @@ const AdminLeaveManagement = () => {
     try {
       const [leavesRes, usersRes] = await Promise.all([
         axios.get(`${API_BASE_URL}/all?t=${new Date().getTime()}`),
-        axios.get('http://localhost:5000/api/users')
+        axios.get(`${GLOBAL_API_BASE_URL}/api/users`)
       ]);
 
       if (leavesRes.data.success) {
@@ -82,11 +85,11 @@ const AdminLeaveManagement = () => {
 
   const handleAdjustLeave = async () => {
     if (!adjustDays || isNaN(adjustDays) || adjustDays < 0 || adjustDays > adjustingLeave.totalDays) {
-      alert("Please enter a valid number of days less than or equal to total approved days.");
+      toast.error("Please enter a valid number of days less than or equal to total approved days.");
       return;
     }
     if (!adjustReason.trim()) {
-      alert("Please enter a reason for adjustment.");
+      toast.error("Please enter a reason for adjustment.");
       return;
     }
 
@@ -110,7 +113,7 @@ const AdminLeaveManagement = () => {
       }
     } catch (err) {
       console.error(err);
-      alert(err.response?.data?.message || "Failed to adjust leave");
+      toast.error(err.response?.data?.message || "Failed to adjust leave");
     } finally {
       setAdjustLoading(false);
     }
@@ -236,7 +239,7 @@ const AdminLeaveManagement = () => {
 
   return (
     <DashboardLayout>
-      <DashboardHeader 
+      <DashboardHeader
         title="Employee Leave Stats"
         subtitle="Overview of all employees' leaves and WFH balances"
       />

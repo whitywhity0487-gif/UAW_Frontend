@@ -1,9 +1,9 @@
 // src/context/UserContext.jsx
 import React, { createContext, useState, useContext, useEffect } from 'react';
+import { API_BASE_URL } from '../config/constants';
 
 const UserContext = createContext();
 
-const API_BASE_URL = "http://localhost:5000";
 
 // Fields to EXCLUDE from localStorage (keep as is - don't store sensitive/assignment data)
 const EXCLUDE_FROM_STORAGE = [
@@ -97,20 +97,20 @@ export const UserProvider = ({ children }) => {
     }
   };
 
-const refreshUser = async () => {
-  const storedUser = JSON.parse(localStorage.getItem("user"));
-  const username = currentUser?.username || storedUser?.username;
+  const refreshUser = async () => {
+    const storedUser = JSON.parse(localStorage.getItem("user"));
+    const username = currentUser?.username || storedUser?.username;
 
-  if (username) {
-    const freshUser = await fetchUserFromBackend(username);
+    if (username) {
+      const freshUser = await fetchUserFromBackend(username);
 
-    await checkProfileAccess(username);
+      await checkProfileAccess(username);
 
-    return freshUser;
-  }
+      return freshUser;
+    }
 
-  return null;
-};
+    return null;
+  };
 
   const checkProfileAccess = async (userIdParam = null) => {
     const username =

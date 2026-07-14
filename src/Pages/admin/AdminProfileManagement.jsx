@@ -7,11 +7,13 @@ import {
   Phone, Mail, MapPin, Briefcase, Calendar, Globe, Building2,
   CreditCard, Lock, Link as LinkIcon, AlertCircle
 } from 'lucide-react';
+import toast from 'react-hot-toast';
 import { useUser } from '../../context/UserContext';
 import { useCompany } from '../../context/CompanyContext';
 import DashboardLayout, { DashboardContainer } from '../../components/dashboard/DashboardLayout';
 import DashboardHeader from '../../components/dashboard/DashboardHeader';
 import StatCard from '../../components/dashboard/StatCard';
+import { API_BASE_URL as GLOBAL_API_BASE_URL } from '../../config/constants.js';
 
 // ─── Extract Google Drive file ID from any Drive URL format ──────────────────
 const extractDriveId = (url) => {
@@ -83,8 +85,6 @@ const AdminProfileManagement = () => {
   const [showProfileModal, setShowProfileModal] = useState(false);
   const [rejectionReason, setRejectionReason] = useState('');
   const [showRejectModal, setShowRejectModal] = useState(false);
-  const [showApproveModal, setShowApproveModal] = useState(false);
-  const [approveStartDate, setApproveStartDate] = useState('');
   const [selectedUserId, setSelectedUserId] = useState(null);
   const [stats, setStats] = useState({ total: 0, pending: 0, approved: 0, rejected: 0 });
   const [isEditing, setIsEditing] = useState(false);
@@ -100,7 +100,7 @@ const AdminProfileManagement = () => {
       "emailId", "personalEmailId", "emergencyNumber", "city", "state",
       "currentResidentialAddress", "permanentResidentialAddress",
       "nationality", "maritalStatus", "employeeNumber",
-      "bankName", "bankAccountNumber", "ifscCode", "bankBranch"
+      "bankName", "bankAccountNumber", "ifscCode", "bankBranch", "employmentStartDate"
     ];
     if (data.nationality === "INDIA") fields.push("aadharNumber", "panNumber");
     else if (data.nationality === "USA") fields.push("ssnNumber");
@@ -136,7 +136,8 @@ const AdminProfileManagement = () => {
       permanentResidentialAddress: "Permanent Residential Address",
       nationality: "Nationality", maritalStatus: "Marital Status",
       employeeNumber: "Employee Number", bankName: "Bank Name",
-      bankAccountNumber: "Bank Account Number", ifscCode: "IFSC Code", bankBranch: "Bank Branch"
+      bankAccountNumber: "Bank Account Number", ifscCode: "IFSC Code", bankBranch: "Bank Branch",
+      employmentStartDate: "Employment Start Date"
     };
     Object.keys(fieldLabels).forEach(key => {
       if (!data[key] || String(data[key]).trim() === "") missing.push(fieldLabels[key]);
@@ -161,8 +162,8 @@ const AdminProfileManagement = () => {
     return missing;
   };
 
-  const API_BASE = "http://localhost:5000/api/profile-approval";
-  const PERSONAL_API = "http://localhost:5000/api/personal-details";
+  const API_BASE = `${GLOBAL_API_BASE_URL}/api/profile-approval`;
+  const PERSONAL_API = `${GLOBAL_API_BASE_URL}/api/personal-details`;
 
   const fetchProfiles = async () => {
     setLoading(true);
@@ -256,13 +257,13 @@ const AdminProfileManagement = () => {
         setSelectedProfile(data.data);
         setIsEditing(false);
         await fetchProfiles();
-        alert("Profile updated successfully!");
+        toast.success("Profile updated successfully!");
       } else {
-        alert(data.message || "Failed to update profile");
+        toast.error(data.message || "Failed to update profile");
       }
     } catch (error) {
       console.error("Error saving profile:", error);
-      alert("Error saving profile");
+      toast.error("Error saving profile");
     } finally {
       setSaving(false);
     }
@@ -353,38 +354,31 @@ const AdminProfileManagement = () => {
     );
   };
 
-  const openApproveModal = (userId) => {
-    setSelectedUserId(userId);
-    setApproveStartDate('');
-    setShowApproveModal(true);
-  };
-
-  const approveProfile = async () => {
-    if (!approveStartDate) {
-      alert("Please provide a start date");
+  const handleApprove = async (userId, startDate) => {
+    if (!startDate) {
+      toast.error("Please set the Employment Start Date by editing the profile before approving.");
       return;
     }
     try {
-      const response = await fetch(`${API_BASE}/admin/approve/${selectedUserId}`, {
+      const response = await fetch(`${API_BASE}/admin/approve/${userId}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ startDate: approveStartDate })
+        body: JSON.stringify({ startDate: startDate })
       });
       const data = await response.json();
       if (data.success) {
-        setShowApproveModal(false);
         setSelectedUserId(null);
         await fetchProfiles(); await fetchStats();
         if (showProfileModal) setShowProfileModal(false);
-        alert("Profile approved successfully!");
+        toast.success("Profile approved successfully!");
       } else {
-        alert(data.message || "Failed to approve profile");
+        toast.error(data.message || "Failed to approve profile");
       }
-    } catch (error) { alert("Failed to approve profile"); }
+    } catch (error) { toast.error("Failed to approve profile"); }
   };
 
   const rejectProfile = async () => {
-    if (!rejectionReason.trim()) { alert("Please provide a rejection reason"); return; }
+    if (!rejectionReason.trim()) { toast.error("Please provide a rejection reason"); return; }
     try {
       const response = await fetch(`${API_BASE}/admin/reject/${selectedUserId}`, {
         method: 'PUT',
@@ -396,9 +390,9 @@ const AdminProfileManagement = () => {
         setShowRejectModal(false); setRejectionReason(''); setSelectedUserId(null);
         await fetchProfiles(); await fetchStats();
         if (showProfileModal) setShowProfileModal(false);
-        alert("Profile rejected successfully!");
+        toast.success("Profile rejected successfully!");
       }
-    } catch (error) { alert("Failed to reject profile"); }
+    } catch (error) { toast.error("Failed to reject profile"); }
   };
 
   const getStatusBadge = (status) => {
@@ -429,15 +423,15 @@ const AdminProfileManagement = () => {
 
   return (
     <DashboardLayout>
-      <DashboardHeader 
+      <DashboardHeader
         title={
           <div className="flex items-center gap-2">
             Profile Management
-          
+
           </div>
         }
         subtitle="Review and manage employee profile submissions"
-       
+
       />
 
       <DashboardContainer>
@@ -548,7 +542,7 @@ const AdminProfileManagement = () => {
                         <Eye size={18} />
                       </button>
                       {profile.approvalStatus === 'PENDING' && (
-                        <button onClick={() => openApproveModal(profile.userId)}
+                        <button onClick={() => handleApprove(profile.userId, profile.employmentStartDate)}
                           disabled={computeCompletion(profile) < 100}
                           className={`mr-3 ${computeCompletion(profile) < 100 ? 'text-gray-300 cursor-not-allowed opacity-50' : 'text-green-600 hover:text-green-800'}`}
                           title={computeCompletion(profile) < 100 ? "Profile incomplete" : "Approve"}>
@@ -776,7 +770,7 @@ const AdminProfileManagement = () => {
                   )}
                   <div className="flex gap-3">
                     {selectedProfile.approvalStatus === 'PENDING' && (
-                      <button onClick={() => { setShowProfileModal(false); openApproveModal(selectedProfile.userId); }}
+                      <button onClick={() => handleApprove(selectedProfile.userId, selectedProfile.employmentStartDate)}
                         disabled={computeCompletion(selectedProfile) < 100}
                         className="flex-1 px-4 py-2 bg-green-600 hover:bg-green-700 disabled:bg-green-600/50 disabled:cursor-not-allowed text-white rounded-lg font-medium flex items-center justify-center gap-2 transition-all">
                         <CheckCircle size={18} /> Approve Profile
@@ -816,26 +810,6 @@ const AdminProfileManagement = () => {
         </div>
       )}
 
-      {/* Approve Modal */}
-      {showApproveModal && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-2xl max-w-md w-full p-6">
-            <div className="flex items-center gap-3 mb-4">
-              <div className="p-2 bg-green-100 rounded-full"><CheckCircle className="text-green-600" size={24} /></div>
-              <h3 className="text-lg font-semibold">Approve Profile</h3>
-            </div>
-            <p className="text-gray-600 mb-4">Please provide the employment start date to approve this profile:</p>
-            <input type="date" value={approveStartDate} onChange={(e) => setApproveStartDate(e.target.value)}
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500 outline-none" />
-            <div className="flex gap-3 mt-6">
-              <button onClick={() => { setShowApproveModal(false); setApproveStartDate(''); setSelectedUserId(null); }}
-                className="flex-1 px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50">Cancel</button>
-              <button onClick={approveProfile}
-                className="flex-1 px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg font-medium">Confirm Approve</button>
-            </div>
-          </div>
-        </div>
-      )}
     </DashboardLayout>
   );
 };

@@ -4,18 +4,19 @@ import { useNavigate } from 'react-router-dom';
 import {
   Users, UserPlus, Trash2, Edit, Save, X, ChevronLeft, Search, CheckCircle, XCircle, Shield
 } from 'lucide-react';
+import toast from 'react-hot-toast';
 import DashboardLayout, { DashboardContainer } from '../../components/dashboard/DashboardLayout';
 import DashboardHeader from '../../components/dashboard/DashboardHeader';
+import { confirmAction } from '../../utils/toastUtils';
+import { API_BASE_URL as GLOBAL_API_BASE_URL } from '../../config/constants.js';
 
-const API_BASE_URL = 'http://localhost:5000/api/teams';
+const API_BASE_URL = `${GLOBAL_API_BASE_URL}/api/teams`;
 
 export default function AdminMyTeam() {
   const navigate = useNavigate();
   const [teams, setTeams] = useState([]);
   const [employees, setEmployees] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState('');
-  const [success, setSuccess] = useState('');
 
   // Modal State
   const [showModal, setShowModal] = useState(false);
@@ -46,7 +47,7 @@ export default function AdminMyTeam() {
     try {
       const [teamsRes, empRes] = await Promise.all([
         axios.get(API_BASE_URL),
-        axios.get('http://localhost:5000/api/profile-approval/admin/profiles')
+        axios.get(`${GLOBAL_API_BASE_URL}/api/profile-approval/admin/profiles`)
       ]);
 
       if (teamsRes.data.success) {
@@ -60,7 +61,7 @@ export default function AdminMyTeam() {
       }
     } catch (err) {
       console.error(err);
-      setError('Failed to fetch data.');
+      toast.error('Failed to fetch data.');
     } finally {
       setLoading(false);
     }
@@ -115,46 +116,43 @@ export default function AdminMyTeam() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    setError(''); setSuccess('');
 
     if (!formData.name.trim() || !formData.supervisorId || !formData.hrId) {
-      setError('Name, Supervisor, and HR are required.');
+      toast.error('Name, Supervisor, and HR are required.');
       return;
     }
 
     try {
       if (isEditing) {
         await axios.put(`${API_BASE_URL}/${currentTeamId}`, formData);
-        setSuccess('Team updated successfully.');
+        toast.success('Team updated successfully.');
       } else {
         await axios.post(API_BASE_URL, formData);
-        setSuccess('Team created successfully.');
+        toast.success('Team created successfully.');
       }
       setShowModal(false);
       fetchData();
-      setTimeout(() => setSuccess(''), 3000);
     } catch (err) {
-      setError(err.response?.data?.message || 'Failed to save team.');
+      toast.error(err.response?.data?.message || 'Failed to save team.');
     }
   };
 
   const handleDelete = async (id) => {
-    if (window.confirm("Are you sure you want to delete this team?")) {
+    confirmAction("Are you sure you want to delete this team?", async () => {
       try {
         await axios.delete(`${API_BASE_URL}/${id}`);
-        setSuccess('Team deleted successfully.');
+        toast.success('Team deleted successfully.');
         fetchData();
-        setTimeout(() => setSuccess(''), 3000);
       } catch (err) {
-        setError('Failed to delete team.');
+        toast.error('Failed to delete team.');
       }
-    }
+    });
   };
 
 
   return (
     <DashboardLayout>
-      <DashboardHeader 
+      <DashboardHeader
         title="Team Management"
         subtitle="Create and manage teams, assign supervisors and members"
         actions={
@@ -168,17 +166,6 @@ export default function AdminMyTeam() {
       />
 
       <DashboardContainer>
-
-        {error && (
-          <div className="mb-6 bg-red-50 text-red-700 p-4 rounded-xl flex items-center gap-3 border border-red-100 animate-fade-in">
-            <XCircle size={20} /> {error}
-          </div>
-        )}
-        {success && (
-          <div className="mb-6 bg-green-50 text-green-700 p-4 rounded-xl flex items-center gap-3 border border-green-100 animate-fade-in">
-            <CheckCircle size={20} /> {success}
-          </div>
-        )}
 
         {/* Teams List */}
         {loading ? (
@@ -270,86 +257,6 @@ export default function AdminMyTeam() {
                 />
               </div>
 
-              <div className="relative">
-                <label className="block text-sm font-medium text-gray-700 mb-1.5">Supervisor *</label>
-                {formData.supervisorId ? (
-                  <div className="flex items-center justify-between border border-blue-200 bg-blue-50/50 rounded-xl px-4 py-2.5 shadow-sm">
-                    <div className="flex items-center gap-3">
-                      <div className="w-8 h-8 bg-blue-100 text-blue-700 rounded-full flex items-center justify-center text-sm font-bold border border-blue-200">
-                        {employees.find(e => e.userId === formData.supervisorId)?.firstName?.[0] || 'U'}
-                      </div>
-                      <div>
-                        <span className="block text-sm font-semibold text-blue-900">
-                          {employees.find(e => e.userId === formData.supervisorId)?.firstName} {employees.find(e => e.userId === formData.supervisorId)?.lastName}
-                        </span>
-                        <span className="block text-xs font-mono text-blue-600/80">Emp No: {employees.find(e => e.userId === formData.supervisorId)?.employeeNumber || formData.supervisorId}</span>
-                      </div>
-                    </div>
-                    <button
-                      type="button"
-                      onClick={() => setFormData(prev => ({ ...prev, supervisorId: '' }))}
-                      className="text-blue-400 hover:text-red-500 hover:bg-red-50 p-1.5 rounded-lg transition-colors"
-                      title="Remove Supervisor"
-                    >
-                      <X size={18} />
-                    </button>
-                  </div>
-                ) : (
-                  <div className="relative">
-                    <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                      <Search size={16} className="text-gray-400" />
-                    </div>
-                    <input
-                      type="text"
-                      placeholder="Search and select supervisor..."
-                      value={supervisorSearchTerm}
-                      onChange={(e) => {
-                        setSupervisorSearchTerm(e.target.value);
-                        setShowSupervisorDropdown(true);
-                      }}
-                      onFocus={() => setShowSupervisorDropdown(true)}
-                      className="w-full border border-gray-300 rounded-xl pl-10 pr-4 py-2.5 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-shadow shadow-sm"
-                    />
-
-                    {showSupervisorDropdown && (
-                      <div className="absolute z-20 w-full mt-2 bg-white border border-gray-200 rounded-xl shadow-xl max-h-60 overflow-y-auto">
-                        {employees.filter(emp =>
-                          `${emp.firstName} ${emp.lastName}`.toLowerCase().includes(supervisorSearchTerm.toLowerCase()) ||
-                          (emp.employeeNumber && emp.employeeNumber.toLowerCase().includes(supervisorSearchTerm.toLowerCase())) ||
-                          emp.userId.toLowerCase().includes(supervisorSearchTerm.toLowerCase())
-                        ).length === 0 ? (
-                          <div className="p-4 text-center text-sm text-gray-500">No matching employees found</div>
-                        ) : (
-                          employees.filter(emp =>
-                            `${emp.firstName} ${emp.lastName}`.toLowerCase().includes(supervisorSearchTerm.toLowerCase()) ||
-                            (emp.employeeNumber && emp.employeeNumber.toLowerCase().includes(supervisorSearchTerm.toLowerCase())) ||
-                            emp.userId.toLowerCase().includes(supervisorSearchTerm.toLowerCase())
-                          ).map(emp => (
-                            <div
-                              key={emp.userId}
-                              onClick={() => {
-                                setFormData(prev => ({ ...prev, supervisorId: emp.userId }));
-                                setSupervisorSearchTerm('');
-                                setShowSupervisorDropdown(false);
-                              }}
-                              className="flex items-center px-4 py-3 cursor-pointer hover:bg-gray-50 transition-colors border-b border-gray-50 last:border-0"
-                            >
-                              <div className="w-8 h-8 bg-gray-100 text-gray-600 rounded-full flex items-center justify-center text-sm font-bold mr-3 border border-gray-200">
-                                {emp.firstName?.[0] || 'U'}
-                              </div>
-                              <div>
-                                <p className="text-sm font-medium text-gray-900">{emp.firstName} {emp.lastName}</p>
-                                <p className="text-xs text-gray-500 font-mono">Emp No: {emp.employeeNumber || emp.userId}</p>
-                              </div>
-                            </div>
-                          ))
-                        )}
-                      </div>
-                    )}
-                  </div>
-                )}
-              </div>
-
               {/* HR Selection */}
               <div className="relative">
                 <label className="block text-sm font-medium text-gray-700 mb-1.5">Assigned HR *</label>
@@ -414,6 +321,86 @@ export default function AdminMyTeam() {
                                 setFormData(prev => ({ ...prev, hrId: emp.userId }));
                                 setHrSearchTerm('');
                                 setShowHrDropdown(false);
+                              }}
+                              className="flex items-center px-4 py-3 cursor-pointer hover:bg-gray-50 transition-colors border-b border-gray-50 last:border-0"
+                            >
+                              <div className="w-8 h-8 bg-gray-100 text-gray-600 rounded-full flex items-center justify-center text-sm font-bold mr-3 border border-gray-200">
+                                {emp.firstName?.[0] || 'U'}
+                              </div>
+                              <div>
+                                <p className="text-sm font-medium text-gray-900">{emp.firstName} {emp.lastName}</p>
+                                <p className="text-xs text-gray-500 font-mono">Emp No: {emp.employeeNumber || emp.userId}</p>
+                              </div>
+                            </div>
+                          ))
+                        )}
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
+
+              <div className="relative">
+                <label className="block text-sm font-medium text-gray-700 mb-1.5">Supervisor *</label>
+                {formData.supervisorId ? (
+                  <div className="flex items-center justify-between border border-blue-200 bg-blue-50/50 rounded-xl px-4 py-2.5 shadow-sm">
+                    <div className="flex items-center gap-3">
+                      <div className="w-8 h-8 bg-blue-100 text-blue-700 rounded-full flex items-center justify-center text-sm font-bold border border-blue-200">
+                        {employees.find(e => e.userId === formData.supervisorId)?.firstName?.[0] || 'U'}
+                      </div>
+                      <div>
+                        <span className="block text-sm font-semibold text-blue-900">
+                          {employees.find(e => e.userId === formData.supervisorId)?.firstName} {employees.find(e => e.userId === formData.supervisorId)?.lastName}
+                        </span>
+                        <span className="block text-xs font-mono text-blue-600/80">Emp No: {employees.find(e => e.userId === formData.supervisorId)?.employeeNumber || formData.supervisorId}</span>
+                      </div>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => setFormData(prev => ({ ...prev, supervisorId: '' }))}
+                      className="text-blue-400 hover:text-red-500 hover:bg-red-50 p-1.5 rounded-lg transition-colors"
+                      title="Remove Supervisor"
+                    >
+                      <X size={18} />
+                    </button>
+                  </div>
+                ) : (
+                  <div className="relative">
+                    <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                      <Search size={16} className="text-gray-400" />
+                    </div>
+                    <input
+                      type="text"
+                      placeholder="Search and select supervisor..."
+                      value={supervisorSearchTerm}
+                      onChange={(e) => {
+                        setSupervisorSearchTerm(e.target.value);
+                        setShowSupervisorDropdown(true);
+                      }}
+                      onFocus={() => setShowSupervisorDropdown(true)}
+                      className="w-full border border-gray-300 rounded-xl pl-10 pr-4 py-2.5 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-shadow shadow-sm"
+                    />
+
+                    {showSupervisorDropdown && (
+                      <div className="absolute z-20 w-full mt-2 bg-white border border-gray-200 rounded-xl shadow-xl max-h-60 overflow-y-auto">
+                        {employees.filter(emp =>
+                          `${emp.firstName} ${emp.lastName}`.toLowerCase().includes(supervisorSearchTerm.toLowerCase()) ||
+                          (emp.employeeNumber && emp.employeeNumber.toLowerCase().includes(supervisorSearchTerm.toLowerCase())) ||
+                          emp.userId.toLowerCase().includes(supervisorSearchTerm.toLowerCase())
+                        ).length === 0 ? (
+                          <div className="p-4 text-center text-sm text-gray-500">No matching employees found</div>
+                        ) : (
+                          employees.filter(emp =>
+                            `${emp.firstName} ${emp.lastName}`.toLowerCase().includes(supervisorSearchTerm.toLowerCase()) ||
+                            (emp.employeeNumber && emp.employeeNumber.toLowerCase().includes(supervisorSearchTerm.toLowerCase())) ||
+                            emp.userId.toLowerCase().includes(supervisorSearchTerm.toLowerCase())
+                          ).map(emp => (
+                            <div
+                              key={emp.userId}
+                              onClick={() => {
+                                setFormData(prev => ({ ...prev, supervisorId: emp.userId }));
+                                setSupervisorSearchTerm('');
+                                setShowSupervisorDropdown(false);
                               }}
                               className="flex items-center px-4 py-3 cursor-pointer hover:bg-gray-50 transition-colors border-b border-gray-50 last:border-0"
                             >

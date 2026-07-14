@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import axios from "axios";
+import { API_BASE_URL } from '../config/constants.js';
 import logo from "../assets/Images/logo.png";
 import sideImage from "../assets/Images/head.png";
 import ReactCountryFlag from "react-country-flag";
@@ -83,7 +84,7 @@ const Home = () => {
 
     const fetchNotificationsForToast = async () => {
       try {
-        const res = await axios.get(`http://localhost:5000/api/notifications/user/${username}`);
+        const res = await axios.get(`${API_BASE_URL}/api/notifications/user/${username}`);
         if (res.data.success) {
           const newNotifs = res.data.data;
 
@@ -123,7 +124,7 @@ const Home = () => {
   const markAsReadFromToast = async (id) => {
     setToasts(t => t.filter(x => x.id !== id));
     try {
-      await axios.put(`http://localhost:5000/api/notifications/read/${id}`);
+      await axios.put(`${API_BASE_URL}/api/notifications/read/${id}`);
     } catch (error) {
       console.error("Failed to mark as read", error);
     }
@@ -140,7 +141,17 @@ const Home = () => {
           { name: "China", code: "CN", active: false, disabled: false }
         ]);
       } else {
-        // Employee: Fetch nationality to determine active location
+        // Employee: Lock all if profile is not approved
+        if (profileStatus !== "APPROVED") {
+          setLocations([
+            { name: "USA", code: "US", active: false, disabled: true },
+            { name: "India", code: "IN", active: false, disabled: true },
+            { name: "China", code: "CN", active: false, disabled: true }
+          ]);
+          return;
+        }
+
+        // Fetch nationality to determine active location
         let nationality = null;
         let username = currentUser?.username;
         if (!username) {
@@ -155,7 +166,7 @@ const Home = () => {
 
         if (username) {
           try {
-            const res = await fetch(`http://localhost:5000/api/personal-details?userId=${username}`);
+            const res = await fetch(`${API_BASE_URL}/api/personal-details?userId=${username}`);
             if (res.ok) {
               const data = await res.json();
               if (data?.data?.nationality) {
@@ -191,7 +202,7 @@ const Home = () => {
     };
 
     initLocations();
-  }, [isAdminOrRecruiter, currentUser]);
+  }, [isAdminOrRecruiter, currentUser, profileStatus]);
 
   // Check profile status on mount
   useEffect(() => {
@@ -207,7 +218,7 @@ const Home = () => {
     const fetchPendingCount = async () => {
       if (currentUser?.role !== 'Admin') return;
       try {
-        const res = await fetch('http://localhost:5000/api/profile-approval/admin/stats');
+        const res = await fetch(`${API_BASE_URL}/api/profile-approval/admin/stats`);
         const data = await res.json();
         if (data.success) setPendingCount(data.data.pending || 0);
       } catch (e) {
@@ -396,7 +407,7 @@ const Home = () => {
       }
     }
     else if (title === "Holiday Calendar") {
-      if (userRole === "Admin" || userRole === "Recruiter") {
+      if (userRole === "Admin") {
         navigate("/admin/holiday");
       } else {
         navigate("/holiday");
@@ -680,7 +691,7 @@ const Home = () => {
                       : "bg-white text-gray-600 border-gray-200 hover:border-blue-400 hover:bg-blue-50 cursor-pointer"
                   }
                 `}
-                title={location.disabled ? `Only India location is accessible for your profile` : ""}
+                title={location.disabled ? (profileStatus !== "APPROVED" ? "Profile must be approved first" : "Location not accessible for your profile") : ""}
               >
                 <ReactCountryFlag
                   countryCode={location.code}

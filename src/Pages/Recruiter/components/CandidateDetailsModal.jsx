@@ -1,6 +1,7 @@
 import React from 'react';
 import { X, UserCircle, User, Mail, Phone, Briefcase, Building2, Award, DollarSign, Clock, Globe, CalendarDays, FileCheck, Code, FileText } from 'lucide-react';
 import { parseKeySkills, formatDate } from '../utils/formatters';
+import { API_BASE_URL } from '../../../config/constants.js';
 
 const CandidateDetailsModal = ({
   selectedCandidate,
@@ -200,7 +201,7 @@ const CandidateDetailsModal = ({
               {selectedCandidate.resumePath && (
                 <button
                   onClick={() => {
-                    setSelectedResumeUrl(`http://localhost:5000${selectedCandidate.resumePath}`);
+                    setSelectedResumeUrl(`${API_BASE_URL}${selectedCandidate.resumePath}`);
                     setShowResumeModal(true);
                   }}
                   className="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition flex items-center gap-2"

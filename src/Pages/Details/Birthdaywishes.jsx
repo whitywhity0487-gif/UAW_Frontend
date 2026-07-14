@@ -7,6 +7,7 @@ import {
   Clock, Users, Mail, X, Send, ChevronDown, CheckSquare,
   Square, Check, AlertTriangle
 } from 'lucide-react';
+import { API_BASE_URL } from '../../config/constants.js';
 
 // ─── Birthday Templates ─────────────────────────────────────────────────────
 const TEMPLATES = {
@@ -93,7 +94,7 @@ const SendWishesModal = ({ employee, onClose, onSuccess }) => {
         sentBy: user.name || user.username || 'Admin',
       };
 
-      const res = await axios.post('http://localhost:5000/api/birthday/send-wishes', payload);
+      const res = await axios.post(`${API_BASE_URL}/api/birthday/send-wishes`, payload);
 
       if (res.data.success) {
         setSendResult({ type: 'success', message: res.data.message });
@@ -117,11 +118,10 @@ const SendWishesModal = ({ employee, onClose, onSuccess }) => {
       <button
         type="button"
         onClick={() => onChange(!checked)}
-        className={`w-[18px] h-[18px] rounded flex items-center justify-center border transition-all duration-150 flex-shrink-0 ${
-          checked
+        className={`w-[18px] h-[18px] rounded flex items-center justify-center border transition-all duration-150 flex-shrink-0 ${checked
             ? 'bg-blue-600 border-blue-600'
             : 'bg-white border-slate-300 group-hover:border-slate-400'
-        }`}
+          }`}
       >
         {checked && <Check className="w-3 h-3 text-white" strokeWidth={3} />}
       </button>
@@ -178,9 +178,8 @@ const SendWishesModal = ({ employee, onClose, onSuccess }) => {
                     <button
                       key={key}
                       onClick={() => { setTemplate(key); setShowTemplateDropdown(false); }}
-                      className={`w-full text-left px-3.5 py-2.5 text-sm hover:bg-slate-50 transition-colors flex items-center gap-2 ${
-                        template === key ? 'text-blue-600 font-semibold bg-blue-50/50' : 'text-slate-700'
-                      }`}
+                      className={`w-full text-left px-3.5 py-2.5 text-sm hover:bg-slate-50 transition-colors flex items-center gap-2 ${template === key ? 'text-blue-600 font-semibold bg-blue-50/50' : 'text-slate-700'
+                        }`}
                     >
                       {template === key && <Check className="w-3.5 h-3.5" />}
                       <span className={template === key ? '' : 'ml-5.5'}>{val.label}</span>
@@ -278,11 +277,10 @@ const SendWishesModal = ({ employee, onClose, onSuccess }) => {
 
           {/* Result Messages */}
           {sendResult && (
-            <div className={`flex items-start gap-2.5 p-3.5 rounded-lg border text-sm font-medium ${
-              sendResult.type === 'success'
+            <div className={`flex items-start gap-2.5 p-3.5 rounded-lg border text-sm font-medium ${sendResult.type === 'success'
                 ? 'bg-emerald-50 border-emerald-200 text-emerald-700'
                 : 'bg-red-50 border-red-200 text-red-700'
-            }`}>
+              }`}>
               {sendResult.type === 'success'
                 ? <Check className="w-4.5 h-4.5 flex-shrink-0 mt-0.5" />
                 : <AlertTriangle className="w-4.5 h-4.5 flex-shrink-0 mt-0.5" />
@@ -344,7 +342,7 @@ const Birthdaywishes = () => {
   const fetchBirthdays = async () => {
     try {
       setLoading(true);
-      const response = await axios.get('http://localhost:5000/api/personal-details/birthdays');
+      const response = await axios.get(`${API_BASE_URL}/api/personal-details/birthdays`);
       if (response.data.success) {
         setTodayBirthdays(response.data.todayBirthdays || []);
         setUpcomingBirthdays(response.data.upcomingBirthdays || []);
@@ -444,7 +442,7 @@ const Birthdaywishes = () => {
         <SendWishesModal
           employee={wishModal}
           onClose={() => setWishModal(null)}
-          onSuccess={() => {}}
+          onSuccess={() => { }}
         />
       )}
 
@@ -452,7 +450,7 @@ const Birthdaywishes = () => {
         title="Birthday Wishes"
         subtitle="Celebrate your team members' special days"
       />
-      
+
       <DashboardContainer>
 
         {/* ── Stats Row ── */}

@@ -57,9 +57,47 @@ const ProtectedRoute = ({ children, allowedRoles = [] }) => {
   return React.cloneElement(children, { user });
 };
 
+import { Toaster } from "react-hot-toast";
+
 function App() {
   return (
     <UserProvider>
+      <Toaster 
+        position="top-right" 
+        toastOptions={{
+          style: {
+            marginTop: '70px',
+            padding: '16px 24px',
+            fontSize: '15px',
+            fontWeight: '500',
+            maxWidth: '500px',
+            borderRadius: '12px',
+            boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05)'
+          },
+          success: {
+            style: {
+              background: '#f0fdf4',
+              color: '#15803d',
+              border: '1px solid #bbf7d0',
+            },
+            iconTheme: {
+              primary: '#22c55e',
+              secondary: '#ffffff',
+            },
+          },
+          error: {
+            style: {
+              background: '#fef2f2',
+              color: '#b91c1c',
+              border: '1px solid #fecaca',
+            },
+            iconTheme: {
+              primary: '#ef4444',
+              secondary: '#ffffff',
+            },
+          },
+        }}
+      />
       <Routes>
         {/* Public Routes */}
         <Route path="/" element={<Login />} />
@@ -93,7 +131,7 @@ function App() {
           }
         />
 
-        
+
 
         {/* Recruitment page - For all roles */}
         <Route path="/recruitment" element={<R_home />} />
@@ -142,7 +180,7 @@ function App() {
         <Route
           path="/policy"
           element={
-            <ProtectedRoute allowedRoles={["Admin", "Employee", "HR"]}>
+            <ProtectedRoute allowedRoles={["Admin", "Employee", "HR", "Recruiter"]}>
               <ModuleAccessGuard moduleName="Policies">
                 <Policy />
               </ModuleAccessGuard>
@@ -154,7 +192,7 @@ function App() {
         <Route
           path="/uaw-award-policy"
           element={
-            <ProtectedRoute allowedRoles={["Admin", "Employee", "HR"]}>
+            <ProtectedRoute allowedRoles={["Admin", "Employee", "HR", "Recruiter"]}>
               <ModuleAccessGuard moduleName="UAW Award Policy">
                 <UawAwardpolicy />
               </ModuleAccessGuard>
@@ -166,7 +204,7 @@ function App() {
         <Route
           path="/salary-advance"
           element={
-            <ProtectedRoute allowedRoles={["Admin", "Employee", "HR"]}>
+            <ProtectedRoute allowedRoles={["Admin", "Employee", "HR", "Recruiter"]}>
               <ModuleAccessGuard moduleName="Salary Advance">
                 <Salaryadvance />
               </ModuleAccessGuard>
@@ -178,7 +216,7 @@ function App() {
         <Route
           path="/travel-policy"
           element={
-            <ProtectedRoute allowedRoles={["Admin", "Employee", "HR"]}>
+            <ProtectedRoute allowedRoles={["Admin", "Employee", "HR", "Recruiter"]}>
               <ModuleAccessGuard moduleName="Travel Policy">
                 <Travelpolicy />
               </ModuleAccessGuard>
@@ -190,7 +228,7 @@ function App() {
         <Route
           path="/insurance-policy"
           element={
-            <ProtectedRoute allowedRoles={["Admin", "Employee", "HR"]}>
+            <ProtectedRoute allowedRoles={["Admin", "Employee", "HR", "Recruiter"]}>
               <ModuleAccessGuard moduleName="Insurance Policy">
                 <InsurancePolicy />
               </ModuleAccessGuard>
@@ -224,7 +262,7 @@ function App() {
         <Route
           path="/assets"
           element={
-            <ProtectedRoute allowedRoles={["Admin", "Employee", "HR"]}>
+            <ProtectedRoute allowedRoles={["Admin", "Employee", "HR", "Recruiter"]}>
               <ModuleAccessGuard moduleName="My Assets">
                 <Assets />
               </ModuleAccessGuard>
@@ -245,13 +283,13 @@ function App() {
         <Route path="/joined" element={<Joined />} />
 
 
-    
+
 
         {/* Employee Reimbursements Route */}
         <Route
           path="/reimbursements"
           element={
-            <ProtectedRoute allowedRoles={["Admin", "Employee", "HR"]}>
+            <ProtectedRoute allowedRoles={["Admin", "Employee", "HR", "Recruiter"]}>
               <ModuleAccessGuard moduleName="Reimbursements">
                 <Reimbursements />
               </ModuleAccessGuard>
@@ -275,7 +313,7 @@ function App() {
         <Route
           path="/leave-management"
           element={
-            <ProtectedRoute allowedRoles={["Admin", "Employee", "HR"]}>
+            <ProtectedRoute allowedRoles={["Admin", "Employee", "HR", "Recruiter"]}>
               <ModuleAccessGuard moduleName="Leave Management">
                 <LeaveManagement />
               </ModuleAccessGuard>
@@ -309,7 +347,7 @@ function App() {
         <Route
           path="/my-team"
           element={
-            <ProtectedRoute allowedRoles={["Admin", "Employee", "HR"]}>
+            <ProtectedRoute allowedRoles={["Admin", "Employee", "HR", "Recruiter"]}>
               <ModuleAccessGuard moduleName="My Team">
                 <MyTeam />
               </ModuleAccessGuard>
@@ -321,7 +359,7 @@ function App() {
         <Route
           path="/payroll"
           element={
-            <ProtectedRoute allowedRoles={["Admin", "Employee", "HR"]}>
+            <ProtectedRoute allowedRoles={["Admin", "Employee", "HR", "Recruiter"]}>
               <ModuleAccessGuard moduleName="Payroll">
                 <PayrollDashboard />
               </ModuleAccessGuard>
@@ -345,7 +383,7 @@ function App() {
         <Route
           path="/myclient"
           element={
-            <ProtectedRoute allowedRoles={["Admin", "Employee", "HR"]}>
+            <ProtectedRoute allowedRoles={["Admin", "Employee", "HR", "Recruiter"]}>
               <ModuleAccessGuard moduleName="My Client">
                 <Myclient />
               </ModuleAccessGuard>
@@ -369,7 +407,7 @@ function App() {
         <Route
           path="/timesheet"
           element={
-            <ProtectedRoute allowedRoles={["Admin", "Employee", "HR", "Manager"]}>
+            <ProtectedRoute allowedRoles={["Admin", "Employee", "HR", "Manager", "Recruiter"]}>
               <ModuleAccessGuard moduleName="Time Sheet">
                 <Timesheet />
               </ModuleAccessGuard>

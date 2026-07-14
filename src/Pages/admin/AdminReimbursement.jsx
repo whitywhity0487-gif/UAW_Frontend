@@ -2,11 +2,13 @@ import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
 import { FileText, Clock, CheckCircle, XCircle } from 'lucide-react';
+import toast from 'react-hot-toast';
 import DashboardLayout, { DashboardContainer } from '../../components/dashboard/DashboardLayout';
 import DashboardHeader from '../../components/dashboard/DashboardHeader';
 import StatCard from '../../components/dashboard/StatCard';
+import { API_BASE_URL as GLOBAL_API_BASE_URL } from '../../config/constants.js';
 
-const API_BASE_URL = 'http://localhost:5000/api/reimbursements';
+const API_BASE_URL = `${GLOBAL_API_BASE_URL}/api/reimbursements`;
 
 const AdminReimbursement = () => {
   const [reimbursements, setReimbursements] = useState([]);
@@ -100,7 +102,7 @@ const AdminReimbursement = () => {
     const reason = window.prompt(`Please enter the mandatory reason to ${newStatus.toLowerCase()} this request:`);
     if (reason === null) return; // User cancelled
     if (reason.trim() === '') {
-      alert('Reason is mandatory!');
+      toast.error('Reason is mandatory!');
       return;
     }
 
@@ -121,7 +123,7 @@ const AdminReimbursement = () => {
       }
     } catch (err) {
       console.error('Error updating status:', err);
-      alert('Failed to update status');
+      toast.error('Failed to update status');
     }
   };
 
@@ -135,7 +137,7 @@ const AdminReimbursement = () => {
 
   return (
     <DashboardLayout>
-      <DashboardHeader 
+      <DashboardHeader
         title="Reimbursement Management"
         subtitle="Review and manage employee reimbursement requests"
       />

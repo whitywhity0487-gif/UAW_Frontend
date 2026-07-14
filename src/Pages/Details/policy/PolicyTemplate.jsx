@@ -3,8 +3,10 @@ import React, { useState, useEffect } from "react";
 import axios from "axios";
 import { useNavigate } from "react-router-dom";
 import PolicySecurity from "./PolicySecurity";
+import { API_BASE_URL as GLOBAL_API_BASE_URL } from '../../../config/constants.js';
+import toast from 'react-hot-toast';
 
-const API_BASE_URL = "http://localhost:5000/api/policy";
+const API_BASE_URL = `${GLOBAL_API_BASE_URL}/api/policy`;
 
 // ─── Chevron helper ───────────────────────────────────────────────────────────
 const ChevronRight = () => (
@@ -43,13 +45,7 @@ const PolicyContent = ({ description, accentColor }) => {
     if (text) parts.push({ type: "text", content: text });
   }
 
-  if (parts.every((p) => p.type === "text")) {
-    return (
-      <p className="text-[19px] text-[#374151] leading-[1.9] whitespace-pre-wrap m-0">
-        {description}
-      </p>
-    );
-  }
+  // (Early return removed to ensure list parsing always runs)
 
   const sections = [];
   let currentHeading = null;
@@ -71,15 +67,17 @@ const PolicyContent = ({ description, accentColor }) => {
     <div className="flex flex-col gap-11">
       {sections.map((section, idx) => (
         <div key={idx}>
-          <div className="flex items-center gap-3.5 mb-5">
-            <span
-              className="text-[13px] font-bold tracking-[0.13em] uppercase whitespace-nowrap"
-              style={{ color: accentColor, fontFamily: "'DM Sans', sans-serif" }}
-            >
-              {section.heading}
-            </span>
-            <div className="flex-1 h-px bg-[#E5E7EB]" />
-          </div>
+          {section.heading && (
+            <div className="flex items-center gap-3.5 mb-5">
+              <span
+                className="text-[13px] font-bold tracking-[0.13em] uppercase whitespace-nowrap"
+                style={{ color: accentColor, fontFamily: "'DM Sans', sans-serif" }}
+              >
+                {section.heading}
+              </span>
+              <div className="flex-1 h-px bg-[#E5E7EB]" />
+            </div>
+          )}
 
           <div className="flex flex-col gap-3.5">
             {section.body.split("\n").map((line, i) => {
@@ -101,6 +99,25 @@ const PolicyContent = ({ description, accentColor }) => {
                       {numMatch[1]}
                     </span>
                     <p className="text-[18px] text-[#374151] leading-[1.9] m-0">{numMatch[2]}</p>
+                  </div>
+                );
+              }
+
+              const bulletMatch = trimmed.match(/^[-*•]\s+(.*)$/);
+              if (bulletMatch) {
+                return (
+                  <div key={i} className="flex gap-3.5 items-start">
+                    <span
+                      className="w-[27px] h-[27px] rounded-full text-xs font-bold flex items-center justify-center shrink-0 mt-[3px]"
+                      style={{
+                        backgroundColor: `${accentColor}20`,
+                        color: accentColor,
+                        border: `1px solid ${accentColor}40`,
+                      }}
+                    >
+                      -
+                    </span>
+                    <p className="text-[18px] text-[#374151] leading-[1.9] m-0">{bulletMatch[1]}</p>
                   </div>
                 );
               }
@@ -161,7 +178,7 @@ const AddEditPolicyModal = ({ isOpen, onClose, onSave, policy = null }) => {
       }
     } else {
       setTitle("");
-      setDescription("");
+      setDescription("=== Objective ===\n\n\n=== Scope ===\n\n\n=== Policy Guidelines ===\n\n");
       setNationalities([]);
     }
   }, [policy, isOpen]);
@@ -171,7 +188,7 @@ const AddEditPolicyModal = ({ isOpen, onClose, onSave, policy = null }) => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (!title.trim() || !description.trim() || nationalities.length === 0) {
-      alert("Please fill in all fields including Nationality Target");
+      toast.error("Please fill in all fields including Nationality Target");
       return;
     }
     setLoading(true);
@@ -179,7 +196,7 @@ const AddEditPolicyModal = ({ isOpen, onClose, onSave, policy = null }) => {
       await onSave({ title: title.trim(), description: description.trim(), nationality: nationalities });
       onClose();
     } catch (error) {
-      alert(error.response?.data?.message || "Failed to save policy");
+      toast.error(error.response?.data?.message || "Failed to save policy");
     } finally {
       setLoading(false);
     }
@@ -266,6 +283,17 @@ const AddEditPolicyModal = ({ isOpen, onClose, onSave, policy = null }) => {
                       else setNationalities(prev => prev.filter(n => n !== "GLOBAL"));
                     }}
                   /> Global (All)
+                </label>
+                <label className="flex items-center gap-2 cursor-pointer text-[15px]">
+                  <input
+                    type="checkbox"
+                    className="w-4 h-4 cursor-pointer"
+                    checked={nationalities.includes("ADMIN_ONLY")}
+                    onChange={(e) => {
+                      if (e.target.checked) setNationalities(prev => [...prev, "ADMIN_ONLY"]);
+                      else setNationalities(prev => prev.filter(n => n !== "ADMIN_ONLY"));
+                    }}
+                  /> Admin Only
                 </label>
               </div>
             </div>
@@ -385,20 +413,20 @@ const PolicyTemplate = ({
         const user = JSON.parse(storedUser);
         const adminCheck = ["Admin", "admin", "ADMIN"].includes(user.role);
         setIsAdmin(adminCheck);
-        
+
         if (!adminCheck) {
           let nat = user.nationality || "INDIA";
           setUserNationality(nat.toUpperCase());
-          
+
           const userIdToFetch = user.username || user.employeeId || user.userId;
           if (userIdToFetch) {
-            axios.get(`http://localhost:5000/api/personal-details?userId=${userIdToFetch}`)
+            axios.get(`${GLOBAL_API_BASE_URL}/api/personal-details?userId=${userIdToFetch}`)
               .then(res => {
                 if (res.data?.data?.nationality) {
                   setUserNationality(res.data.data.nationality.toUpperCase());
                 }
               })
-              .catch(() => {});
+              .catch(() => { });
           }
         }
       } catch (err) {
@@ -443,6 +471,7 @@ const PolicyTemplate = ({
     if (response.data.success) {
       await fetchFilteredPolicies();
       setSelectedPolicy(response.data.data);
+      toast.success("Policy created successfully!");
     }
     return response;
   };
@@ -452,6 +481,7 @@ const PolicyTemplate = ({
     if (response.data.success) {
       await fetchFilteredPolicies();
       if (selectedPolicy?.id === policyToEdit.id) setSelectedPolicy(response.data.data);
+      toast.success("Policy updated successfully!");
     }
     return response;
   };
@@ -465,31 +495,45 @@ const PolicyTemplate = ({
           setSelectedPolicy(policies.length > 1 ? policies[0] : null);
         setIsDeleteModalOpen(false);
         setPolicyToDelete(null);
+        toast.success("Policy deleted successfully!");
       }
     } catch (error) {
-      alert(error.response?.data?.message || "Failed to delete policy");
+      toast.error(error.response?.data?.message || "Failed to delete policy");
     }
   };
 
   const openEditModal = (policy) => { setPolicyToEdit(policy); setIsEditModalOpen(true); };
   const openDeleteModal = (policy) => { setPolicyToDelete(policy); setIsDeleteModalOpen(true); };
 
-  const nationalityPolicies = policies.filter((p) => {
-    if (isAdmin) return true;
-    if (userNationality && p.nationality) {
-      const polNats = Array.isArray(p.nationality) 
-        ? p.nationality.map(n => n.toUpperCase()) 
-        : [p.nationality.toUpperCase()];
-      
-      if (polNats.includes("GLOBAL")) return true;
-      return polNats.includes(userNationality.toUpperCase());
-    }
-    return true; 
-  });
+  const nationalityPolicies = React.useMemo(() => {
+    return policies.filter((p) => {
+      if (isAdmin) return true;
+      if (userNationality && p.nationality) {
+        const polNats = Array.isArray(p.nationality)
+          ? p.nationality.map(n => n.toUpperCase())
+          : [p.nationality.toUpperCase()];
 
-  const filteredPolicies = nationalityPolicies.filter((p) => {
-    return p.title.toLowerCase().includes(searchTerm.toLowerCase());
-  });
+        if (polNats.includes("ADMIN_ONLY")) return false;
+        if (polNats.includes("GLOBAL")) return true;
+        return polNats.includes(userNationality.toUpperCase());
+      }
+      return true;
+    });
+  }, [policies, isAdmin, userNationality]);
+
+  const filteredPolicies = React.useMemo(() => {
+    return nationalityPolicies.filter((p) => {
+      return p.title.toLowerCase().includes(searchTerm.toLowerCase());
+    });
+  }, [nationalityPolicies, searchTerm]);
+
+  useEffect(() => {
+    if (filteredPolicies.length > 0) {
+      if (!selectedPolicy || !filteredPolicies.some((p) => p.id === selectedPolicy.id)) {
+        setSelectedPolicy(filteredPolicies[0]);
+      }
+    }
+  }, [filteredPolicies, selectedPolicy]);
 
   const displayPolicy = selectedPolicy && filteredPolicies.some((p) => p.id === selectedPolicy.id) ? selectedPolicy : null;
 
@@ -752,10 +796,10 @@ const PolicyTemplate = ({
                     {filteredPolicies.length === 0 ? `No ${policyType} policies found` : `No ${policyType} policy selected`}
                   </h2>
                   <p className="text-[15px] text-[#9CA3AF] m-0">
-                    {filteredPolicies.length === 0 
-                      ? (nationalityPolicies.length === 0 
-                          ? (!userNationality && !isAdmin ? "Checking nationality..." : "There are no policies available for your assigned nationality at this time.")
-                          : "No policies match your search term.")
+                    {filteredPolicies.length === 0
+                      ? (nationalityPolicies.length === 0
+                        ? (!userNationality && !isAdmin ? "Checking nationality..." : "There are no policies available for your assigned nationality at this time.")
+                        : "No policies match your search term.")
                       : `Choose a ${policyType} policy from the sidebar to view it here.`}
                   </p>
                 </div>

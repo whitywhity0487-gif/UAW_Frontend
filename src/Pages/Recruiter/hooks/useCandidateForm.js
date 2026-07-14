@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import axios from 'axios';
+import toast from 'react-hot-toast';
 import { candidateService } from '../services/candidateService';
 
 export const useCandidateForm = (fetchAllCandidates, setSuccessMessage, skillSuggestions) => {
@@ -157,6 +158,7 @@ export const useCandidateForm = (fetchAllCandidates, setSuccessMessage, skillSug
 
       if (response.data.success) {
         setSuccessMessage("Candidate profile added successfully!");
+        toast.success("Candidate profile added successfully!");
         setTimeout(() => setSuccessMessage(""), 3000);
         
         setShowAddProfile(false);
@@ -231,7 +233,7 @@ export const useCandidateForm = (fetchAllCandidates, setSuccessMessage, skillSug
       if (!newProfile.keySkills.includes(skill)) {
         setNewProfile(prev => ({ ...prev, keySkills: [...prev.keySkills, skill] }));
       } else {
-        alert(`"${skill}" is already added`);
+        toast.error(`"${skill}" is already added`);
         return;
       }
       if (formErrors.keySkills) setFormErrors(prev => ({ ...prev, keySkills: null }));
@@ -239,7 +241,7 @@ export const useCandidateForm = (fetchAllCandidates, setSuccessMessage, skillSug
       setShowAddSkillSuggestions(false);
       setSelectedAddSkillSuggestionIndex(0);
     } else {
-      alert(`"${skill}" is not in the skills database. Please select from the suggestions.`);
+      toast.error(`"${skill}" is not in the skills database. Please select from the suggestions.`);
       setShowAddSkillSuggestions(false);
       setSelectedAddSkillSuggestionIndex(0);
     }
@@ -256,13 +258,13 @@ export const useCandidateForm = (fetchAllCandidates, setSuccessMessage, skillSug
     const file = e.target.files[0];
     if (file) {
       if (file.type !== 'application/pdf') {
-        alert('Please upload a PDF file');
+        toast.error('Please upload a PDF file');
         e.target.value = '';
         return;
       }
       const maxSize = 10 * 1024 * 1024;
       if (file.size > maxSize) {
-        alert(`File size must be less than 10MB.`);
+        toast.error(`File size must be less than 10MB.`);
         e.target.value = '';
         return;
       }
@@ -424,6 +426,7 @@ export const useCandidateForm = (fetchAllCandidates, setSuccessMessage, skillSug
 
       if (response.data.success) {
         setSuccessMessage("Candidate profile updated successfully!");
+        toast.success("Candidate profile updated successfully!");
         setTimeout(() => setSuccessMessage(""), 3000);
         
         setShowEditModal(false);
@@ -490,7 +493,7 @@ export const useCandidateForm = (fetchAllCandidates, setSuccessMessage, skillSug
       if (!editFormData.keySkills.includes(skill)) {
         setEditFormData(prev => ({ ...prev, keySkills: [...prev.keySkills, skill] }));
       } else {
-        alert(`"${skill}" is already added`);
+        toast.error(`"${skill}" is already added`);
         return;
       }
       if (editFormErrors.keySkills) setEditFormErrors(prev => ({ ...prev, keySkills: null }));
@@ -498,7 +501,7 @@ export const useCandidateForm = (fetchAllCandidates, setSuccessMessage, skillSug
       setShowEditSkillSuggestions(false);
       setSelectedEditSkillSuggestionIndex(0);
     } else {
-      alert(`"${skill}" is not in the skills database. Please select from the suggestions.`);
+      toast.error(`"${skill}" is not in the skills database. Please select from the suggestions.`);
       setShowEditSkillSuggestions(false);
       setSelectedEditSkillSuggestionIndex(0);
     }
@@ -515,13 +518,13 @@ export const useCandidateForm = (fetchAllCandidates, setSuccessMessage, skillSug
     const file = e.target.files[0];
     if (file) {
       if (file.type !== 'application/pdf') {
-        alert('Please upload a PDF file');
+        toast.error('Please upload a PDF file');
         e.target.value = '';
         return;
       }
       const maxSize = 10 * 1024 * 1024;
       if (file.size > maxSize) {
-        alert(`File size must be less than 10MB.`);
+        toast.error(`File size must be less than 10MB.`);
         e.target.value = '';
         return;
       }

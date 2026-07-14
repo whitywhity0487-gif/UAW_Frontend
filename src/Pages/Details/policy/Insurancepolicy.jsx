@@ -2,9 +2,12 @@
 import React, { useState, useEffect } from "react";
 import axios from "axios";
 import { useNavigate } from "react-router-dom";
+import { Upload, ChevronRight, CheckCircle, FileText, Search, User, Briefcase, UserPlus } from 'lucide-react';
+import { API_BASE_URL as GLOBAL_API_BASE_URL } from '../../../config/constants.js';
 import PolicySecurity from "./PolicySecurity";
+import toast from 'react-hot-toast';
 
-const API_BASE_URL = "http://localhost:5000/api/insurance-policies";
+const API_BASE_URL = `${GLOBAL_API_BASE_URL}/api/insurance-policies`;
 
 // ==================== HELPER FUNCTIONS ====================
 const formatDateStr = (dateString) => {
@@ -83,11 +86,141 @@ const FieldTable = ({ fields, policy }) => (
   </table>
 );
 
+// ==================== POLICY CONTENT (MARKDOWN RENDERER) ====================
+const PolicyContent = ({ description, accentColor = "#2563EB" }) => {
+  if (!description) return null;
+
+  const sectionRegex = /===\s*(.+?)\s*===/g;
+  const parts = [];
+  let lastIndex = 0;
+  let match;
+
+  while ((match = sectionRegex.exec(description)) !== null) {
+    if (match.index > lastIndex) {
+      const text = description.slice(lastIndex, match.index).trim();
+      if (text) parts.push({ type: "text", content: text });
+    }
+    parts.push({ type: "heading", content: match[1].trim() });
+    lastIndex = sectionRegex.lastIndex;
+  }
+  if (lastIndex < description.length) {
+    const text = description.slice(lastIndex).trim();
+    if (text) parts.push({ type: "text", content: text });
+  }
+
+  const sections = [];
+  let currentHeading = null;
+  let currentBody = [];
+  parts.forEach((part) => {
+    if (part.type === "heading") {
+      if (currentHeading !== null)
+        sections.push({ heading: currentHeading, body: currentBody.join("\n").trim() });
+      currentHeading = part.content;
+      currentBody = [];
+    } else {
+      currentBody.push(part.content);
+    }
+  });
+  if (currentHeading !== null)
+    sections.push({ heading: currentHeading, body: currentBody.join("\n").trim() });
+
+  return (
+    <div className="flex flex-col gap-11 mt-6">
+      {sections.map((section, idx) => (
+        <div key={idx}>
+          {section.heading && (
+            <div className="flex items-center gap-3.5 mb-5">
+              <span
+                className="text-[13px] font-bold tracking-[0.13em] uppercase whitespace-nowrap"
+                style={{ color: accentColor, fontFamily: "'DM Sans', sans-serif" }}
+              >
+                {section.heading}
+              </span>
+              <div className="flex-1 h-px bg-[#E5E7EB]" />
+            </div>
+          )}
+
+          <div className="flex flex-col gap-3.5">
+            {section.body.split("\n").map((line, i) => {
+              const trimmed = line.trim();
+              if (!trimmed) return null;
+
+              const numMatch = trimmed.match(/^(\d+)\)\s+(.*)$/);
+              if (numMatch) {
+                return (
+                  <div key={i} className="flex gap-3.5 items-start">
+                    <span
+                      className="w-[27px] h-[27px] rounded-full text-xs font-bold flex items-center justify-center shrink-0 mt-[3px]"
+                      style={{
+                        backgroundColor: `${accentColor}20`,
+                        color: accentColor,
+                        border: `1px solid ${accentColor}40`,
+                      }}
+                    >
+                      {numMatch[1]}
+                    </span>
+                    <p className="text-[15px] text-[#374151] leading-[1.7] m-0">{numMatch[2]}</p>
+                  </div>
+                );
+              }
+
+              const bulletMatch = trimmed.match(/^[-*•]\s+(.*)$/);
+              if (bulletMatch) {
+                return (
+                  <div key={i} className="flex gap-3.5 items-start">
+                    <span
+                      className="w-[27px] h-[27px] rounded-full text-xs font-bold flex items-center justify-center shrink-0 mt-[3px]"
+                      style={{
+                        backgroundColor: `${accentColor}20`,
+                        color: accentColor,
+                        border: `1px solid ${accentColor}40`,
+                      }}
+                    >
+                      -
+                    </span>
+                    <p className="text-[15px] text-[#374151] leading-[1.7] m-0">{bulletMatch[1]}</p>
+                  </div>
+                );
+              }
+
+              if (trimmed.startsWith("|")) {
+                const cells = trimmed.split("|").filter(Boolean).map((c) => c.trim());
+                const isDivider = cells.every((c) => /^[-:]+$/.test(c));
+                if (isDivider) return null;
+                return (
+                  <div
+                    key={i}
+                    className="grid gap-px bg-[#F3F4F6] border border-[#E5E7EB] rounded-md overflow-hidden text-[13px]"
+                    style={{ gridTemplateColumns: `repeat(${cells.length}, 1fr)` }}
+                  >
+                    {cells.map((cell, ci) => (
+                      <div
+                        key={ci}
+                        className={`text-gray-800 px-3 py-2 bg-white ${ci === 0 ? "font-semibold" : "font-normal"}`}
+                      >
+                        {cell}
+                      </div>
+                    ))}
+                  </div>
+                );
+              }
+
+              return (
+                <p key={i} className="text-[14px] text-[#4B5563] leading-[1.7] m-0">
+                  {trimmed}
+                </p>
+              );
+            })}
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+};
+
 // ==================== MODALS ====================
 const AddEditPolicyModal = ({ isOpen, onClose, onSave, policy = null }) => {
   const [formData, setFormData] = useState({});
-  const [newKey, setNewKey] = useState("");
-  const [newValue, setNewValue] = useState("");
   const [loading, setLoading] = useState(false);
   const isEditing = !!policy;
 
@@ -99,13 +232,12 @@ const AddEditPolicyModal = ({ isOpen, onClose, onSave, policy = null }) => {
         policy_number: rest.policy_number || rest.policyNumber || "",
         coverage_type: rest.coverage_type || "",
         policy_type: rest.policy_type || "",
+        description: rest.description || "",
         ...rest,
       });
     } else {
-      setFormData({ product_name: "", policy_number: "", coverage_type: "", policy_type: "", nationality: "" });
+      setFormData({ product_name: "", policy_number: "", coverage_type: "", policy_type: "", nationality: "", description: "" });
     }
-    setNewKey("");
-    setNewValue("");
   }, [policy, isOpen]);
 
   if (!isOpen) return null;
@@ -113,67 +245,54 @@ const AddEditPolicyModal = ({ isOpen, onClose, onSave, policy = null }) => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (!formData.product_name && !formData.policy_name) {
-      alert("Please provide at least a product name or policy name");
+      toast.error("Please provide at least a product name or policy name");
       return;
     }
+    
     setLoading(true);
     try {
       await onSave(formData);
       onClose();
     } catch (error) {
-      alert(error.response?.data?.message || "Failed to save policy");
+      toast.error(error.response?.data?.message || "Failed to save policy");
     } finally {
       setLoading(false);
     }
   };
 
-  const handleRemoveField = (key) => {
-    const updated = { ...formData };
-    delete updated[key];
-    setFormData(updated);
-  };
-
-  const handleAddField = () => {
-    if (newKey.trim() && !Object.prototype.hasOwnProperty.call(formData, newKey.trim())) {
-      setFormData({ ...formData, [newKey.trim()]: newValue });
-      setNewKey("");
-      setNewValue("");
-    }
-  };
-
   const standardKeys = ["product_name", "policy_number", "coverage_type", "policy_type", "nationality"];
-  const dynamicKeys = Object.keys(formData).filter((k) => !standardKeys.includes(k));
 
   return (
     <div
-      className="fixed inset-0 bg-black/50 flex items-center justify-center z-[1000]"
+      className="fixed inset-0 bg-black/50 flex items-center justify-center z-[1000] backdrop-blur-sm"
       onClick={onClose}
     >
       <div
-        className="bg-white rounded-2xl w-[90%] max-w-3xl max-h-[90vh] flex flex-col"
+        className="bg-white rounded-2xl w-[90%] max-w-4xl max-h-[90vh] flex flex-col shadow-2xl"
         onClick={(e) => e.stopPropagation()}
       >
         <form onSubmit={handleSubmit} className="flex flex-col h-full max-h-[90vh]">
           {/* Header */}
-          <div className="flex items-center justify-between px-7 py-6 border-b border-gray-200 flex-shrink-0">
-            <h2 className="text-xl font-bold text-gray-900">
+          <div className="flex items-center justify-between px-8 py-5 border-b border-gray-100 flex-shrink-0 bg-gray-50/50 rounded-t-2xl">
+            <h2 className="text-xl font-bold text-gray-900 m-0">
               {isEditing ? "Edit Insurance Policy" : "Add New Insurance Policy"}
             </h2>
             <button
               type="button"
               onClick={onClose}
-              className="text-gray-400 hover:text-gray-600 text-2xl leading-none bg-transparent border-0 cursor-pointer p-1"
+              className="text-gray-400 hover:text-gray-600 text-2xl leading-none bg-transparent border-0 cursor-pointer p-1 transition-colors"
             >
               ×
             </button>
           </div>
 
           {/* Body */}
-          <div className="px-7 py-7 overflow-y-auto flex-1">
-            <h3 className="text-base font-semibold text-gray-800 border-b border-gray-200 pb-2 mb-4">
+          <div className="px-8 py-6 overflow-y-auto flex-1 bg-white">
+
+            <h3 className="text-lg font-bold text-gray-900 mb-5 flex items-center gap-2">
               Primary Details
             </h3>
-            <div className="grid grid-cols-2 gap-4 mb-6">
+            <div className="grid grid-cols-2 gap-5 mb-8">
               {standardKeys.map((key) => (
                 <div key={key} className="flex flex-col gap-1.5">
                   <label className="text-[13px] font-semibold text-gray-700">
@@ -183,13 +302,14 @@ const AddEditPolicyModal = ({ isOpen, onClose, onSave, policy = null }) => {
                     <select
                       value={formData[key] || ""}
                       onChange={(e) => setFormData({ ...formData, [key]: e.target.value })}
-                      className="w-full px-3.5 py-2.5 border border-gray-300 rounded-lg text-sm outline-none focus:border-gray-400 transition-colors bg-white"
+                      className="w-full px-3.5 py-2.5 border border-gray-300 rounded-lg text-sm outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-all bg-white shadow-sm"
                     >
                       <option value="">Select Nationality</option>
                       <option value="INDIA">India</option>
                       <option value="CHINA">China</option>
                       <option value="USA">USA</option>
                       <option value="GLOBAL">Global (All)</option>
+                      <option value="ADMIN_ONLY">Admin Only</option>
                     </select>
                   ) : (
                     <input
@@ -197,98 +317,44 @@ const AddEditPolicyModal = ({ isOpen, onClose, onSave, policy = null }) => {
                       value={formData[key] || ""}
                       onChange={(e) => setFormData({ ...formData, [key]: e.target.value })}
                       placeholder={`Enter ${key.replace(/_/g, " ")}`}
-                      className="w-full px-3.5 py-2.5 border border-gray-300 rounded-lg text-sm outline-none focus:border-gray-400 transition-colors"
+                      className="w-full px-3.5 py-2.5 border border-gray-300 rounded-lg text-sm outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-all shadow-sm"
                     />
                   )}
                 </div>
               ))}
             </div>
 
-            {dynamicKeys.length > 0 && (
-              <>
-                <h3 className="text-base font-semibold text-gray-800 border-b border-gray-200 pb-2 mb-4">
-                  Additional Details
-                </h3>
-                <div className="grid grid-cols-2 gap-4">
-                  {dynamicKeys.map((key) => {
-                    const value = formData[key];
-                    return (
-                      <div key={key} className="flex flex-col gap-1.5">
-                        <label className="flex justify-between text-[13px] font-semibold text-gray-700">
-                          <span>{key}</span>
-                          <button
-                            type="button"
-                            onClick={() => handleRemoveField(key)}
-                            className="text-red-500 text-xs font-medium bg-transparent border-0 cursor-pointer hover:text-red-700"
-                          >
-                            Remove
-                          </button>
-                        </label>
-                        {typeof value === "string" && value.length > 50 ? (
-                          <textarea
-                            value={value || ""}
-                            onChange={(e) => setFormData({ ...formData, [key]: e.target.value })}
-                            rows={2}
-                            className="w-full px-3.5 py-2.5 border border-gray-300 rounded-lg text-sm outline-none resize-vertical focus:border-gray-400"
-                          />
-                        ) : (
-                          <input
-                            type="text"
-                            value={value || ""}
-                            onChange={(e) => setFormData({ ...formData, [key]: e.target.value })}
-                            className="w-full px-3.5 py-2.5 border border-gray-300 rounded-lg text-sm outline-none focus:border-gray-400"
-                          />
-                        )}
-                      </div>
-                    );
-                  })}
-                </div>
-              </>
-            )}
-
-            <div className="mt-6 p-4 bg-gray-50 rounded-lg border border-dashed border-gray-300">
-              <h4 className="text-sm font-medium text-gray-600 mb-3">Add New Field</h4>
-              <div className="flex gap-3">
-                <input
-                  type="text"
-                  placeholder="Field Key (e.g. intermediary_name)"
-                  value={newKey}
-                  onChange={(e) => setNewKey(e.target.value)}
-                  className="flex-1 px-3 py-2 border border-gray-300 rounded-md text-[13px] outline-none focus:border-gray-400"
-                />
-                <input
-                  type="text"
-                  placeholder="Value"
-                  value={newValue}
-                  onChange={(e) => setNewValue(e.target.value)}
-                  className="flex-[2] px-3 py-2 border border-gray-300 rounded-md text-[13px] outline-none focus:border-gray-400"
-                />
-                <button
-                  type="button"
-                  onClick={handleAddField}
-                  className="px-4 py-2 bg-gray-900 text-white text-[13px] font-medium rounded-md cursor-pointer hover:bg-gray-800 transition-colors"
-                >
-                  Add
-                </button>
-              </div>
+            <h3 className="text-lg font-bold text-gray-900 mb-3">
+              Policy Content (Markdown & Tables)
+            </h3>
+            <p className="text-sm text-gray-500 mb-4">
+              Paste the entire document here. Use <code>=== Header ===</code> for sections and <code>| Field | Value |</code> for tables.
+            </p>
+            <div className="bg-gray-50 rounded-xl border border-gray-200 overflow-hidden mb-6 relative">
+              <textarea
+                value={formData.description || ""}
+                onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+                placeholder="Paste insurance document content here..."
+                className="w-full h-80 px-4 py-4 bg-transparent border-none outline-none text-sm font-mono text-gray-700 resize-y min-h-[320px]"
+              />
             </div>
           </div>
 
-          {/* Footer */}
-          <div className="flex items-center justify-end gap-3 px-7 py-5 border-t border-gray-200 flex-shrink-0">
+          {/* Sticky Footer */}
+          <div className="flex items-center justify-end gap-3 px-8 py-5 border-t border-gray-100 flex-shrink-0 bg-gray-50/80 rounded-b-2xl">
             <button
               type="button"
               onClick={onClose}
-              className="px-5 py-2.5 rounded-lg border border-gray-300 bg-white text-gray-700 font-medium cursor-pointer hover:bg-gray-50 transition-colors"
+              className="px-6 py-2.5 rounded-lg border border-gray-300 bg-white text-gray-700 font-semibold cursor-pointer hover:bg-gray-50 shadow-sm transition-all"
             >
               Cancel
             </button>
             <button
               type="submit"
               disabled={loading}
-              className="px-6 py-2.5 rounded-lg bg-gray-900 text-white font-semibold cursor-pointer hover:bg-gray-800 transition-colors disabled:opacity-60"
+              className="px-8 py-2.5 rounded-lg bg-gray-900 text-white font-bold cursor-pointer hover:bg-gray-800 shadow-md transition-all disabled:opacity-60 disabled:cursor-not-allowed"
             >
-              {loading ? "Saving..." : isEditing ? "Update" : "Create"}
+              {loading ? "Saving..." : isEditing ? "Update Policy" : "Create Policy"}
             </button>
           </div>
         </form>
@@ -339,6 +405,71 @@ const DeleteConfirmModal = ({ isOpen, onClose, onConfirm, policyTitle }) => {
   );
 };
 
+// ==================== HELPER: DYNAMIC FIELDS ====================
+const addUnmappedFieldsToSection = (sections, policy, sectionName) => {
+  const allMappedFields = new Set(sections.flatMap(s => s.fields));
+  const unmapped = Object.keys(policy).filter(k => 
+    !allMappedFields.has(k) && 
+    !["id", "user_id", "updated_at", "created_at"].includes(k) &&
+    policy[k] !== undefined && policy[k] !== null && policy[k] !== ""
+  );
+  if (unmapped.length > 0) {
+    const targetSection = sections.find(s => s.title === sectionName);
+    if (targetSection) {
+      targetSection.fields.push(...unmapped);
+    } else {
+      sections.push({ title: sectionName, fields: unmapped });
+    }
+  }
+};
+
+// ==================== POLICY SCHEDULE: GENERIC ====================
+const GenericPolicySchedule = ({ policy }) => {
+  const ignoredFields = ["id", "user_id", "updated_at", "created_at", "description"];
+  
+  // Group standard fields in the first section
+  const primaryFields = ["product_name", "policy_name", "policy_number", "coverage_type", "policy_type", "nationality", "country"].filter(f => policy[f]);
+  
+  // Group all other fields in the second section (if they somehow exist)
+  const dynamicFields = Object.keys(policy).filter(k => 
+    !ignoredFields.includes(k) &&
+    !primaryFields.includes(k) &&
+    policy[k] !== undefined && policy[k] !== null && policy[k] !== ""
+  );
+
+  return (
+    <div className="font-sans text-black p-8 bg-white">
+      <div className="text-right mb-2">
+        <span className="text-[#1E3A5F] font-bold uppercase">{policy.policy_type || policy.coverage_type || "INSURANCE"}</span>
+      </div>
+      <div className="text-[#1E3A5F] font-bold text-lg mb-1">
+        {policy.product_name || policy.policy_name || "Insurance"} — Policy Schedule
+      </div>
+      {(policy.policy_number) && (
+        <div className="font-bold mb-2 text-black">Policy No. {policy.policy_number}</div>
+      )}
+
+      {primaryFields.length > 0 && (
+        <>
+          <SectionHeader title="Primary Details" />
+          <FieldTable fields={primaryFields} policy={policy} />
+        </>
+      )}
+
+      {dynamicFields.length > 0 && (
+        <>
+          <SectionHeader title="Additional Details" />
+          <FieldTable fields={dynamicFields} policy={policy} />
+        </>
+      )}
+
+      {policy.description && (
+        <PolicyContent description={policy.description} accentColor="#2563EB" />
+      )}
+    </div>
+  );
+};
+
 // ==================== POLICY SCHEDULE: SHANGHAI SOCIAL INSURANCE ====================
 const ShanghaiSocialInsuranceSchedule = ({ policy }) => {
   const basicInfoFields = ["id", "product_name", "policy_name", "policy_type", "description", "country", "city", "country_of_operation"];
@@ -347,6 +478,16 @@ const ShanghaiSocialInsuranceSchedule = ({ policy }) => {
   const notCoveredFields = ["medical_not_covered_imported_drugs", "medical_not_covered_private_hospitals", "medical_not_covered_vip_wards", "medical_not_covered_dental", "medical_not_covered_vision", "medical_not_covered_routine_physical", "medical_not_covered_vaccines", "medical_not_covered_above_limit", "medical_annual_limit", "gap_note", "supplementary_insurance_recommendation", "supplementary_insurance_note"];
   const proofFields = ["proof_document_1", "proof_document_2", "proof_documents_note", "provider_note"];
   const otherFields = ["is_government", "is_mandatory", "applicable_to", "payment_deadline", "source_file", "created_at", "page_1_marker", "page_2_marker", "raw_page_1_text", "raw_page_2_text", "raw_text_full"];
+
+  const allMappedFields = new Set([...basicInfoFields, ...registrationFields, ...coverageFields, ...notCoveredFields, ...proofFields, ...otherFields, "checklist_task_1", "checklist_deadline_1", "checklist_task_2", "checklist_deadline_2", "checklist_task_3", "checklist_deadline_3", "checklist_task_4", "checklist_deadline_4"]);
+  const unmapped = Object.keys(policy).filter(k => 
+    !allMappedFields.has(k) && 
+    !["id", "user_id", "updated_at", "created_at"].includes(k) &&
+    policy[k] !== undefined && policy[k] !== null && policy[k] !== ""
+  );
+  if (unmapped.length > 0) {
+    otherFields.push(...unmapped);
+  }
 
   return (
     <div className="font-sans text-black p-8 bg-white">
@@ -443,6 +584,8 @@ const GroupActivHealthSchedule = ({ policy }) => {
     { title: "Additional Information", fields: ["created_at", "source_file", "page_1_marker", "page_2_marker", "page_3_marker", "page_4_marker", "page_5_marker", "page_6_marker", "raw_page_1_text", "raw_page_2_text", "raw_page_3_text", "raw_page_4_text", "raw_page_6_text", "trademark_disclaimer_page1", "trademark_disclaimer_page3", "trademark_disclaimer_page4", "aditya_birla_header"] },
   ];
 
+  addUnmappedFieldsToSection(sections, policy, "Additional Information");
+
   return (
     <div className="font-sans text-black p-8 bg-white">
       <div className="text-right mb-2">
@@ -453,12 +596,16 @@ const GroupActivHealthSchedule = ({ policy }) => {
       </div>
       <div className="font-bold mb-2 text-black">Policy No. {policy.policy_number}</div>
 
-      {sections.map(({ title, fields }) => (
-        <React.Fragment key={title}>
-          <SectionHeader title={title} />
-          <FieldTable fields={fields} policy={policy} />
-        </React.Fragment>
-      ))}
+      {sections.map(({ title, fields }) => {
+        const hasData = fields.some(f => policy[f] !== undefined && policy[f] !== null && policy[f] !== "");
+        if (!hasData) return null;
+        return (
+          <React.Fragment key={title}>
+            <SectionHeader title={title} />
+            <FieldTable fields={fields} policy={policy} />
+          </React.Fragment>
+        );
+      })}
     </div>
   );
 };
@@ -479,6 +626,8 @@ const GroupActivSecureSchedule = ({ policy }) => {
     { title: "Additional Information", fields: ["co_insurance_details", "toll_free_number", "created_at", "updated_at", "source_file", "page_1_marker", "page_2_marker", "page_3_marker", "raw_page_1_text", "raw_page_1_coverage", "raw_page_2_text", "raw_page_2_insured_details", "raw_page_3_text", "aditya_birla_header"] },
   ];
 
+  addUnmappedFieldsToSection(sections, policy, "Additional Information");
+
   return (
     <div className="font-sans text-black p-8 bg-white">
       <div className="text-right mb-2">
@@ -489,12 +638,54 @@ const GroupActivSecureSchedule = ({ policy }) => {
       </div>
       <div className="font-bold mb-2 text-black">Policy No. {policy.policy_number}</div>
 
-      {sections.map(({ title, fields }) => (
-        <React.Fragment key={title}>
-          <SectionHeader title={title} />
-          <FieldTable fields={fields} policy={policy} />
-        </React.Fragment>
-      ))}
+      {sections.map(({ title, fields }) => {
+        const hasData = fields.some(f => policy[f] !== undefined && policy[f] !== null && policy[f] !== "");
+        if (!hasData) return null;
+        return (
+          <React.Fragment key={title}>
+            <SectionHeader title={title} />
+            <FieldTable fields={fields} policy={policy} />
+          </React.Fragment>
+        );
+      })}
+    </div>
+  );
+};
+
+// ==================== POLICY SCHEDULE: UANDWE WORKERS COMPENSATION ====================
+const UandWeWorkersCompensationSchedule = ({ policy }) => {
+  const sections = [
+    { title: "Insurer Details", fields: ["insurer_name", "insurer_naic", "contact_phone", "contact_website"] },
+    { title: "Producer Details", fields: ["producer_name", "producer_address", "producer_phone", "producer_fax", "producer_email", "producer_license"] },
+    { title: "Policyholder Details", fields: ["customer_address", "city", "state", "zip", "country"] },
+    { title: "Policy Details", fields: ["product_name", "policy_name", "policy_type", "policy_number", "policy_effective_date", "policy_expiration_date", "description", "is_mandatory"] },
+    { title: "Coverage & Limits", fields: ["coverage_type", "general_liability_type", "employers_liability_limits", "limit_each_accident", "limit_disease_each_employee", "limit_disease_policy_limit", "each_occurrence", "general_aggregate", "products_completed_operations_aggregate", "personal_and_advertising_injury", "damage_to_rented_premises", "medical_expense_any_one_person", "coverage_medical", "coverage_pension", "coverage_work_injury", "coverage_unemployment", "coverage_maternity"] },
+    { title: "Special Conditions", fields: ["description_of_operations", "important_note", "disclaimer", "certificate_holder_rights", "limit_note", "gap_note", "provider_note"] },
+    { title: "Additional Details", fields: ["source_file", "created_at", "updated_at"] }
+  ];
+
+  addUnmappedFieldsToSection(sections, policy, "Additional Details");
+
+  return (
+    <div className="font-sans text-black p-8 bg-white">
+      <div className="text-right mb-2">
+        <span className="text-[#1E3A5F] font-bold">WORKERS COMPENSATION</span>
+      </div>
+      <div className="text-[#1E3A5F] font-bold text-lg mb-1">
+        {policy.product_name || "UANDWE Workers Compensation Insurance"} — Policy Schedule
+      </div>
+      <div className="font-bold mb-2 text-black">Policy No. {policy.policy_number}</div>
+
+      {sections.map(({ title, fields }) => {
+        const hasData = fields.some(f => policy[f] !== undefined && policy[f] !== null && policy[f] !== "");
+        if (!hasData) return null;
+        return (
+          <React.Fragment key={title}>
+            <SectionHeader title={title} />
+            <FieldTable fields={fields} policy={policy} />
+          </React.Fragment>
+        );
+      })}
     </div>
   );
 };
@@ -542,7 +733,7 @@ const InsurancePolicy = () => {
           const userIdToFetch = user.username || user.employeeId || user.userId;
           if (userIdToFetch) {
             try {
-              const res = await axios.get(`http://localhost:5000/api/personal-details?userId=${userIdToFetch}`);
+              const res = await axios.get(`${GLOBAL_API_BASE_URL}/api/personal-details?userId=${userIdToFetch}`);
               if (res.data?.data) {
                 nat = res.data.data.nationality || nat;
                 setEmployeeHealthCard(res.data.data);
@@ -553,7 +744,7 @@ const InsurancePolicy = () => {
         } else {
           setNationality("ADMIN");
           try {
-            const res = await axios.get(`http://localhost:5000/api/personal-details`);
+            const res = await axios.get(`${GLOBAL_API_BASE_URL}/api/personal-details`);
             if (res.data?.success) setAllEmployees(res.data.data);
           } catch { }
         }
@@ -598,30 +789,30 @@ const InsurancePolicy = () => {
         setPolicyToDelete(null);
       }
     } catch (err) {
-      alert(err.response?.data?.message || "Failed to delete policy");
+      toast.error(err.response?.data?.message || "Failed to delete policy");
     }
   };
 
   const handleHealthCardFileChange = async (employeeNumber, e) => {
     const file = e.target.files[0];
     if (!file) return;
-    if (file.size > 1 * 1024 * 1024) { alert("File size exceeds 1MB limit"); e.target.value = null; return; }
+    if (file.size > 1 * 1024 * 1024) { toast.error("File size exceeds 1MB limit"); e.target.value = null; return; }
     const allowed = ["image/jpeg", "image/jpg", "image/png", "application/pdf"];
-    if (!allowed.includes(file.type)) { alert("Invalid file type. Only JPG, PNG, and PDF are allowed."); e.target.value = null; return; }
+    if (!allowed.includes(file.type)) { toast.error("Invalid file type. Only JPG, PNG, and PDF are allowed."); e.target.value = null; return; }
 
     setUploadingMap((p) => ({ ...p, [employeeNumber]: true }));
     const fd = new FormData();
     fd.append("healthCard", file);
     try {
-      const res = await axios.post(`http://localhost:5000/api/personal-details/upload-health-card/${employeeNumber}`, fd, {
+      const res = await axios.post(`${GLOBAL_API_BASE_URL}/api/personal-details/upload-health-card/${employeeNumber}`, fd, {
         headers: { "Content-Type": "multipart/form-data" },
       });
       if (res.data.success) {
         setAllEmployees((prev) => prev.map((emp) => emp.employeeNumber === employeeNumber ? { ...emp, ...res.data.data } : emp));
-        alert("Health Card uploaded successfully");
+        toast.success("Health Card uploaded successfully");
       }
     } catch (err) {
-      alert(err.response?.data?.message || "Error uploading health card");
+      toast.error(err.response?.data?.message || "Error uploading health card");
     } finally {
       setUploadingMap((p) => ({ ...p, [employeeNumber]: false }));
       e.target.value = null;
@@ -631,10 +822,11 @@ const InsurancePolicy = () => {
   const filteredPolicies = policies.filter((policy) => {
     if (isAdmin) return true;
     if (!nationality) return false;
-    
+
     // 1. Check direct nationality field if present
     if (policy.nationality) {
       const polNat = policy.nationality.toUpperCase();
+      if (polNat === "ADMIN_ONLY") return false; // Handled by isAdmin check above
       if (polNat === "GLOBAL") return true;
       return polNat === nationality.toUpperCase();
     }
@@ -658,14 +850,20 @@ const InsurancePolicy = () => {
     const pName = (selectedPolicy.product_name || selectedPolicy.productName || selectedPolicy.policy_name || "").toLowerCase();
     if (pName.includes("shanghai") || selectedPolicy.country === "China" || selectedPolicy.policy_type === "Social Insurance")
       return <ShanghaiSocialInsuranceSchedule policy={selectedPolicy} />;
+    if (pName.includes("uandwe") || selectedPolicy.policy_type?.includes("Workers Compensation") || pName.includes("workers compensation"))
+      return <UandWeWorkersCompensationSchedule policy={selectedPolicy} />;
     if (pName.includes("group activ secure") || selectedPolicy.coverage_type === "Group Activ Secure - Personal Accident")
       return <GroupActivSecureSchedule policy={selectedPolicy} />;
-    return <GroupActivHealthSchedule policy={selectedPolicy} />;
+    if (pName.includes("group activ health") || pName.includes("activ health"))
+      return <GroupActivHealthSchedule policy={selectedPolicy} />;
+      
+    // Fallback for new custom policies added via Copy-Paste
+    return <GenericPolicySchedule policy={selectedPolicy} />;
   };
 
   const tabClass = (idx) =>
     [
-      "flex flex-col items-center gap-0.5 px-7 py-3.5 bg-transparent border-0 cursor-pointer text-sm transition-all",
+      "flex flex-col items-center justify-center gap-0.5 px-4 py-3.5 bg-transparent border-0 cursor-pointer text-sm transition-all whitespace-nowrap min-w-max",
       activeTabIndex === idx
         ? "border-b-[3px] border-[#2563EB] text-[#1E3A5F] font-bold"
         : "border-b-[3px] border-transparent text-gray-500 font-medium hover:text-gray-700",
@@ -680,7 +878,7 @@ const InsurancePolicy = () => {
 
   const filteredEmployees = allEmployees.filter((emp) => {
     if (emp.nationality && emp.nationality.toUpperCase() !== "INDIA") return false;
-    
+
     if (!healthCardSearchTerm) return true;
     const term = healthCardSearchTerm.toLowerCase();
     const num = (emp.employeeNumber || "").toLowerCase();
@@ -701,7 +899,7 @@ const InsurancePolicy = () => {
       <div className="min-h-screen bg-[#F8F9FB] w-full font-[DM_Sans,Inter,sans-serif]">
 
         {/* ── Top Tab Navbar ── */}
-        <div className="flex items-center bg-white border-b border-gray-200 px-6 sticky top-0 z-30">
+        <div className="flex items-center bg-white border-b border-[#E5E7EB] px-6 py-3 min-h-[64px] sticky top-0 z-30 shadow-sm">
           <button
             onClick={() => navigate("/home")}
             className="flex items-center gap-2 bg-transparent border border-gray-200 rounded-lg cursor-pointer px-3.5 py-2 mr-6 text-[13px] text-gray-600 font-medium hover:bg-gray-50 transition-colors flex-shrink-0"
@@ -720,45 +918,62 @@ const InsurancePolicy = () => {
           </div>
 
           {/* Tabs */}
-          <div className="flex flex-1 justify-center items-center">
+          <div className="flex flex-1 justify-center items-center overflow-x-auto hide-scrollbar gap-1 px-2">
             {loading ? (
               <span className="py-4 px-6 text-gray-400 text-sm">Loading policies...</span>
             ) : error ? (
               <span className="py-4 px-6 text-red-500 text-sm">{error}</span>
-            ) : filteredPolicies.length === 0 ? (
-              <span className="py-4 px-6 text-gray-400 text-sm">
-                {!nationality && !isAdmin ? "Checking nationality..." : "No policies found for your nationality"}
-              </span>
+            ) : isAdmin ? (
+              <select
+                value={activeTabIndex}
+                onChange={(e) => {
+                  const val = e.target.value;
+                  setActiveTabIndex(val === "HEALTH_CARDS" ? val : Number(val));
+                }}
+                className="px-4 py-2 border border-gray-300 rounded-lg text-[14px] text-gray-700 outline-none focus:border-[#2563EB] bg-white cursor-pointer min-w-[300px] shadow-sm font-medium"
+              >
+                {filteredPolicies.length > 0 && (
+                  <optgroup label="Insurance Policies">
+                    {filteredPolicies.map((policy, index) => (
+                      <option key={policy.id || index} value={index}>
+                        {getTabDisplayName(policy, index)} {policy.policy_number ? `(${policy.policy_number})` : ""}
+                      </option>
+                    ))}
+                  </optgroup>
+                )}
+                <optgroup label="Admin Section">
+                  <option value="HEALTH_CARDS">Health Cards Management</option>
+                </optgroup>
+              </select>
             ) : (
-              filteredPolicies.map((policy, index) => (
-                <button
-                  key={policy.id || index}
-                  onClick={() => setActiveTabIndex(index)}
-                  className={tabClass(index)}
-                >
-                  <span>{getTabDisplayName(policy, index)}</span>
-                  <span className={`text-[11px] font-normal ${activeTabIndex === index ? "text-[#2563EB]" : "text-gray-400"}`}>
-                    {policy.policy_number || policy.policyNumber || ""}
+              <>
+                {filteredPolicies.length === 0 ? (
+                  <span className="py-4 px-6 text-gray-400 text-sm">
+                    {!nationality ? "Checking nationality..." : "No policies found for your nationality"}
                   </span>
-                </button>
-              ))
-            )}
-
-            {isAdmin && (
-              <button onClick={() => setActiveTabIndex("HEALTH_CARDS")} className={tabClass("HEALTH_CARDS")}>
-                <span>Health Cards</span>
-                <span className={`text-[11px] font-normal ${activeTabIndex === "HEALTH_CARDS" ? "text-[#2563EB]" : "text-gray-400"}`}>
-                  Admin Only
-                </span>
-              </button>
-            )}
-            {!isAdmin && nationality === "INDIA" && (
-              <button onClick={() => setActiveTabIndex("HEALTH_CARD")} className={tabClass("HEALTH_CARD")}>
-                <span>Health Card</span>
-                <span className={`text-[11px] font-normal ${activeTabIndex === "HEALTH_CARD" ? "text-[#2563EB]" : "text-gray-400"}`}>
-                  Employee
-                </span>
-              </button>
+                ) : (
+                  filteredPolicies.map((policy, index) => (
+                    <button
+                      key={policy.id || index}
+                      onClick={() => setActiveTabIndex(index)}
+                      className={tabClass(index)}
+                    >
+                      <span>{getTabDisplayName(policy, index)}</span>
+                      <span className={`text-[11px] font-normal ${activeTabIndex === index ? "text-[#2563EB]" : "text-gray-400"}`}>
+                        {policy.policy_number || policy.policyNumber || ""}
+                      </span>
+                    </button>
+                  ))
+                )}
+                {nationality === "INDIA" && (
+                  <button onClick={() => setActiveTabIndex("HEALTH_CARD")} className={tabClass("HEALTH_CARD")}>
+                    <span>Health Card</span>
+                    <span className={`text-[11px] font-normal ${activeTabIndex === "HEALTH_CARD" ? "text-[#2563EB]" : "text-gray-400"}`}>
+                      Employee
+                    </span>
+                  </button>
+                )}
+              </>
             )}
           </div>
 
