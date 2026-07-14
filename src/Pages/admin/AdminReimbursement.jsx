@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
-import { FileText, Clock, CheckCircle, XCircle } from 'lucide-react';
+import { FileText, Clock, CheckCircle, XCircle, X } from 'lucide-react';
 import toast from 'react-hot-toast';
 import DashboardLayout, { DashboardContainer } from '../../components/dashboard/DashboardLayout';
 import DashboardHeader from '../../components/dashboard/DashboardHeader';
@@ -18,6 +18,12 @@ const AdminReimbursement = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('All');
   const [adminName, setAdminName] = useState('Admin');
+
+  // Modal states
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [modalData, setModalData] = useState({ id: null, action: '' });
+  const [reason, setReason] = useState('');
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const [stats, setStats] = useState({
     total: 0,
@@ -98,13 +104,20 @@ const AdminReimbursement = () => {
     setFilteredData(filtered);
   };
 
-  const handleAction = async (id, newStatus) => {
-    const reason = window.prompt(`Please enter the mandatory reason to ${newStatus.toLowerCase()} this request:`);
-    if (reason === null) return; // User cancelled
+  const handleAction = (id, newStatus) => {
+    setModalData({ id, action: newStatus });
+    setReason('');
+    setIsModalOpen(true);
+  };
+
+  const submitAction = async () => {
     if (reason.trim() === '') {
       toast.error('Reason is mandatory!');
       return;
     }
+
+    const { id, action: newStatus } = modalData;
+    setIsSubmitting(true);
 
     try {
       const response = await axios.put(`${API_BASE_URL}/admin/${id}/status`, {
@@ -120,10 +133,14 @@ const AdminReimbursement = () => {
         );
         setReimbursements(updatedData);
         calculateStats(updatedData);
+        toast.success(`Reimbursement request ${newStatus.toLowerCase()} successfully!`);
+        setIsModalOpen(false);
       }
     } catch (err) {
       console.error('Error updating status:', err);
       toast.error('Failed to update status');
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -298,6 +315,63 @@ const AdminReimbursement = () => {
           )}
         </div>
 
+        {/* Action Modal */}
+        {isModalOpen && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50 backdrop-blur-sm px-4">
+            <div className="bg-white rounded-xl shadow-xl w-full max-w-md overflow-hidden transform transition-all">
+              <div className="px-6 py-4 border-b border-gray-200 flex justify-between items-center bg-gray-50">
+                <h3 className="text-lg font-semibold text-gray-800">
+                  {modalData.action === 'APPROVED' ? 'Approve Request' : 'Reject Request'}
+                </h3>
+                <button
+                  onClick={() => setIsModalOpen(false)}
+                  className="text-gray-400 hover:text-gray-600 transition-colors"
+                >
+                  <X className="h-5 w-5" />
+                </button>
+              </div>
+              <div className="p-6">
+                <p className="text-sm text-gray-600 mb-4">
+                  Please provide a mandatory reason for {modalData.action === 'APPROVED' ? 'approving' : 'rejecting'} this request.
+                </p>
+                <textarea
+                  value={reason}
+                  onChange={(e) => setReason(e.target.value)}
+                  placeholder="Enter your reason here..."
+                  className="w-full border border-gray-300 rounded-lg p-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 min-h-[100px] resize-y"
+                  autoFocus
+                />
+              </div>
+              <div className="px-6 py-4 bg-gray-50 border-t border-gray-200 flex justify-end gap-3">
+                <button
+                  onClick={() => setIsModalOpen(false)}
+                  disabled={isSubmitting}
+                  className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={submitAction}
+                  disabled={isSubmitting || reason.trim() === ''}
+                  className={`px-4 py-2 text-sm font-medium text-white rounded-lg focus:outline-none focus:ring-2 focus:ring-offset-2 flex items-center gap-2 ${
+                    modalData.action === 'APPROVED'
+                      ? 'bg-green-600 hover:bg-green-700 focus:ring-green-500'
+                      : 'bg-red-600 hover:bg-red-700 focus:ring-red-500'
+                  } disabled:opacity-50`}
+                >
+                  {isSubmitting ? (
+                    <>
+                      <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
+                      Processing...
+                    </>
+                  ) : (
+                    'Confirm'
+                  )}
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
       </DashboardContainer>
     </DashboardLayout>
   );
