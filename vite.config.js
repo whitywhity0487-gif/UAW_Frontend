@@ -7,7 +7,7 @@ export default defineConfig({
   ],
  
   // 🔥 ADD THIS (VERY IMPORTANT)
-  base: '/myuandwe/',
+  base: '/',
  
   build: {
     rollupOptions: {
